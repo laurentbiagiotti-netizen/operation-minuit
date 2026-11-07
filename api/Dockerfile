@@ -1,6 +1,7 @@
 FROM python:3.12-slim
 COPY wheels/ /tmp/wheels/
-RUN pip install --no-cache-dir --no-index --find-links /tmp/wheels "psycopg[binary]" pymysql oracledb python-tds \
+RUN (pip install --no-cache-dir --no-index --find-links /tmp/wheels "psycopg[binary]" pymysql oracledb python-tds \
+     || pip install --no-cache-dir "psycopg[binary]" pymysql oracledb python-tds) \
  && rm -rf /tmp/wheels && useradd -u 10001 -m minuit && mkdir -p /data && chown minuit /data
 COPY server.py normal.py /app/
 COPY hard/ /app/hard/

@@ -1,113 +1,104 @@
-# Opération Minuit : déploiement Docker
+# Opération Minuit
 
-Serious game SQL de Cybersup. C'est un site 100 % statique : une page `index.html` (moteur SQLite en WebAssembly et toutes les données intégrés) et un dossier `img/` de 371 images. Aucune base de données ni backend côté serveur : le SQL tourne dans le navigateur de l'étudiant.
+Serious game en bande dessinée pour apprendre le SQL, créé par Cybersup. L'élève mène une enquête policière : chaque indice s'obtient en écrivant une requête SQL sur la base de l'enquête (suspects, appels, trafic réseau, transactions...).
 
-Le conteneur est un nginx non root (port 8080 dans le conteneur, 8590 sur le serveur), en lecture seule, avec compression gzip (8 Mo de page qui passent en 1,4 Mo) et cache long sur les images.
+- 310 missions réparties en chapitres, des quêtes annexes et des quêtes cachées, des boss au chrono et des quiz.
+- Le SQL tourne dans le navigateur (SQLite en WebAssembly) pour afficher les résultats tout de suite, et un petit serveur corrige les réponses : les solutions et les indices ne sont jamais envoyés au navigateur.
+- Un classement par classe, avec connexion par prénom et nom, ou par compte Google d'un domaine choisi.
+- Un **mode difficile** optionnel : les mêmes missions sur de vrais moteurs, PostgreSQL 16, MariaDB 11, Oracle 23ai Free et SQL Server 2022, chacun avec son dialecte.
 
-## Contenu
+## Installation rapide
 
-- `Dockerfile` : image nginx-unprivileged avec le site.
-- `nginx.conf` : gzip, en-têtes de sécurité, cache, route de santé `/healthz`.
-- `docker-compose.yml` : lancement avec redémarrage automatique et durcissement (lecture seule, aucune capability).
-- `site/` : le jeu.
-
-## Déploiement sur la Dedibox Scaleway (depuis le Mac)
-
-Le script `deploy.sh` envoie le jeu sur `utilisateur@adresse-du-serveur`, dans `/home/utilisateur/operation-minuit`, puis lance `sudo docker compose up -d --build` (le mot de passe sudo du serveur est demandé). Le jeu écoute sur le port hôte **8590**.
-
-Depuis un terminal, dans le dossier `operation-minuit` :
+Il faut Docker avec Docker Compose (Docker Desktop sur Mac ou Windows, ou Docker Engine sur Linux).
 
 ```
-chmod +x deploy.sh
-./deploy.sh
-```
-
-Le script s'arrête avec `OK : le jeu répond sur le port 8590` si tout va bien. Si le port 8590 est déjà pris, le changer à deux endroits : `docker-compose.yml` (`"8590:8080"`) et `deploy.sh` (`HOST_PORT`).
-
-## Mettre le jeu sur un nom de domaine en HTTPS (nginx-proxy-manager)
-
-1. Chez le registrar, créer un enregistrement DNS A `jeu.votre-domaine.fr` vers `adresse-du-serveur`.
-2. Dans l'interface NPM (port 81) : Hosts, Proxy Hosts, Add Proxy Host.
-   - Domain Names : `jeu.votre-domaine.fr`
-   - Scheme : `http`, Forward Hostname / IP : `adresse-du-serveur`, Forward Port : `8590`
-   - Cocher Block Common Exploits
-   - Onglet SSL : Request a new SSL Certificate, Force SSL, HTTP/2 Support
-3. Enregistrer, puis ouvrir `https://jeu.votre-domaine.fr`.
-
-## Installation manuelle (autre serveur)
-
-```
+git clone https://github.com/laurentbiagiotti-netizen/operation-minuit.git
+cd operation-minuit
+cp .env.exemple .env
 docker compose up -d --build
-curl http://localhost:8590/healthz
 ```
 
-## Mettre à jour le jeu
+Ouvrir ensuite http://localhost:8590 dans un navigateur. C'est tout : le jeu, la correction et le classement fonctionnent.
 
-Remplacer le contenu de `site/` par la nouvelle version, puis relancer `./deploy.sh` depuis le Mac.
+Pour arrêter : `docker compose down`. Le classement est gardé dans un volume Docker et survit aux redémarrages.
 
-La page `index.html` est servie sans cache : les étudiants ont la nouvelle version au prochain chargement. Leur progression est gardée dans leur navigateur (localStorage) et n'est pas perdue.
+## Réglages (fichier .env)
 
-## Suivi de classe
+| Variable | Rôle | Par défaut |
+|---|---|---|
+| `HOST_PORT` | Port sur lequel le jeu répond | `8590` |
+| `BIND_ADDR` | Adresse d'écoute (`127.0.0.1` pour n'ouvrir le jeu qu'à la machine, utile derrière un proxy) | `0.0.0.0` |
+| `GOOGLE_CLIENT_ID` | Active la connexion Google (voir plus bas) | vide, connexion par prénom et nom uniquement |
+| `ALLOWED_DOMAIN` | Seuls les comptes Google de ce domaine sont acceptés | `votre-domaine.fr` |
+| `COMPOSE_PROFILES` | Moteurs à lancer pour le mode difficile : les mêmes noms que `HARD_ENGINES` (ou `difficile` pour les quatre) | vide |
+| `HARD_ENGINES` | Moteurs du mode difficile, séparés par des virgules : `pg,maria,oracle,mssql` | vide |
+| `HARD_ADMIN_PASSWORD`, `HARD_READER_PASSWORD`, `HARD_WORKER_PASSWORD` | Mots de passe des moteurs (obligatoires pour le mode difficile) | vides |
 
-Sur le serveur, le suivi automatique de la version claude.ai (synchronisation via l'organisation) n'existe pas. Le mode « par code » fonctionne normalement : chaque étudiant clique sur « Copier mon code pour le formateur » (accueil, encadré Ma classe) et l'envoie ; le formateur colle les codes dans l'Espace formateur (lien en bas de page).
+Après une modification du `.env`, relancer `docker compose up -d --build`.
 
-## Dépendance externe
+## Activer le mode difficile
 
-La page charge les polices Archivo Black, DM Sans et DM Mono depuis Google Fonts. Sans accès internet, le jeu fonctionne avec des polices de remplacement.
+Le mode difficile demande plus de ressources : compter environ 12 Go de mémoire pour les quatre moteurs, et 3 à 5 minutes au premier démarrage, le temps de charger les bases.
 
-## Classement et connexion
-
-Le kit lance deux conteneurs :
-- `operation-minuit` : nginx, qui sert le jeu et transmet `/api/` à l'API ;
-- `operation-minuit-api` : l'API du classement (Python, base SQLite dans le volume Docker `minuit-data`, conservé entre deux déploiements).
-
-Au premier lancement, le jeu demande à l'étudiant sa classe, puis son prénom et son nom, ou une connexion Google réservée aux comptes @votre-domaine.fr. Le classement public n'affiche que le prénom, l'initiale du nom, la classe et le score (meilleur XP conservé).
-
-### Activer la connexion Google @votre-domaine.fr
-
-1. Dans la console Google Cloud de l'organisation votre-domaine.fr : API et services, Écran de consentement OAuth, type « Interne ».
-2. Identifiants, Créer des identifiants, ID client OAuth, type « Application Web ». Origine JavaScript autorisée : `https://jeu.votre-domaine.fr`.
-3. Copier l'ID client dans un fichier `.env` à côté de `deploy.sh` (modèle : `.env.exemple`), sur la ligne `GOOGLE_CLIENT_ID=`.
-4. Relancer `./deploy.sh`.
-
-Sans ID client, seul le formulaire prénom et nom est proposé. La connexion Google exige que le jeu soit servi en HTTPS sur l'origine déclarée.
-
-L'API vérifie le jeton auprès de Google et refuse tout compte dont le domaine n'est pas votre-domaine.fr.
-
-### Sauvegarder ou remettre à zéro le classement
+1. Générer trois mots de passe solides, par exemple avec `openssl rand -base64 18`. SQL Server exige au moins 8 caractères avec majuscules, minuscules et chiffres : `openssl rand -base64 18` convient.
+2. Les mettre dans le `.env`, avec les moteurs voulus :
 
 ```
-sudo docker cp operation-minuit-api:/data/classement.db ./classement-sauvegarde.db
-```
-
-Pour repartir de zéro : `sudo docker compose down`, puis `sudo docker volume rm operation-minuit_minuit-data`, puis `./remote_deploy.sh`.
-
-## Mode difficile (PostgreSQL, MariaDB, Oracle, SQL Server)
-
-Le mode difficile fait résoudre les 310 missions sur un vrai moteur. Le serveur exécute la requête de l'étudiant et la corrige ; l'XP est doublée et le classement « Mode difficile » est calculé par le serveur.
-
-Il ajoute quatre conteneurs (profil Docker `difficile`) : `minuit-pg`, `minuit-maria`, `minuit-oracle` et `minuit-mssql`. Ils partagent le réseau du conteneur du jeu et n'exposent aucun port : seule l'API les joint. Au démarrage, l'API charge la base de l'enquête dans chaque moteur (environ 2 minutes, SQL Server est le plus lent), puis le mode apparaît dans le jeu.
-
-Activation, dans le fichier `.env` :
-```
+COMPOSE_PROFILES=pg,maria,oracle,mssql
 HARD_ENGINES=pg,maria,oracle,mssql
-COMPOSE_PROFILES=difficile
 HARD_ADMIN_PASSWORD=...
 HARD_READER_PASSWORD=...
 HARD_WORKER_PASSWORD=...
 ```
-Pour le couper : vider `HARD_ENGINES` et `COMPOSE_PROFILES`, puis relancer `./deploy.sh`.
 
-Besoins : environ 7 Go de RAM et **environ 12 Go de disque libre** pour les images (Oracle 2,8 Go, SQL Server 2,4 Go, MariaDB et PostgreSQL 0,9 Go) et leurs données.
+3. Relancer `docker compose up -d --build`. Le bouton « Mode difficile » apparaît dans le jeu quand les moteurs sont prêts.
 
-Sécurité : lecture seule pour les missions de lecture, bases de travail jetables (remises à zéro après chaque mission qui modifie), comptes sans privilège système, délai maximum de quelques secondes par requête, 40 requêtes par minute et par adresse IP, inscription obligatoire.
+On peut ne lancer qu'une partie des moteurs, par exemple `COMPOSE_PROFILES=pg,maria` et `HARD_ENGINES=pg,maria` : c'est beaucoup plus léger (environ 4 Go). Sur un Mac à puce Apple (ARM), l'image SQL Server n'existe pas en version ARM : se limiter à `pg,maria,oracle`.
 
-Si un moteur redémarre seul, relancer l'API pour recharger ses données : `sudo docker restart operation-minuit-api`.
+Le classement du mode difficile est séparé et n'affiche que les comptes connectés avec Google.
 
-## Sources
+## Activer la connexion Google
 
-- `site/` et `api/` : ce qui est déployé (le jeu déjà assemblé et le serveur).
-- `sources/jeu/` : les sources du jeu (missions, histoire, quêtes, moteur du jeu). `build.py` assemble `site/index.html` ; `export_normal.js` sépare ce que le navigateur reçoit de ce que seul le serveur connaît (solutions, indices).
-- `sources/difficile/` : les outils du mode difficile (traductions par moteur, chargement des bases, vérification des 310 missions).
+1. Dans la console Google Cloud de votre organisation : API et services, Écran de consentement OAuth, type « Interne ».
+2. Identifiants, Créer des identifiants, ID client OAuth, type « Application Web ». Origine JavaScript autorisée : l'adresse publique du jeu, par exemple `https://jeu.votre-domaine.fr`.
+3. Mettre l'ID client dans `GOOGLE_CLIENT_ID` et votre domaine dans `ALLOWED_DOMAIN`, puis relancer.
 
-Les secrets (mots de passe des moteurs, identifiant Google) vivent uniquement dans le fichier `.env`, qui n'est pas versionné. Copier `.env.exemple` en `.env` et le remplir. Dans `deploy.sh`, renseigner `SERVER` et `REMOTE_DIR` (ou les passer en variables d'environnement).
+L'API vérifie le jeton auprès de Google et refuse tout compte dont le domaine n'est pas `ALLOWED_DOMAIN`.
+
+## Mettre le jeu en ligne
+
+Le jeu se place derrière n'importe quel proxy HTTPS (Nginx Proxy Manager, Caddy, Traefik...) qui renvoie vers `http://<machine>:8590`. Si le proxy tourne sur la même machine, mettre `BIND_ADDR` sur l'adresse que le proxy utilise pour joindre le jeu, pour que le port 8590 ne soit pas ouvert sur Internet.
+
+Le script `deploy.sh` envoie le dossier sur un serveur par SSH et y lance `remote_deploy.sh`. Renseigner d'abord `SERVER` et `REMOTE_DIR`, en haut du script ou en variables d'environnement :
+
+```
+SERVER=utilisateur@adresse-du-serveur REMOTE_DIR=/home/utilisateur/operation-minuit ./deploy.sh
+```
+
+## Sécurité
+
+- Les conteneurs tournent sans droits root, en lecture seule quand c'est possible, avec des limites de mémoire et de processus.
+- Le mode normal rejoue chaque requête sur une copie neuve de la base SQLite, avec une limite de temps et sans accès aux fichiers.
+- En mode difficile, les élèves passent par un compte en lecture seule ou par des bases de travail jetables, remises à zéro après chaque requête qui modifie des données ; les requêtes trop longues sont coupées.
+- Les secrets vivent uniquement dans `.env`, qui n'est pas versionné.
+
+## Contenu du dépôt
+
+- `site/` : le jeu assemblé (une page `index.html` et ses images), servi par nginx.
+- `api/` : le serveur Python (classement, correction du mode normal, mode difficile). `api/hard/` contient les traductions des missions par moteur et les données de l'enquête.
+- `docker-compose.yml`, `Dockerfile`, `nginx.conf` : le déploiement.
+- `sources/jeu/` : les sources du jeu (missions, histoire, quêtes, moteur du jeu).
+- `sources/difficile/` : les outils du mode difficile (chargement des bases, vérification des 310 missions par moteur).
+
+## Modifier le jeu
+
+Les missions sont dans `sources/jeu/missions*.js` et `sides*.js`, l'histoire dans `story*.js`, le moteur du jeu dans `app.js`. Pour reconstruire le site après une modification :
+
+```
+cd sources/jeu
+npm install
+python3 build.py
+```
+
+`build.py` met à jour `site/` et `api/hard/normal.json` (les solutions et les indices, que seul le serveur connaît). Relancer ensuite `docker compose up -d --build` à la racine du dépôt.
+

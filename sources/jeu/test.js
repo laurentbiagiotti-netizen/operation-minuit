@@ -1,5 +1,5 @@
 global.window = globalThis; window.__NO_BOOT = true;
-const fs = require('fs'), B = '/home/claude/build/';
+const fs = require('fs'), B = __dirname + '/';
 const initSqlJs = require(B + 'node_modules/sql.js/dist/sql-wasm.js');
 eval(['missions1.js','missions2.js','story.js','missions_boss.js','missions3.js','story2.js','missions4.js','story3.js','missions6.js','story5.js','missions5.js','story4.js','sides1.js','sides2.js','sides3.js','sides4.js'].map(f=>fs.readFileSync(B+f,'utf8')).join('\n'));
 eval(fs.readFileSync(B+'app.js','utf8'));
