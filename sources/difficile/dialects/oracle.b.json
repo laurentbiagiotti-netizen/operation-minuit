@@ -1,0 +1,1445 @@
+{
+ "21.1": {
+  "solution": "SELECT COUNT(*) AS total, COUNT(DISTINCT temoin) AS noms_bruts, COUNT(DISTINCT LOWER(TRIM(temoin))) AS noms_propres FROM temoignages_bruts;",
+  "hints": [
+   "COUNT(DISTINCT ...) existe en Oracle comme en SQLite, et TRIM et LOWER aussi.",
+   "Structure : SELECT COUNT(*) AS total, COUNT(DISTINCT temoin) AS noms_bruts, COUNT(DISTINCT LOWER(TRIM(temoin))) AS noms_propres FROM temoignages_bruts;"
+  ],
+  "note": "Rien ne change ici : TRIM, LOWER et COUNT(DISTINCT) s'écrivent de la même façon en Oracle."
+ },
+ "21.2": {
+  "solution": "SELECT LOWER(TRIM(temoin)) AS temoin, COUNT(*) AS nb FROM temoignages_bruts GROUP BY LOWER(TRIM(temoin)) HAVING COUNT(*) > 1 ORDER BY nb DESC, temoin;",
+  "hints": [
+   "Regroupe sur l'expression LOWER(TRIM(temoin)) elle-même, puis filtre les groupes avec HAVING.",
+   "Structure : SELECT LOWER(TRIM(temoin)) AS temoin, COUNT(*) AS nb FROM ... GROUP BY LOWER(TRIM(temoin)) HAVING COUNT(*) > 1 ORDER BY nb DESC, temoin;"
+  ],
+  "note": "Oracle 23ai accepte aussi l'alias dans le GROUP BY, mais répéter l'expression marche dans toutes les versions."
+ },
+ "21.3": {
+  "solution": "DELETE FROM temoignages_bruts WHERE id IN (SELECT id FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY LOWER(TRIM(temoin)) ORDER BY recu_le, id) AS rn FROM temoignages_bruts) WHERE rn > 1);",
+  "verify": [
+   "SELECT id FROM temoignages_bruts ORDER BY id"
+  ],
+  "hints": [
+   "Numérote les lignes de chaque témoin normalisé avec ROW_NUMBER() OVER (PARTITION BY ... ORDER BY recu_le, id) dans une sous-requête.",
+   "Structure : DELETE FROM temoignages_bruts WHERE id IN (SELECT id FROM (SELECT id, ROW_NUMBER() OVER (...) AS rn FROM temoignages_bruts) WHERE rn > 1);"
+  ],
+  "note": "Les fonctions de fenêtre s'utilisent pareil ; Oracle n'exige pas d'alias sur la table dérivée."
+ },
+ "21.4": {
+  "solution": "SELECT UPPER(REPLACE(REPLACE(TRIM(plaque), ' ', ''), '-', '')) AS plaque, COUNT(*) AS nb FROM temoignages_bruts WHERE TRIM(plaque) IS NOT NULL GROUP BY UPPER(REPLACE(REPLACE(TRIM(plaque), ' ', ''), '-', '')) ORDER BY nb DESC;",
+  "hints": [
+   "Attention : en Oracle la chaîne vide '' vaut NULL, donc TRIM(plaque) <> '' n'est jamais vrai. Teste plutôt TRIM(plaque) IS NOT NULL.",
+   "Structure : SELECT UPPER(REPLACE(REPLACE(TRIM(plaque), ' ', ''), '-', '')) AS plaque, COUNT(*) AS nb FROM ... WHERE TRIM(plaque) IS NOT NULL GROUP BY (même expression) ORDER BY nb DESC;"
+  ],
+  "note": "Piège Oracle : '' est NULL, une comparaison avec '' ne renvoie jamais vrai. TRIM d'une plaque faite d'espaces donne NULL, d'où le test IS NOT NULL. GROUP BY 1 (position) n'est pas activé par défaut."
+ },
+ "21.5": {
+  "solution": "SELECT c.immatriculation, c.marque, c.couleur, c.titulaire, COUNT(DISTINCT LOWER(TRIM(t.temoin))) AS temoins FROM temoignages_bruts t JOIN cartes_grises c ON REPLACE(c.immatriculation, '-', '') = UPPER(REPLACE(REPLACE(TRIM(t.plaque), ' ', ''), '-', '')) GROUP BY c.immatriculation, c.marque, c.couleur, c.titulaire ORDER BY temoins DESC;",
+  "hints": [
+   "Joins les deux tables sur la plaque normalisée des deux côtés (REPLACE pour retirer les tirets, UPPER, TRIM).",
+   "Structure : ... JOIN cartes_grises c ON REPLACE(c.immatriculation, '-', '') = UPPER(REPLACE(REPLACE(TRIM(t.plaque), ' ', ''), '-', '')) GROUP BY c.immatriculation, c.marque, c.couleur, c.titulaire ORDER BY temoins DESC;"
+  ],
+  "note": "Même requête qu'en SQLite : REPLACE, UPPER et TRIM existent en Oracle."
+ },
+ "21.A": {
+  "solution": "SELECT DISTINCT LOWER(TRIM(temoin)) AS temoin, REPLACE(telephone, ' ', '') AS telephone FROM temoignages_bruts WHERE description NOT LIKE 'Rien vu%' ORDER BY temoin;",
+  "hints": [
+   "LIKE est sensible à la casse en Oracle ; ici la description commence bien par 'Rien vu' avec la majuscule.",
+   "Structure : SELECT DISTINCT LOWER(TRIM(temoin)) AS temoin, REPLACE(telephone, ' ', '') AS telephone FROM ... WHERE description NOT LIKE 'Rien vu%' ORDER BY temoin;"
+  ],
+  "note": "LIKE est sensible à la casse en Oracle (pas en SQLite) ; le motif 'Rien vu%' respecte déjà la casse des données."
+ },
+ "21.S": {
+  "solution": "SELECT LOWER(TRIM(t.temoin)) AS temoin, COUNT(*) AS appels, COUNT(DISTINCT REPLACE(t.telephone, ' ', '')) AS numeros, MAX(c.immatriculation) AS plaque, MAX(c.titulaire) AS titulaire FROM temoignages_bruts t LEFT JOIN cartes_grises c ON REPLACE(c.immatriculation, '-', '') = UPPER(REPLACE(REPLACE(TRIM(t.plaque), ' ', ''), '-', '')) GROUP BY LOWER(TRIM(t.temoin)) HAVING COUNT(*) > 1 AND COUNT(DISTINCT REPLACE(t.telephone, ' ', '')) = COUNT(*) ORDER BY appels DESC, temoin;",
+  "hints": [
+   "Un LEFT JOIN sur la plaque normalisée garde les témoignages sans carte grise ; HAVING compare le nombre de numéros distincts au nombre d'appels.",
+   "Structure : ... LEFT JOIN cartes_grises c ON (plaques normalisées) GROUP BY LOWER(TRIM(t.temoin)) HAVING COUNT(*) > 1 AND COUNT(DISTINCT REPLACE(t.telephone, ' ', '')) = COUNT(*) ORDER BY appels DESC, temoin;"
+  ],
+  "note": "Aucune fonction propre à SQLite : la requête passe telle quelle en Oracle."
+ },
+ "22.1": {
+  "solution": "SELECT horodatage AS quand, 'connexions' AS source, login AS detail FROM connexions WHERE ip = '203.0.113.66' AND succes = 1 UNION ALL SELECT horodatage, 'badges', badge FROM acces_badges WHERE porte = 'Salle des coffres' AND resultat = 'OK' AND horodatage BETWEEN TIMESTAMP '2026-11-13 22:00:00' AND TIMESTAMP '2026-11-14 01:00:00' UNION ALL SELECT * FROM (SELECT horodatage, 'trafic', poste FROM trafic WHERE ip_dst = '198.51.100.200' ORDER BY horodatage FETCH FIRST 1 ROW ONLY) UNION ALL SELECT horodatage, 'crypto', vers FROM tx_crypto WHERE de = 'bc1q-eclipse-7f3a' ORDER BY quand;",
+  "hints": [
+   "En Oracle, LIMIT n'existe pas : le premier contact se prend avec ORDER BY horodatage FETCH FIRST 1 ROW ONLY, dans une sous-requête entre parenthèses. Les bornes horaires s'écrivent TIMESTAMP '2026-11-13 22:00:00'.",
+   "Structure : SELECT horodatage AS quand, 'connexions' AS source, login AS detail FROM connexions WHERE ... UNION ALL SELECT ... FROM acces_badges WHERE ... BETWEEN TIMESTAMP '...' AND TIMESTAMP '...' UNION ALL SELECT * FROM (SELECT ... FROM trafic WHERE ... ORDER BY horodatage FETCH FIRST 1 ROW ONLY) UNION ALL SELECT ... FROM tx_crypto WHERE ... ORDER BY quand;"
+  ],
+  "note": "LIMIT 1 devient FETCH FIRST 1 ROW ONLY, et les horodatages se comparent à des littéraux TIMESTAMP '...' (colonnes de type TIMESTAMP)."
+ },
+ "22.2": {
+  "solution": "WITH chaine(siren, part) AS (SELECT importateur_siren, 100 FROM conteneurs WHERE code = 'MSCU-449120' UNION ALL SELECT p.detenteur, c.part * p.pct / 100 FROM participations p JOIN chaine c ON p.detenue = c.siren), beneficiaires AS (SELECT REPLACE(siren, 'PERSONNE:', '') AS nom FROM chaine WHERE siren LIKE 'PERSONNE:%' AND part > 50), suivi(adresse, saut, chemin, quand) AS (SELECT CAST('bc1q-eclipse-7f3a' AS VARCHAR2(4000)), 0, CAST('bc1q-eclipse-7f3a' AS VARCHAR2(4000)), TIMESTAMP '2027-05-12 00:00:00' FROM dual UNION ALL SELECT t.vers, s.saut + 1, s.chemin || ' > ' || t.vers, t.horodatage FROM tx_crypto t JOIN suivi s ON t.de = s.adresse WHERE s.saut < 8 AND t.horodatage > s.quand AND INSTR(s.chemin, t.vers) = 0), kyc AS (SELECT DISTINCT w.kyc_nom FROM suivi s JOIN wallets w ON w.adresse = s.adresse WHERE w.type = 'exchange'), effaceurs AS (SELECT DISTINCT c.nom_complet FROM journal_brigade j JOIN consultants c ON c.login = j.login WHERE j.action = 'DELETE' AND j.table_cible = 'pieces') SELECT b.nom FROM beneficiaires b WHERE UPPER(SUBSTR(b.nom, 1, 1) || '. ' || SUBSTR(b.nom, INSTR(b.nom, ' ') + 1)) IN (SELECT kyc_nom FROM kyc) AND b.nom IN (SELECT nom_complet FROM effaceurs);",
+  "require": [
+   {
+    "re": "\\w+\\s*\\([\\w\\s,\\\"]+\\)\\s*AS\\s*\\([\\s\\S]*UNION\\s+ALL",
+    "msg": "Les pistes de propriété et de crypto exigent une CTE récursive : en Oracle, WITH chaine(siren, part) AS (... UNION ALL ...), sans le mot RECURSIVE."
+   },
+   {
+    "re": "^(?![\\s\\S]*(Ouali|OUALI|consultant\\.fo|512000|EXCH-NEO))",
+    "msg": "Ne recopie aucune valeur trouvée avant (nom, login, SIREN, compte d'échange) : la requête doit tout retrouver seule."
+   }
+  ],
+  "hints": [
+   "Oracle n'a pas WITH RECURSIVE : une CTE est récursive dès qu'elle se cite elle-même, mais il faut alors la liste des colonnes, par exemple chaine(siren, part). L'ancre sans table se fait FROM dual ; caste le texte de départ en VARCHAR2(4000) pour que le chemin puisse grandir.",
+   "Structure : WITH chaine(siren, part) AS (SELECT importateur_siren, 100 FROM conteneurs WHERE ... UNION ALL SELECT p.detenteur, c.part * p.pct / 100 FROM participations p JOIN chaine c ON ...), beneficiaires AS (...), suivi(adresse, saut, chemin, quand) AS (SELECT CAST('bc1q-eclipse-7f3a' AS VARCHAR2(4000)), 0, ..., TIMESTAMP '2027-05-12 00:00:00' FROM dual UNION ALL ...), kyc AS (...), effaceurs AS (...) SELECT b.nom FROM beneficiaires b WHERE ... IN (SELECT kyc_nom FROM kyc) AND b.nom IN (SELECT nom_complet FROM effaceurs);"
+  ],
+  "note": "Pas de mot-clé RECURSIVE en Oracle : la CTE récursive se reconnaît à la liste de colonnes et à l'auto-référence. L'ancre sans table utilise FROM dual, et le texte de départ est casté en VARCHAR2(4000) pour que la colonne chemin ne soit pas limitée à sa longueur initiale."
+ },
+ "22.3": {
+  "setup": "CREATE TABLE proces_verbal (affaire VARCHAR2(100) NOT NULL, coupable VARCHAR2(100) NOT NULL, preuve VARCHAR2(200));",
+  "solution": "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT DISTINCT 'Éclipse', c.nom_complet, 'effacement de pièces' FROM consultants c JOIN journal_brigade j ON j.login = c.login WHERE j.action = 'DELETE';",
+  "verify": [
+   "SELECT affaire, coupable FROM proces_verbal"
+  ],
+  "hints": [
+   "INSERT INTO ... SELECT fonctionne en Oracle comme en SQLite : les constantes 'Éclipse' et 'effacement de pièces' se mettent directement dans le SELECT.",
+   "Structure : INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT DISTINCT 'Éclipse', c.nom_complet, 'effacement de pièces' FROM consultants c JOIN journal_brigade j ON ... WHERE j.action = 'DELETE';"
+  ],
+  "note": "La table proces_verbal est créée avec des VARCHAR2 (Oracle n'a pas de type TEXT). Le reste est identique."
+ },
+ "22.A": {
+  "solution": "SELECT horodatage AS quand, 'helios' AS source, ip AS detail FROM connexions WHERE login = 'f.ouali' AND ip = '203.0.113.66' UNION ALL SELECT TO_TIMESTAMP(JSON_VALUE(contenu, '$.date'), 'YYYY-MM-DD HH24:MI:SS'), 'saisies', JSON_VALUE(contenu, '$.texte') FROM saisies WHERE JSON_VALUE(contenu, '$.de') = 'cartographe' UNION ALL SELECT debut, 'sessions', poste FROM sessions_postes WHERE login = 'ext.kartograf' UNION ALL SELECT horodatage, 'journal', JSON_VALUE(ancienne_valeur, '$.description') FROM journal_brigade WHERE login = 'consultant.fo' AND action = 'DELETE' ORDER BY quand;",
+  "hints": [
+   "json_extract devient JSON_VALUE(colonne, '$.champ'). Dans un UNION ALL, Oracle exige le même type par colonne : la date lue dans le JSON est un texte, convertis-la avec TO_TIMESTAMP(..., 'YYYY-MM-DD HH24:MI:SS').",
+   "Structure : SELECT horodatage AS quand, 'helios' AS source, ip AS detail FROM connexions WHERE ... UNION ALL SELECT TO_TIMESTAMP(JSON_VALUE(contenu, '$.date'), 'YYYY-MM-DD HH24:MI:SS'), 'saisies', JSON_VALUE(contenu, '$.texte') FROM saisies WHERE JSON_VALUE(contenu, '$.de') = 'cartographe' UNION ALL ... ORDER BY quand;"
+  ],
+  "note": "json_extract devient JSON_VALUE ; Oracle refuse de mélanger TIMESTAMP et texte dans une même colonne d'un UNION ALL, d'où le TO_TIMESTAMP sur la date du JSON."
+ },
+ "22.S": {
+  "solution": "WITH chaine(siren, part) AS (SELECT importateur_siren, 100 FROM conteneurs WHERE code = 'MSCU-449120' UNION ALL SELECT p.detenteur, c.part * p.pct / 100 FROM participations p JOIN chaine c ON p.detenue = c.siren), b AS (SELECT REPLACE(siren, 'PERSONNE:', '') AS nom, part FROM chaine WHERE siren LIKE 'PERSONNE:%') SELECT b.nom AS beneficiaire, ROUND(b.part, 1) AS part, w.plateforme, w.adresse, (SELECT ROUND(SUM(montant), 2) FROM tx_crypto WHERE vers = w.adresse) AS recu FROM b JOIN wallets w ON w.kyc_nom = UPPER(SUBSTR(b.nom, 1, 1) || '. ' || SUBSTR(b.nom, INSTR(b.nom, ' ') + 1)) WHERE b.nom NOT IN (SELECT nom_complet FROM consultants);",
+  "require": [
+   {
+    "re": "\\w+\\s*\\([\\w\\s,\\\"]+\\)\\s*AS\\s*\\([\\s\\S]*UNION\\s+ALL",
+    "msg": "La chaîne de propriété exige une CTE récursive : en Oracle, WITH chaine(siren, part) AS (... UNION ALL ...), sans le mot RECURSIVE."
+   },
+   {
+    "re": "^(?![\\s\\S]*(Larsen|LARSEN|EXCH-BLT))",
+    "msg": "Ne recopie aucun nom ni compte : la requête doit les retrouver seule."
+   }
+  ],
+  "hints": [
+   "Écris la CTE récursive sans RECURSIVE mais avec sa liste de colonnes : WITH chaine(siren, part) AS (ancre UNION ALL étape).",
+   "Structure : WITH chaine(siren, part) AS (...), b AS (SELECT REPLACE(siren, 'PERSONNE:', '') AS nom, part FROM chaine WHERE siren LIKE 'PERSONNE:%') SELECT b.nom AS beneficiaire, ROUND(b.part, 1) AS part, w.plateforme, w.adresse, (SELECT ROUND(SUM(montant), 2) FROM tx_crypto WHERE vers = w.adresse) AS recu FROM b JOIN wallets w ON w.kyc_nom = UPPER(SUBSTR(...) || '. ' || SUBSTR(...)) WHERE b.nom NOT IN (SELECT nom_complet FROM consultants);"
+  ],
+  "note": "Seule la CTE récursive change : pas de mot RECURSIVE, mais la liste des colonnes est obligatoire."
+ },
+ "23.1": {
+  "solution": "SELECT label_risque, COUNT(*) AS nb FROM dataset_vigie GROUP BY label_risque ORDER BY label_risque;",
+  "hints": [
+   "Un simple GROUP BY label_risque avec COUNT(*).",
+   "Structure : SELECT label_risque, COUNT(*) AS nb FROM dataset_vigie GROUP BY label_risque ORDER BY label_risque;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "23.2": {
+  "solution": "SELECT COUNT(*) AS lignes, COUNT(*) - COUNT(meteo) AS meteo_manquante, ROUND(100 * (COUNT(*) - COUNT(meteo)) / COUNT(*), 1) AS pct FROM dataset_vigie;",
+  "hints": [
+   "COUNT(meteo) ignore les NULL. En Oracle la division de deux entiers est décimale : pas besoin du 100.0 de SQLite.",
+   "Structure : SELECT COUNT(*) AS lignes, COUNT(*) - COUNT(meteo) AS meteo_manquante, ROUND(100 * (COUNT(*) - COUNT(meteo)) / COUNT(*), 1) AS pct FROM dataset_vigie;"
+  ],
+  "note": "Oracle ne tronque pas la division entière (7/2 = 3,5) : le 100.0 de SQLite n'est plus nécessaire."
+ },
+ "23.3": {
+  "solution": "SELECT quartier, COUNT(*) AS exemples, ROUND(100 * AVG(label_risque), 1) AS pct_risque FROM dataset_vigie GROUP BY quartier ORDER BY pct_risque DESC;",
+  "hints": [
+   "La moyenne d'une colonne 0/1 donne directement la proportion de 1.",
+   "Structure : SELECT quartier, COUNT(*) AS exemples, ROUND(100 * AVG(label_risque), 1) AS pct_risque FROM dataset_vigie GROUP BY quartier ORDER BY pct_risque DESC;"
+  ],
+  "note": "Identique en Oracle, AVG renvoie un NUMBER décimal."
+ },
+ "23.4": {
+  "solution": "SELECT quartier, TO_CHAR(\"DATE\", 'YYYY-MM-DD') AS \"DATE\", creneau, COUNT(*) AS nb FROM dataset_vigie GROUP BY quartier, \"DATE\", creneau HAVING COUNT(*) > 1;",
+  "hints": [
+   "En Oracle, DATE est un mot réservé : la colonne s'écrit \"DATE\" entre guillemets. Elle contient aussi une heure (minuit) : affiche-la avec TO_CHAR(\"DATE\", 'YYYY-MM-DD').",
+   "Structure : SELECT quartier, TO_CHAR(\"DATE\", 'YYYY-MM-DD') AS \"DATE\", creneau, COUNT(*) AS nb FROM dataset_vigie GROUP BY quartier, \"DATE\", creneau HAVING COUNT(*) > 1;"
+  ],
+  "note": "La colonne date s'écrit \"DATE\" (mot réservé). Le type DATE d'Oracle porte aussi l'heure : TO_CHAR(..., 'YYYY-MM-DD') affiche le seul jour."
+ },
+ "23.5": {
+  "solution": "SELECT quartier, COUNT(*) AS exemples, ROUND(100 * AVG(label_risque), 1) AS pct_risque, ROUND(100 * (COUNT(*) - COUNT(meteo)) / COUNT(*), 1) AS pct_meteo_nulle, TO_CHAR(MIN(\"DATE\"), 'YYYY-MM-DD') AS debut, TO_CHAR(MAX(\"DATE\"), 'YYYY-MM-DD') AS fin FROM dataset_vigie GROUP BY quartier ORDER BY quartier;",
+  "hints": [
+   "MIN et MAX marchent sur une colonne DATE ; écris-la \"DATE\" et formate le résultat avec TO_CHAR(..., 'YYYY-MM-DD').",
+   "Structure : SELECT quartier, COUNT(*) AS exemples, ROUND(100 * AVG(label_risque), 1) AS pct_risque, ROUND(100 * (COUNT(*) - COUNT(meteo)) / COUNT(*), 1) AS pct_meteo_nulle, TO_CHAR(MIN(\"DATE\"), 'YYYY-MM-DD') AS debut, TO_CHAR(MAX(\"DATE\"), 'YYYY-MM-DD') AS fin FROM dataset_vigie GROUP BY quartier ORDER BY quartier;"
+  ],
+  "note": "\"DATE\" entre guillemets et TO_CHAR pour afficher le jour sans l'heure."
+ },
+ "23.A": {
+  "solution": "SELECT NVL(meteo, 'inconnue') AS meteo, COUNT(*) AS nb, ROUND(100 * AVG(reel), 1) AS pct_reel FROM dataset_vigie GROUP BY NVL(meteo, 'inconnue') ORDER BY nb DESC;",
+  "hints": [
+   "NVL(colonne, valeur) est la fonction Oracle classique pour remplacer un NULL (COALESCE marche aussi).",
+   "Structure : SELECT NVL(meteo, 'inconnue') AS meteo, COUNT(*) AS nb, ROUND(100 * AVG(reel), 1) AS pct_reel FROM dataset_vigie GROUP BY NVL(meteo, 'inconnue') ORDER BY nb DESC;"
+  ],
+  "note": "NVL est l'équivalent Oracle de COALESCE à deux arguments."
+ },
+ "23.S": {
+  "solution": "SELECT id, TO_CHAR(\"DATE\", 'YYYY-MM-DD') AS \"DATE\", creneau, annote_par, annote_le, \"DATE\" - TRUNC(annote_le) AS jours_avance FROM dataset_vigie WHERE TRUNC(annote_le) < \"DATE\" ORDER BY 2, creneau;",
+  "hints": [
+   "Pas de julianday en Oracle : TRUNC(annote_le) donne le jour (DATE à minuit), et la différence de deux DATE est directement un nombre de jours.",
+   "Structure : SELECT id, TO_CHAR(\"DATE\", 'YYYY-MM-DD') AS \"DATE\", creneau, annote_par, annote_le, \"DATE\" - TRUNC(annote_le) AS jours_avance FROM dataset_vigie WHERE TRUNC(annote_le) < \"DATE\" ORDER BY ...;"
+  ],
+  "note": "julianday(a) - julianday(b) devient une simple soustraction de DATE (résultat en jours) ; date(annote_le) devient TRUNC(annote_le)."
+ },
+ "24.1": {
+  "solution": "SELECT CASE WHEN incidents_7j < 5 THEN 'calme' WHEN incidents_7j < 10 THEN 'moyen' ELSE 'chaud' END AS tranche, COUNT(*) AS nb FROM dataset_vigie GROUP BY CASE WHEN incidents_7j < 5 THEN 'calme' WHEN incidents_7j < 10 THEN 'moyen' ELSE 'chaud' END;",
+  "hints": [
+   "Construis la tranche avec CASE WHEN ... THEN ... END. Oracle 23ai accepte l'alias tranche dans le GROUP BY ; dans les versions plus anciennes, il faut répéter l'expression CASE.",
+   "Structure : SELECT CASE WHEN incidents_7j < 5 THEN 'calme' WHEN incidents_7j < 10 THEN 'moyen' ELSE 'chaud' END AS tranche, COUNT(*) AS nb FROM dataset_vigie GROUP BY (le même CASE);"
+  ],
+  "note": "Avant la 23ai, Oracle refusait les alias dans GROUP BY : répéter l'expression CASE reste la forme la plus portable."
+ },
+ "24.2": {
+  "solution": "SELECT id, CASE WHEN creneau = 'nuit' THEN 1 ELSE 0 END AS c_nuit, CASE WHEN creneau = 'matin' THEN 1 ELSE 0 END AS c_matin, CASE WHEN creneau = 'aprem' THEN 1 ELSE 0 END AS c_aprem, CASE WHEN creneau = 'soir' THEN 1 ELSE 0 END AS c_soir FROM dataset_vigie ORDER BY id FETCH FIRST 8 ROWS ONLY;",
+  "hints": [
+   "Pour un 0/1 portable, écris CASE WHEN creneau = 'nuit' THEN 1 ELSE 0 END (Oracle 23ai accepte aussi le booléen (creneau = 'nuit')). LIMIT devient FETCH FIRST 8 ROWS ONLY.",
+   "Structure : SELECT id, CASE WHEN creneau = 'nuit' THEN 1 ELSE 0 END AS c_nuit, ... AS c_matin, ... AS c_aprem, ... AS c_soir FROM dataset_vigie ORDER BY id FETCH FIRST 8 ROWS ONLY;"
+  ],
+  "note": "LIMIT 8 devient FETCH FIRST 8 ROWS ONLY. Oracle 23ai a un vrai type BOOLEAN, mais CASE WHEN ... THEN 1 ELSE 0 END marche dans toutes les versions."
+ },
+ "24.3": {
+  "solution": "WITH n AS (SELECT id, quartier, \"DATE\", creneau, incidents_7j, ROUND((incidents_7j - MIN(incidents_7j) OVER ()) / (MAX(incidents_7j) OVER () - MIN(incidents_7j) OVER ()), 3) AS inc_norm FROM dataset_vigie) SELECT id, creneau, incidents_7j, inc_norm FROM n WHERE quartier = 'La Défense' AND \"DATE\" = DATE '2028-02-01';",
+  "hints": [
+   "MIN() OVER () et MAX() OVER () donnent les bornes de toute la table sur chaque ligne. La division est déjà décimale en Oracle, et la date se compare à un littéral DATE '2028-02-01'.",
+   "Structure : WITH n AS (SELECT id, quartier, \"DATE\", creneau, incidents_7j, ROUND((incidents_7j - MIN(incidents_7j) OVER ()) / (MAX(...) OVER () - MIN(...) OVER ()), 3) AS inc_norm FROM dataset_vigie) SELECT ... FROM n WHERE quartier = 'La Défense' AND \"DATE\" = DATE '2028-02-01';"
+  ],
+  "note": "Pas besoin du * 1.0 : Oracle ne tronque pas la division. La normalisation est calculée dans la CTE sur toute la table, puis filtrée. La date s'écrit DATE '2028-02-01'."
+ },
+ "24.4": {
+  "solution": "WITH n AS (SELECT \"DATE\", MAX(label_risque) AS label_risque FROM dataset_vigie WHERE quartier = 'La Défense' AND creneau = 'nuit' GROUP BY \"DATE\"), f AS (SELECT \"DATE\", label_risque, SUM(label_risque) OVER (ORDER BY \"DATE\" ROWS BETWEEN 7 PRECEDING AND 1 PRECEDING) AS risque_7_nuits FROM n) SELECT TO_CHAR(\"DATE\", 'YYYY-MM-DD') AS \"DATE\", label_risque, risque_7_nuits FROM f WHERE \"DATE\" >= DATE '2028-02-01' AND \"DATE\" < DATE '2028-03-01' ORDER BY 1;",
+  "hints": [
+   "Une colonne DATE ne se filtre pas avec LIKE : prends l'intervalle \"DATE\" >= DATE '2028-02-01' AND \"DATE\" < DATE '2028-03-01'. Le cadre ROWS BETWEEN 7 PRECEDING AND 1 PRECEDING s'écrit comme en SQLite.",
+   "Structure : WITH n AS (SELECT \"DATE\", MAX(label_risque) AS label_risque FROM ... GROUP BY \"DATE\"), f AS (SELECT \"DATE\", label_risque, SUM(label_risque) OVER (ORDER BY \"DATE\" ROWS BETWEEN 7 PRECEDING AND 1 PRECEDING) AS risque_7_nuits FROM n) SELECT TO_CHAR(\"DATE\", 'YYYY-MM-DD') AS \"DATE\", ... FROM f WHERE ... ORDER BY 1;"
+  ],
+  "note": "LIKE '2028-02%' sur une date devient un intervalle de DATE (ou TO_CHAR(\"DATE\", 'YYYY-MM') = '2028-02'), et l'affichage passe par TO_CHAR."
+ },
+ "24.5": {
+  "solution": "SELECT TO_CHAR(\"DATE\", 'YYYY-MM') AS mois, ROUND(100 * AVG(label_risque), 1) AS pct_label, ROUND(100 * AVG(reel), 1) AS pct_reel FROM dataset_vigie WHERE quartier = 'La Défense' AND creneau = 'nuit' GROUP BY TO_CHAR(\"DATE\", 'YYYY-MM') ORDER BY mois;",
+  "hints": [
+   "strftime('%Y-%m', date) devient TO_CHAR(\"DATE\", 'YYYY-MM').",
+   "Structure : SELECT TO_CHAR(\"DATE\", 'YYYY-MM') AS mois, ROUND(100 * AVG(label_risque), 1) AS pct_label, ROUND(100 * AVG(reel), 1) AS pct_reel FROM dataset_vigie WHERE ... GROUP BY TO_CHAR(\"DATE\", 'YYYY-MM') ORDER BY mois;"
+  ],
+  "note": "strftime devient TO_CHAR avec un masque Oracle (YYYY-MM)."
+ },
+ "24.A": {
+  "solution": "SELECT CASE WHEN jour_semaine >= 5 THEN 'week-end' ELSE 'semaine' END AS periode, creneau, COUNT(*) AS nb, ROUND(100 * AVG(reel), 1) AS pct_reel FROM dataset_vigie GROUP BY CASE WHEN jour_semaine >= 5 THEN 'week-end' ELSE 'semaine' END, creneau ORDER BY periode, creneau;",
+  "hints": [
+   "Regroupe sur l'expression CASE (ou sur son alias en 23ai) et sur creneau.",
+   "Structure : SELECT CASE WHEN jour_semaine >= 5 THEN 'week-end' ELSE 'semaine' END AS periode, creneau, COUNT(*) AS nb, ROUND(100 * AVG(reel), 1) AS pct_reel FROM dataset_vigie GROUP BY (le CASE), creneau ORDER BY periode, creneau;"
+  ],
+  "note": "ORDER BY accepte toujours les alias en Oracle ; GROUP BY seulement depuis la 23ai."
+ },
+ "24.S": {
+  "solution": "SELECT creneau, ROUND(100 * AVG(CASE WHEN \"DATE\" < DATE '2028-02-01' THEN label_risque END), 1) AS pct_label_avant, ROUND(100 * AVG(CASE WHEN \"DATE\" >= DATE '2028-02-01' THEN label_risque END), 1) AS pct_label_fevrier, ROUND(100 * AVG(CASE WHEN \"DATE\" >= DATE '2028-02-01' THEN reel END), 1) AS pct_reel_fevrier FROM dataset_vigie WHERE quartier = 'La Défense' GROUP BY creneau ORDER BY creneau;",
+  "hints": [
+   "Un CASE sans ELSE renvoie NULL, et AVG ignore les NULL : c'est une moyenne conditionnelle. Compare \"DATE\" à DATE '2028-02-01'.",
+   "Structure : SELECT creneau, ROUND(100 * AVG(CASE WHEN \"DATE\" < DATE '2028-02-01' THEN label_risque END), 1) AS pct_label_avant, ... AS pct_label_fevrier, ... AS pct_reel_fevrier FROM dataset_vigie WHERE quartier = 'La Défense' GROUP BY creneau ORDER BY creneau;"
+  ],
+  "note": "Seule la comparaison de dates change : \"DATE\" et le littéral DATE '2028-02-01'."
+ },
+ "25.1": {
+  "solution": "SELECT split, COUNT(*) AS nb, ROUND(100 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct FROM dataset_vigie GROUP BY split;",
+  "hints": [
+   "SUM(COUNT(*)) OVER () additionne les comptes de tous les groupes : c'est le total.",
+   "Structure : SELECT split, COUNT(*) AS nb, ROUND(100 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct FROM dataset_vigie GROUP BY split;"
+  ],
+  "note": "Identique, sans le 100.0 : la division Oracle est décimale."
+ },
+ "25.2": {
+  "solution": "SELECT COUNT(*) AS fuites FROM (SELECT quartier, \"DATE\", creneau FROM dataset_vigie WHERE split = 'train' INTERSECT SELECT quartier, \"DATE\", creneau FROM dataset_vigie WHERE split = 'test');",
+  "hints": [
+   "INTERSECT existe en Oracle ; pense à écrire la colonne \"DATE\" entre guillemets.",
+   "Structure : SELECT COUNT(*) AS fuites FROM (SELECT quartier, \"DATE\", creneau FROM dataset_vigie WHERE split = 'train' INTERSECT SELECT ... WHERE split = 'test');"
+  ],
+  "note": "Même requête, avec \"DATE\" entre guillemets."
+ },
+ "25.3": {
+  "solution": "SELECT TO_CHAR(\"DATE\", 'YYYY-MM') AS mois, SUM(CASE WHEN split = 'train' THEN 1 ELSE 0 END) AS train, SUM(CASE WHEN split = 'test' THEN 1 ELSE 0 END) AS test FROM dataset_vigie GROUP BY TO_CHAR(\"DATE\", 'YYYY-MM') ORDER BY mois;",
+  "hints": [
+   "Le mois s'obtient avec TO_CHAR(\"DATE\", 'YYYY-MM') ; compte chaque split avec SUM(CASE WHEN ... THEN 1 ELSE 0 END).",
+   "Structure : SELECT TO_CHAR(\"DATE\", 'YYYY-MM') AS mois, SUM(CASE WHEN split = 'train' THEN 1 ELSE 0 END) AS train, SUM(CASE WHEN split = 'test' THEN 1 ELSE 0 END) AS test FROM dataset_vigie GROUP BY TO_CHAR(\"DATE\", 'YYYY-MM') ORDER BY mois;"
+  ],
+  "note": "strftime devient TO_CHAR."
+ },
+ "25.4": {
+  "solution": "SELECT CASE WHEN \"DATE\" < DATE '2028-02-01' THEN 'train' ELSE 'test' END AS jeu, COUNT(*) AS nb, ROUND(100 * AVG(label_risque), 1) AS pct_risque FROM dataset_vigie GROUP BY CASE WHEN \"DATE\" < DATE '2028-02-01' THEN 'train' ELSE 'test' END ORDER BY jeu DESC;",
+  "hints": [
+   "Compare \"DATE\" au littéral DATE '2028-02-01' dans un CASE, puis regroupe sur ce CASE.",
+   "Structure : SELECT CASE WHEN \"DATE\" < DATE '2028-02-01' THEN 'train' ELSE 'test' END AS jeu, COUNT(*) AS nb, ROUND(100 * AVG(label_risque), 1) AS pct_risque FROM dataset_vigie GROUP BY (le CASE) ORDER BY jeu DESC;"
+  ],
+  "note": "Littéral DATE '...' et \"DATE\" entre guillemets."
+ },
+ "25.5": {
+  "solution": "CREATE VIEW v_train AS SELECT * FROM dataset_vigie WHERE \"DATE\" < DATE '2028-02-01' AND id IN (SELECT MIN(id) FROM dataset_vigie GROUP BY quartier, \"DATE\", creneau); CREATE VIEW v_test AS SELECT * FROM dataset_vigie WHERE \"DATE\" >= DATE '2028-02-01' AND id IN (SELECT MIN(id) FROM dataset_vigie GROUP BY quartier, \"DATE\", creneau);",
+  "verify": [
+   "SELECT COUNT(*), TO_CHAR(MIN(\"DATE\"), 'YYYY-MM-DD'), TO_CHAR(MAX(\"DATE\"), 'YYYY-MM-DD') FROM v_train",
+   "SELECT COUNT(*), TO_CHAR(MIN(\"DATE\"), 'YYYY-MM-DD'), TO_CHAR(MAX(\"DATE\"), 'YYYY-MM-DD') FROM v_test",
+   "SELECT COUNT(*) FROM (SELECT quartier, \"DATE\", creneau FROM v_train INTERSECT SELECT quartier, \"DATE\", creneau FROM v_test)"
+  ],
+  "hints": [
+   "CREATE VIEW nom AS SELECT ... s'écrit pareil en Oracle (CREATE OR REPLACE VIEW permet de la recréer). Compare \"DATE\" à DATE '2028-02-01'.",
+   "Structure : CREATE VIEW v_train AS SELECT * FROM dataset_vigie WHERE \"DATE\" < DATE '2028-02-01' AND id IN (SELECT MIN(id) FROM dataset_vigie GROUP BY quartier, \"DATE\", creneau); puis la même chose pour v_test avec >=."
+  ],
+  "note": "Les vues s'écrivent comme en SQLite ; Oracle propose en plus CREATE OR REPLACE VIEW."
+ },
+ "25.A": {
+  "solution": "SELECT CASE WHEN MOD(id, 5) = 0 THEN 'test' ELSE 'train' END AS jeu, COUNT(*) AS nb, ROUND(100 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct, ROUND(100 * AVG(label_risque), 1) AS pct_risque FROM dataset_vigie GROUP BY CASE WHEN MOD(id, 5) = 0 THEN 'test' ELSE 'train' END ORDER BY jeu DESC;",
+  "hints": [
+   "Oracle n'a pas l'opérateur % : le reste de la division s'écrit MOD(id, 5).",
+   "Structure : SELECT CASE WHEN MOD(id, 5) = 0 THEN 'test' ELSE 'train' END AS jeu, COUNT(*) AS nb, ROUND(100 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct, ROUND(100 * AVG(label_risque), 1) AS pct_risque FROM dataset_vigie GROUP BY (le CASE) ORDER BY jeu DESC;"
+  ],
+  "note": "id % 5 devient MOD(id, 5) : l'opérateur % n'existe pas en Oracle."
+ },
+ "25.S": {
+  "solution": "SELECT d.id, TO_CHAR(d.\"DATE\", 'YYYY-MM-DD') AS \"DATE\", d.creneau, d.label_risque, d.reel, CASE WHEN EXISTS (SELECT 1 FROM dataset_vigie t WHERE t.split = 'train' AND t.quartier = d.quartier AND t.\"DATE\" = d.\"DATE\" AND t.creneau = d.creneau) THEN 1 ELSE 0 END AS jumeau FROM dataset_vigie d WHERE d.split = 'test' AND d.quartier = 'La Défense' AND d.creneau IN ('nuit', 'soir') AND d.\"DATE\" >= DATE '2028-02-01' AND d.\"DATE\" < DATE '2028-03-01' ORDER BY d.\"DATE\", d.creneau;",
+  "hints": [
+   "Transforme EXISTS (...) en 0/1 avec CASE WHEN EXISTS (...) THEN 1 ELSE 0 END. Février 2028 se filtre par intervalle de DATE.",
+   "Structure : SELECT d.id, TO_CHAR(d.\"DATE\", 'YYYY-MM-DD') AS \"DATE\", d.creneau, d.label_risque, d.reel, CASE WHEN EXISTS (SELECT 1 FROM dataset_vigie t WHERE t.split = 'train' AND ...) THEN 1 ELSE 0 END AS jumeau FROM dataset_vigie d WHERE ... AND d.\"DATE\" >= DATE '2028-02-01' AND d.\"DATE\" < DATE '2028-03-01' ORDER BY d.\"DATE\", d.creneau;"
+  ],
+  "note": "En SQLite, EXISTS renvoie directement 0 ou 1 ; en Oracle on l'enveloppe dans CASE WHEN EXISTS (...) THEN 1 ELSE 0 END (la 23ai accepte aussi le booléen)."
+ },
+ "26.1": {
+  "solution": "SELECT SUM(CASE WHEN p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) AS tp, SUM(CASE WHEN p.prediction = 1 AND d.reel = 0 THEN 1 ELSE 0 END) AS fp, SUM(CASE WHEN p.prediction = 0 AND d.reel = 1 THEN 1 ELSE 0 END) AS fn, SUM(CASE WHEN p.prediction = 0 AND d.reel = 0 THEN 1 ELSE 0 END) AS tn FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id WHERE p.modele = 'v1';",
+  "hints": [
+   "Chaque case de la matrice de confusion est un SUM(CASE WHEN ... THEN 1 ELSE 0 END).",
+   "Structure : SELECT SUM(CASE WHEN p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) AS tp, ... AS fp, ... AS fn, ... AS tn FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id WHERE p.modele = 'v1';"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "26.2": {
+  "solution": "WITH m AS (SELECT p.modele, SUM(CASE WHEN p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) AS tp, SUM(CASE WHEN p.prediction = 1 AND d.reel = 0 THEN 1 ELSE 0 END) AS fp, SUM(CASE WHEN p.prediction = 0 AND d.reel = 1 THEN 1 ELSE 0 END) AS fn, SUM(CASE WHEN p.prediction = 0 AND d.reel = 0 THEN 1 ELSE 0 END) AS tn FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id GROUP BY p.modele) SELECT modele, ROUND((tp + tn) / (tp + fp + fn + tn), 3) AS exactitude, ROUND(tp / (tp + fp), 3) AS precision, ROUND(tp / (tp + fn), 3) AS rappel FROM m ORDER BY modele;",
+  "hints": [
+   "Calcule tp, fp, fn, tn dans une CTE, puis les ratios. Pas besoin de 1.0 * : la division Oracle est décimale.",
+   "Structure : WITH m AS (SELECT p.modele, SUM(CASE ...) AS tp, ... FROM ... GROUP BY p.modele) SELECT modele, ROUND((tp + tn) / (tp + fp + fn + tn), 3) AS exactitude, ROUND(tp / (tp + fp), 3) AS precision, ROUND(tp / (tp + fn), 3) AS rappel FROM m ORDER BY modele;"
+  ],
+  "note": "La division d'entiers donne un décimal en Oracle : le 1.0 * de SQLite est inutile."
+ },
+ "26.3": {
+  "solution": "WITH m AS (SELECT p.modele, SUM(CASE WHEN p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) AS tp, SUM(CASE WHEN p.prediction = 1 AND d.reel = 0 THEN 1 ELSE 0 END) AS fp, SUM(CASE WHEN p.prediction = 0 AND d.reel = 1 THEN 1 ELSE 0 END) AS fn FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id GROUP BY p.modele) SELECT modele, ROUND(2 * tp / (2 * tp + fp + fn), 3) AS f1 FROM m ORDER BY modele;",
+  "hints": [
+   "F1 = 2 tp / (2 tp + fp + fn), calculé à partir d'une CTE qui compte tp, fp et fn par modèle.",
+   "Structure : WITH m AS (SELECT p.modele, SUM(CASE ...) AS tp, ... AS fp, ... AS fn FROM ... GROUP BY p.modele) SELECT modele, ROUND(2 * tp / (2 * tp + fp + fn), 3) AS f1 FROM m ORDER BY modele;"
+  ],
+  "note": "Division décimale native en Oracle : 2 * tp suffit."
+ },
+ "26.4": {
+  "solution": "WITH r AS (SELECT d.quartier, SUM(CASE WHEN p.modele = 'v1' AND p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) / SUM(CASE WHEN p.modele = 'v1' AND d.reel = 1 THEN 1 ELSE 0 END) AS r1, SUM(CASE WHEN p.modele = 'v2' AND p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) / SUM(CASE WHEN p.modele = 'v2' AND d.reel = 1 THEN 1 ELSE 0 END) AS r2 FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id GROUP BY d.quartier) SELECT quartier, ROUND(r1, 3) AS rappel_v1, ROUND(r2, 3) AS rappel_v2, ROUND(r2 - r1, 3) AS ecart FROM r ORDER BY ecart;",
+  "hints": [
+   "Le rappel d'un modèle est SUM(vrais positifs de ce modèle) / SUM(réels positifs de ce modèle), deux SUM(CASE ...) divisés.",
+   "Structure : WITH r AS (SELECT d.quartier, SUM(CASE WHEN p.modele = 'v1' AND p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) / SUM(CASE WHEN p.modele = 'v1' AND d.reel = 1 THEN 1 ELSE 0 END) AS r1, ... AS r2 FROM ... GROUP BY d.quartier) SELECT quartier, ROUND(r1, 3) AS rappel_v1, ROUND(r2, 3) AS rappel_v2, ROUND(r2 - r1, 3) AS ecart FROM r ORDER BY ecart;"
+  ],
+  "note": "Même logique ; le 1.0 * disparaît grâce à la division décimale d'Oracle."
+ },
+ "26.5": {
+  "solution": "WITH s(t) AS (SELECT 0.1 FROM dual UNION ALL SELECT ROUND(t + 0.1, 1) FROM s WHERE t < 0.9), m AS (SELECT s.t, SUM(CASE WHEN p.score >= s.t AND d.reel = 1 THEN 1 ELSE 0 END) AS tp, SUM(CASE WHEN p.score >= s.t AND d.reel = 0 THEN 1 ELSE 0 END) AS fp, SUM(CASE WHEN p.score < s.t AND d.reel = 1 THEN 1 ELSE 0 END) AS fn FROM s CROSS JOIN predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id WHERE p.modele = 'v2' AND d.quartier = 'La Défense' GROUP BY s.t) SELECT t AS seuil, ROUND(tp / NULLIF(tp + fp, 0), 3) AS precision, ROUND(tp / (tp + fn), 3) AS rappel FROM m ORDER BY seuil;",
+  "require": [
+   {
+    "re": "\\w+\\s*\\([\\w\\s,\\\"]+\\)\\s*AS\\s*\\([\\s\\S]*UNION\\s+ALL",
+    "msg": "Génère les seuils avec une CTE récursive : en Oracle, WITH s(t) AS (SELECT 0.1 FROM dual UNION ALL SELECT ... FROM s WHERE ...), sans le mot RECURSIVE."
+   }
+  ],
+  "hints": [
+   "La CTE récursive s'écrit WITH s(t) AS (SELECT 0.1 FROM dual UNION ALL SELECT ROUND(t + 0.1, 1) FROM s WHERE t < 0.9) : pas de RECURSIVE, mais la liste de colonnes et FROM dual dans l'ancre.",
+   "Structure : WITH s(t) AS (...), m AS (SELECT s.t, SUM(CASE WHEN p.score >= s.t AND d.reel = 1 THEN 1 ELSE 0 END) AS tp, ... FROM s CROSS JOIN predictions_vigie p JOIN dataset_vigie d ON ... WHERE ... GROUP BY s.t) SELECT t AS seuil, ROUND(tp / NULLIF(tp + fp, 0), 3) AS precision, ROUND(tp / (tp + fn), 3) AS rappel FROM m ORDER BY seuil;"
+  ],
+  "note": "CTE récursive sans RECURSIVE, ancre FROM dual, et CROSS JOIN explicite plutôt que la virgule mélangée à JOIN."
+ },
+ "26.A": {
+  "solution": "SELECT p.modele, SUM(CASE WHEN p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) AS tp, SUM(CASE WHEN p.prediction = 1 AND d.reel = 0 THEN 1 ELSE 0 END) AS fp, SUM(CASE WHEN p.prediction = 0 AND d.reel = 1 THEN 1 ELSE 0 END) AS fn, SUM(CASE WHEN p.prediction = 0 AND d.reel = 0 THEN 1 ELSE 0 END) AS tn FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id WHERE d.quartier = 'La Défense' GROUP BY p.modele ORDER BY p.modele;",
+  "hints": [
+   "Même matrice de confusion qu'en 26.1, mais regroupée par modèle et filtrée sur le quartier.",
+   "Structure : SELECT p.modele, SUM(CASE ...) AS tp, ... AS fp, ... AS fn, ... AS tn FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id WHERE d.quartier = 'La Défense' GROUP BY p.modele ORDER BY p.modele;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "26.S": {
+  "solution": "SELECT p.modele, COUNT(*) AS nb, ROUND(AVG(CASE WHEN p.prediction = d.label_risque THEN 1 ELSE 0 END), 3) AS exactitude_label, ROUND(AVG(CASE WHEN p.prediction = d.reel THEN 1 ELSE 0 END), 3) AS exactitude_reel FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id WHERE d.quartier = 'La Défense' AND d.creneau IN ('nuit', 'soir') AND d.\"DATE\" >= DATE '2028-02-01' AND d.\"DATE\" < DATE '2028-03-01' GROUP BY p.modele ORDER BY p.modele;",
+  "hints": [
+   "AVG(p.prediction = d.label_risque) se réécrit AVG(CASE WHEN p.prediction = d.label_risque THEN 1 ELSE 0 END). Février 2028 : \"DATE\" >= DATE '2028-02-01' AND \"DATE\" < DATE '2028-03-01'.",
+   "Structure : SELECT p.modele, COUNT(*) AS nb, ROUND(AVG(CASE WHEN p.prediction = d.label_risque THEN 1 ELSE 0 END), 3) AS exactitude_label, ROUND(AVG(CASE WHEN p.prediction = d.reel THEN 1 ELSE 0 END), 3) AS exactitude_reel FROM ... WHERE ... GROUP BY p.modele ORDER BY p.modele;"
+  ],
+  "note": "Une comparaison n'est pas un nombre dans Oracle classique : on passe par CASE WHEN ... THEN 1 ELSE 0 END dans AVG."
+ },
+ "27.1": {
+  "solution": "SELECT a.pseudo, a.inscrit_le, COUNT(*) AS nb FROM dataset_vigie d JOIN annotateurs a ON a.id = d.annote_par WHERE d.quartier = 'La Défense' AND d.creneau IN ('nuit', 'soir') AND d.\"DATE\" >= DATE '2028-02-01' AND d.\"DATE\" < DATE '2028-03-01' GROUP BY a.id, a.pseudo, a.inscrit_le ORDER BY nb DESC;",
+  "hints": [
+   "Remplace date LIKE '2028-02%' par un intervalle sur \"DATE\" ; le reste est une jointure et un GROUP BY.",
+   "Structure : SELECT a.pseudo, a.inscrit_le, COUNT(*) AS nb FROM dataset_vigie d JOIN annotateurs a ON a.id = d.annote_par WHERE ... AND d.\"DATE\" >= DATE '2028-02-01' AND d.\"DATE\" < DATE '2028-03-01' GROUP BY a.id, a.pseudo, a.inscrit_le ORDER BY nb DESC;"
+  ],
+  "note": "Seul le filtre sur le mois change (intervalle de DATE au lieu de LIKE)."
+ },
+ "27.2": {
+  "solution": "SELECT a.annotateur_id, COUNT(*) AS nb, ROUND(AVG(CASE WHEN a.label = d.reel THEN 1 ELSE 0 END), 3) AS accord FROM annotations a JOIN dataset_vigie d ON d.id = a.item_id GROUP BY a.annotateur_id ORDER BY accord, a.annotateur_id FETCH FIRST 5 ROWS ONLY;",
+  "hints": [
+   "L'accord est AVG(CASE WHEN a.label = d.reel THEN 1 ELSE 0 END) ; LIMIT 5 devient FETCH FIRST 5 ROWS ONLY.",
+   "Structure : SELECT a.annotateur_id, COUNT(*) AS nb, ROUND(AVG(CASE WHEN a.label = d.reel THEN 1 ELSE 0 END), 3) AS accord FROM annotations a JOIN dataset_vigie d ON d.id = a.item_id GROUP BY a.annotateur_id ORDER BY accord, a.annotateur_id FETCH FIRST 5 ROWS ONLY;"
+  ],
+  "note": "FETCH FIRST 5 ROWS ONLY remplace LIMIT 5, et CASE remplace la comparaison utilisée comme nombre."
+ },
+ "27.3": {
+  "solution": "SELECT TO_CHAR(horodatage, 'YYYY-MM-DD HH24') AS heure, COUNT(*) AS nb FROM annotations GROUP BY TO_CHAR(horodatage, 'YYYY-MM-DD HH24') ORDER BY nb DESC FETCH FIRST 3 ROWS ONLY;",
+  "hints": [
+   "strftime('%Y-%m-%d %H', ...) devient TO_CHAR(horodatage, 'YYYY-MM-DD HH24') (HH24 pour l'heure sur 24 h).",
+   "Structure : SELECT TO_CHAR(horodatage, 'YYYY-MM-DD HH24') AS heure, COUNT(*) AS nb FROM annotations GROUP BY TO_CHAR(horodatage, 'YYYY-MM-DD HH24') ORDER BY nb DESC FETCH FIRST 3 ROWS ONLY;"
+  ],
+  "note": "Masque Oracle : HH24 (et non HH, qui est sur 12 h). LIMIT devient FETCH FIRST."
+ },
+ "27.4": {
+  "solution": "SELECT SUM(CASE WHEN a.annotateur_id IN (41, 42, 43) THEN a.label ELSE 0 END) AS votes_suspects_1, SUM(CASE WHEN a.annotateur_id IN (41, 42, 43) THEN 1 ELSE 0 END) AS votes_suspects, SUM(CASE WHEN a.annotateur_id NOT IN (41, 42, 43) THEN a.label ELSE 0 END) AS votes_honnetes_1, SUM(CASE WHEN a.annotateur_id NOT IN (41, 42, 43) THEN 1 ELSE 0 END) AS votes_honnetes FROM annotations a JOIN dataset_vigie d ON d.id = a.item_id WHERE d.quartier = 'La Défense' AND d.\"DATE\" >= DATE '2028-02-01' AND d.\"DATE\" < DATE '2028-03-01' AND a.item_id IN (SELECT item_id FROM annotations WHERE annotateur_id IN (41, 42, 43));",
+  "hints": [
+   "Quatre SUM(CASE ...) sur une seule ligne, avec un filtre IN (sous-requête) sur les items concernés. Février : intervalle sur \"DATE\".",
+   "Structure : SELECT SUM(CASE WHEN a.annotateur_id IN (41, 42, 43) THEN a.label ELSE 0 END) AS votes_suspects_1, ... FROM annotations a JOIN dataset_vigie d ON d.id = a.item_id WHERE d.quartier = 'La Défense' AND d.\"DATE\" >= DATE '2028-02-01' AND d.\"DATE\" < DATE '2028-03-01' AND a.item_id IN (SELECT item_id FROM annotations WHERE annotateur_id IN (41, 42, 43));"
+  ],
+  "note": "Seul le filtre de date change."
+ },
+ "27.5": {
+  "solution": "WITH chaine(siren, part) AS (SELECT DISTINCT p.payeur_siren, 100 FROM paiements_annotation p JOIN annotateurs a ON a.compte_paiement = p.compte_paiement WHERE a.id IN (41, 42, 43) UNION ALL SELECT pa.detenteur, c.part * pa.pct / 100 FROM participations pa JOIN chaine c ON pa.detenue = c.siren) SELECT REPLACE(siren, 'PERSONNE:', '') AS beneficiaire, ROUND(part, 1) AS part FROM chaine WHERE siren LIKE 'PERSONNE:%' ORDER BY part DESC;",
+  "require": [
+   {
+    "re": "\\w+\\s*\\([\\w\\s,\\\"]+\\)\\s*AS\\s*\\([\\s\\S]*UNION\\s+ALL",
+    "msg": "Il faut une CTE récursive : en Oracle, WITH chaine(siren, part) AS (ancre UNION ALL étape), sans le mot RECURSIVE."
+   }
+  ],
+  "hints": [
+   "CTE récursive Oracle : WITH chaine(siren, part) AS (ancre UNION ALL partie récursive). DISTINCT est permis dans l'ancre, pas dans la partie récursive.",
+   "Structure : WITH chaine(siren, part) AS (SELECT DISTINCT p.payeur_siren, 100 FROM paiements_annotation p JOIN annotateurs a ON ... WHERE a.id IN (41, 42, 43) UNION ALL SELECT pa.detenteur, c.part * pa.pct / 100 FROM participations pa JOIN chaine c ON pa.detenue = c.siren) SELECT REPLACE(siren, 'PERSONNE:', '') AS beneficiaire, ROUND(part, 1) AS part FROM chaine WHERE siren LIKE 'PERSONNE:%' ORDER BY part DESC;"
+  ],
+  "note": "CTE récursive sans le mot RECURSIVE, avec la liste des colonnes obligatoire."
+ },
+ "27.A": {
+  "solution": "WITH par_item AS (SELECT item_id, COUNT(*) AS n, CASE WHEN MIN(label) = MAX(label) THEN 1 ELSE 0 END AS unanime FROM annotations GROUP BY item_id) SELECT n AS annotateurs, COUNT(*) AS items, ROUND(100 * AVG(unanime), 1) AS pct_unanimes FROM par_item GROUP BY n ORDER BY n;",
+  "hints": [
+   "Un exemple est unanime si MIN(label) = MAX(label) ; transforme ce test en 0/1 avec CASE WHEN ... THEN 1 ELSE 0 END.",
+   "Structure : WITH par_item AS (SELECT item_id, COUNT(*) AS n, CASE WHEN MIN(label) = MAX(label) THEN 1 ELSE 0 END AS unanime FROM annotations GROUP BY item_id) SELECT n AS annotateurs, COUNT(*) AS items, ROUND(100 * AVG(unanime), 1) AS pct_unanimes FROM par_item GROUP BY n ORDER BY n;"
+  ],
+  "note": "(MIN(label) = MAX(label)) devient un CASE pour produire 0 ou 1."
+ },
+ "27.S": {
+  "solution": "WITH p AS (SELECT DISTINCT pa.detenteur FROM participations pa JOIN societes s ON s.siren = pa.detenue WHERE s.nom = 'Ariane Labs' AND pa.detenteur LIKE 'PERSONNE:%') SELECT REPLACE(pa.detenteur, 'PERSONNE:', '') AS personne, s.nom AS societe, s.ville, pa.pct, (SELECT COUNT(*) FROM conteneurs c WHERE c.importateur_siren = s.siren) AS conteneurs FROM participations pa JOIN p ON p.detenteur = pa.detenteur JOIN societes s ON s.siren = pa.detenue ORDER BY pa.pct DESC;",
+  "hints": [
+   "Une sous-requête scalaire (SELECT COUNT(*) ...) dans le SELECT renvoie 0 quand il n'y a aucun conteneur.",
+   "Structure : WITH p AS (SELECT DISTINCT pa.detenteur FROM participations pa JOIN societes s ON ... WHERE s.nom = 'Ariane Labs' AND pa.detenteur LIKE 'PERSONNE:%') SELECT REPLACE(pa.detenteur, 'PERSONNE:', '') AS personne, s.nom AS societe, s.ville, pa.pct, (SELECT COUNT(*) FROM conteneurs c WHERE ...) AS conteneurs FROM participations pa JOIN p ON ... JOIN societes s ON ... ORDER BY pa.pct DESC;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "28.1": {
+  "solution": "SELECT j.k - 1 AS composante, j.v AS valeur FROM voix_ref r, JSON_TABLE(r.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j WHERE r.locuteur = 'Inès Varga' ORDER BY composante;",
+  "require": [
+   {
+    "re": "JSON_TABLE",
+    "msg": "Utilise JSON_TABLE pour déplier le vecteur."
+   }
+  ],
+  "hints": [
+   "json_each devient JSON_TABLE(vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) : une ligne par composante, k numérote à partir de 1 et v est la valeur. Comme json_each numérote à partir de 0, affiche k - 1.",
+   "Structure : SELECT j.k - 1 AS composante, j.v AS valeur FROM voix_ref r, JSON_TABLE(r.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j WHERE r.locuteur = 'Inès Varga' ORDER BY composante;"
+  ],
+  "note": "json_each(r.vecteur) devient JSON_TABLE avec une colonne FOR ORDINALITY (qui commence à 1, d'où le k - 1) et une colonne NUMBER PATH '$'."
+ },
+ "28.2": {
+  "solution": "SELECT r.locuteur, ROUND(SQRT(SUM(j.v * j.v)), 3) AS norme FROM voix_ref r, JSON_TABLE(r.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j GROUP BY r.locuteur ORDER BY r.locuteur;",
+  "hints": [
+   "json_each devient JSON_TABLE(vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) : une ligne par composante, k numérote à partir de 1 et v est la valeur.",
+   "Structure : SELECT r.locuteur, ROUND(SQRT(SUM(j.v * j.v)), 3) AS norme FROM voix_ref r, JSON_TABLE(r.vecteur, '$[*]' COLUMNS (...)) j GROUP BY r.locuteur ORDER BY r.locuteur;"
+  ],
+  "note": "JSON_TABLE remplace json_each ; SQRT existe en Oracle."
+ },
+ "28.3": {
+  "solution": "WITH ref AS (SELECT j.k, j.v FROM voix_ref r, JSON_TABLE(r.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j WHERE r.locuteur = 'Inès Varga'), a AS (SELECT x.id, x.horodatage, x.numero_appelant, j.k, j.v FROM appels_vocaux x, JSON_TABLE(x.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j WHERE x.locuteur_declare = 'Inès Varga') SELECT a.id, a.horodatage, a.numero_appelant, ROUND(SUM(a.v * ref.v), 3) AS cosinus FROM a JOIN ref ON ref.k = a.k GROUP BY a.id, a.horodatage, a.numero_appelant ORDER BY cosinus, a.id FETCH FIRST 6 ROWS ONLY;",
+  "hints": [
+   "json_each devient JSON_TABLE(vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) : une ligne par composante, k numérote à partir de 1 et v est la valeur. Fais-le une fois pour la référence et une fois pour les appels, puis joins sur k.",
+   "Structure : WITH ref AS (SELECT j.k, j.v FROM voix_ref r, JSON_TABLE(...) j WHERE ...), a AS (SELECT x.id, x.horodatage, x.numero_appelant, j.k, j.v FROM appels_vocaux x, JSON_TABLE(...) j WHERE ...) SELECT a.id, a.horodatage, a.numero_appelant, ROUND(SUM(a.v * ref.v), 3) AS cosinus FROM a JOIN ref ON ref.k = a.k GROUP BY ... ORDER BY cosinus, a.id FETCH FIRST 6 ROWS ONLY;"
+  ],
+  "note": "JSON_TABLE pour déplier, FETCH FIRST 6 ROWS ONLY au lieu de LIMIT 6."
+ },
+ "28.4": {
+  "solution": "WITH c AS (SELECT j.k, AVG(j.v) AS v FROM appels_vocaux x, JSON_TABLE(x.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j WHERE x.numero_appelant = '0745998877' GROUP BY j.k), e AS (SELECT t.id, t.fichier, t.depose_par, j.k, j.v FROM echantillons_tts t, JSON_TABLE(t.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j) SELECT e.id, e.fichier, e.depose_par, ROUND(SUM(e.v * c.v), 3) AS similarite FROM e JOIN c ON c.k = e.k GROUP BY e.id, e.fichier, e.depose_par ORDER BY similarite DESC FETCH FIRST 5 ROWS ONLY;",
+  "hints": [
+   "json_each devient JSON_TABLE(vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) : une ligne par composante, k numérote à partir de 1 et v est la valeur. Le centroïde est AVG(v) groupé par k.",
+   "Structure : WITH c AS (SELECT j.k, AVG(j.v) AS v FROM appels_vocaux x, JSON_TABLE(...) j WHERE x.numero_appelant = '0745998877' GROUP BY j.k), e AS (SELECT t.id, t.fichier, t.depose_par, j.k, j.v FROM echantillons_tts t, JSON_TABLE(...) j) SELECT ..., ROUND(SUM(e.v * c.v), 3) AS similarite FROM e JOIN c ON c.k = e.k GROUP BY ... ORDER BY similarite DESC FETCH FIRST 5 ROWS ONLY;"
+  ],
+  "note": "JSON_TABLE remplace json_each, FETCH FIRST remplace LIMIT."
+ },
+ "28.5": {
+  "solution": "WITH ref AS (SELECT j.k, j.v FROM voix_ref r, JSON_TABLE(r.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j WHERE r.locuteur = 'Inès Varga'), a AS (SELECT x.id, x.horodatage, x.numero_appelant, x.destinataire, j.k, j.v FROM appels_vocaux x, JSON_TABLE(x.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j WHERE x.locuteur_declare = 'Inès Varga') SELECT a.horodatage, a.numero_appelant, a.destinataire, ROUND(SUM(a.v * ref.v), 3) AS cosinus FROM a JOIN ref ON ref.k = a.k GROUP BY a.id, a.horodatage, a.numero_appelant, a.destinataire HAVING SUM(a.v * ref.v) < 0.93 ORDER BY a.horodatage;",
+  "hints": [
+   "json_each devient JSON_TABLE(vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) : une ligne par composante, k numérote à partir de 1 et v est la valeur. Filtre la similarité dans un HAVING sur la somme non arrondie.",
+   "Structure : WITH ref AS (...JSON_TABLE...), a AS (...JSON_TABLE...) SELECT a.horodatage, a.numero_appelant, a.destinataire, ROUND(SUM(a.v * ref.v), 3) AS cosinus FROM a JOIN ref ON ref.k = a.k GROUP BY a.id, a.horodatage, a.numero_appelant, a.destinataire HAVING SUM(a.v * ref.v) < 0.93 ORDER BY a.horodatage;"
+  ],
+  "note": "Seul le dépliage JSON change (JSON_TABLE)."
+ },
+ "28.A": {
+  "solution": "WITH x AS (SELECT j.k, j.v FROM appels_vocaux a, JSON_TABLE(a.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j WHERE a.horodatage = TIMESTAMP '2028-02-29 00:41:10'), r AS (SELECT r.locuteur, j.k, j.v FROM voix_ref r, JSON_TABLE(r.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j) SELECT r.locuteur, ROUND(SUM(r.v * x.v), 3) AS similarite FROM r JOIN x ON x.k = r.k GROUP BY r.locuteur ORDER BY similarite DESC;",
+  "require": [
+   {
+    "re": "JSON_TABLE",
+    "msg": "Déplie les vecteurs avec JSON_TABLE(colonne, '$[*]' COLUMNS (...))."
+   }
+  ],
+  "hints": [
+   "json_each devient JSON_TABLE(vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) : une ligne par composante, k numérote à partir de 1 et v est la valeur. L'horodatage se compare à TIMESTAMP '2028-02-29 00:41:10'.",
+   "Structure : WITH x AS (SELECT j.k, j.v FROM appels_vocaux a, JSON_TABLE(a.vecteur, ...) j WHERE a.horodatage = TIMESTAMP '2028-02-29 00:41:10'), r AS (SELECT r.locuteur, j.k, j.v FROM voix_ref r, JSON_TABLE(r.vecteur, ...) j) SELECT r.locuteur, ROUND(SUM(r.v * x.v), 3) AS similarite FROM r JOIN x ON x.k = r.k GROUP BY r.locuteur ORDER BY similarite DESC;"
+  ],
+  "note": "JSON_TABLE remplace json_each, et l'horodatage se compare à un littéral TIMESTAMP."
+ },
+ "28.S": {
+  "solution": "WITH ref AS (SELECT j.k, j.v FROM voix_ref r, JSON_TABLE(r.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j WHERE r.locuteur = 'Inès Varga'), f AS (SELECT t.fichier, t.depose_le, SUM(j.v * ref.v) AS sim FROM echantillons_tts t, JSON_TABLE(t.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j, ref WHERE ref.k = j.k AND t.fichier LIKE 'varga_%' GROUP BY t.id, t.fichier, t.depose_le), a AS (SELECT x.id, SUM(j.v * ref.v) AS sim FROM appels_vocaux x, JSON_TABLE(x.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j, ref WHERE ref.k = j.k AND x.locuteur_declare = 'Inès Varga' AND x.numero_appelant <> '0745998877' GROUP BY x.id), plancher AS (SELECT MIN(sim) AS p FROM a) SELECT f.fichier, f.depose_le, ROUND(f.sim, 3) AS similarite, ROUND(f.sim - plancher.p, 3) AS ecart FROM f, plancher ORDER BY f.depose_le;",
+  "require": [
+   {
+    "re": "JSON_TABLE",
+    "msg": "Déplie les vecteurs avec JSON_TABLE(colonne, '$[*]' COLUMNS (...))."
+   }
+  ],
+  "hints": [
+   "json_each devient JSON_TABLE(vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) : une ligne par composante, k numérote à partir de 1 et v est la valeur. Calcule la similarité des fichiers et celle des vrais appels dans deux CTE, puis le minimum des vrais appels dans une troisième.",
+   "Structure : WITH ref AS (...), f AS (SELECT t.fichier, t.depose_le, SUM(j.v * ref.v) AS sim FROM echantillons_tts t, JSON_TABLE(t.vecteur, ...) j, ref WHERE ref.k = j.k AND t.fichier LIKE 'varga_%' GROUP BY ...), a AS (...), plancher AS (SELECT MIN(sim) AS p FROM a) SELECT f.fichier, f.depose_le, ROUND(f.sim, 3) AS similarite, ROUND(f.sim - plancher.p, 3) AS ecart FROM f, plancher ORDER BY f.depose_le;"
+  ],
+  "note": "JSON_TABLE remplace json_each. Le _ de 'varga_%' reste un joker d'un caractère, comme en SQLite."
+ },
+ "29.1": {
+  "solution": "SELECT TO_CHAR(TRUNC(horodatage), 'YYYY-MM-DD') AS jour, COUNT(DISTINCT \"SESSION\") AS sessions, COUNT(*) AS messages, SUM(tokens) AS tokens FROM chatbot_logs WHERE TRUNC(horodatage) BETWEEN DATE '2028-02-23' AND DATE '2028-02-29' GROUP BY TRUNC(horodatage) ORDER BY jour;",
+  "hints": [
+   "date(horodatage) devient TRUNC(horodatage), à comparer à DATE '2028-02-23'. La colonne session est un mot réservé : écris \"SESSION\".",
+   "Structure : SELECT TO_CHAR(TRUNC(horodatage), 'YYYY-MM-DD') AS jour, COUNT(DISTINCT \"SESSION\") AS sessions, COUNT(*) AS messages, SUM(tokens) AS tokens FROM chatbot_logs WHERE TRUNC(horodatage) BETWEEN DATE '...' AND DATE '...' GROUP BY TRUNC(horodatage) ORDER BY jour;"
+  ],
+  "note": "TRUNC(horodatage) donne le jour, TO_CHAR l'affiche ; la colonne session s'écrit \"SESSION\" (mot réservé en Oracle)."
+ },
+ "29.2": {
+  "solution": "SELECT \"SESSION\", horodatage, message FROM chatbot_logs WHERE role = 'user' AND (LOWER(message) LIKE '%ignore%instruction%' OR LOWER(message) LIKE '%ignore%restriction%' OR LOWER(message) LIKE '%oublie%') ORDER BY horodatage;",
+  "hints": [
+   "LIKE est sensible à la casse en Oracle : garde le LOWER(message). La colonne session s'écrit \"SESSION\".",
+   "Structure : SELECT \"SESSION\", horodatage, message FROM chatbot_logs WHERE role = 'user' AND (LOWER(message) LIKE '%ignore%instruction%' OR ... OR LOWER(message) LIKE '%oublie%') ORDER BY horodatage;"
+  ],
+  "note": "\"SESSION\" entre guillemets ; LOWER est indispensable car LIKE distingue la casse en Oracle."
+ },
+ "29.3": {
+  "solution": "SELECT \"SESSION\", horodatage, message FROM chatbot_logs WHERE role = 'assistant' AND (REGEXP_LIKE(message, '[a-z0-9.]+@[a-z0-9.-]+\\.[a-z]+') OR REGEXP_LIKE(message, '0[1-9]( ?[0-9]{2}){4}')) AND message NOT LIKE '%contact@ville-seine.fr%' ORDER BY horodatage;",
+  "require": [
+   {
+    "re": "REGEXP_LIKE",
+    "msg": "Utilise REGEXP_LIKE(colonne, 'motif')."
+   }
+  ],
+  "hints": [
+   "En Oracle, l'opérateur REGEXP devient la fonction REGEXP_LIKE(message, 'motif'), utilisée comme condition dans le WHERE.",
+   "Structure : SELECT \"SESSION\", horodatage, message FROM chatbot_logs WHERE role = 'assistant' AND (REGEXP_LIKE(message, 'motif e-mail') OR REGEXP_LIKE(message, 'motif téléphone')) AND message NOT LIKE '%contact@ville-seine.fr%' ORDER BY horodatage;"
+  ],
+  "note": "message REGEXP 'motif' devient REGEXP_LIKE(message, 'motif') ; les motifs POSIX sont les mêmes."
+ },
+ "29.4": {
+  "solution": "WITH s AS (SELECT titre, confidentialite, SIGN(INSTR(LOWER(contenu), 'patrouille')) + SIGN(INSTR(LOWER(contenu), 'nuit')) + SIGN(INSTR(LOWER(contenu), 'la défense')) AS score FROM documents_rag) SELECT titre, confidentialite, score FROM s WHERE score >= 1 ORDER BY score DESC, titre;",
+  "hints": [
+   "Une comparaison ne s'additionne pas en Oracle : SIGN(INSTR(texte, 'mot')) vaut 1 si le mot est présent, 0 sinon (ou CASE WHEN INSTR(...) > 0 THEN 1 ELSE 0 END).",
+   "Structure : WITH s AS (SELECT titre, confidentialite, SIGN(INSTR(LOWER(contenu), 'patrouille')) + SIGN(INSTR(LOWER(contenu), 'nuit')) + SIGN(INSTR(LOWER(contenu), 'la défense')) AS score FROM documents_rag) SELECT titre, confidentialite, score FROM s WHERE score >= 1 ORDER BY score DESC, titre;"
+  ],
+  "note": "(instr(...) > 0) + (...) ne s'additionne pas en Oracle : SIGN(INSTR(...)) donne directement 0 ou 1. Une CTE évite de répéter le calcul dans le WHERE."
+ },
+ "29.5": {
+  "solution": "SELECT DISTINCT s.\"SESSION\", s.ip, s.appareil, e.nom, d.titre AS document FROM chatbot_sessions s JOIN chatbot_logs l ON l.\"SESSION\" = s.\"SESSION\" AND l.role = 'assistant' JOIN documents_rag d ON d.confidentialite <> 'public' AND INSTR(l.message, SUBSTR(d.contenu, 1, 40)) > 0 LEFT JOIN appareils a ON a.appareil = s.appareil LEFT JOIN employes_neurocite e ON e.login = a.proprietaire_login WHERE EXISTS (SELECT 1 FROM chatbot_logs u WHERE u.\"SESSION\" = s.\"SESSION\" AND u.role = 'user' AND LOWER(u.message) LIKE '%ignore%');",
+  "hints": [
+   "INSTR et SUBSTR existent en Oracle avec le même sens ; seule la colonne session doit s'écrire \"SESSION\".",
+   "Structure : SELECT DISTINCT s.\"SESSION\", s.ip, s.appareil, e.nom, d.titre AS document FROM chatbot_sessions s JOIN chatbot_logs l ON l.\"SESSION\" = s.\"SESSION\" AND l.role = 'assistant' JOIN documents_rag d ON d.confidentialite <> 'public' AND INSTR(l.message, SUBSTR(d.contenu, 1, 40)) > 0 LEFT JOIN appareils a ON ... LEFT JOIN employes_neurocite e ON ... WHERE EXISTS (...);"
+  ],
+  "note": "\"SESSION\" entre guillemets ; INSTR et SUBSTR sont identiques à SQLite."
+ },
+ "29.A": {
+  "solution": "WITH s AS (SELECT titre, confidentialite, SIGN(INSTR(LOWER(contenu), 'serveurs')) + SIGN(INSTR(LOWER(contenu), 'baie')) + SIGN(INSTR(LOWER(contenu), 'quai')) + SIGN(INSTR(LOWER(contenu), 'dataseine')) AS score FROM documents_rag) SELECT titre, confidentialite, score FROM s WHERE score >= 1 ORDER BY score DESC, titre;",
+  "hints": [
+   "SIGN(INSTR(LOWER(contenu), 'mot')) vaut 1 si le mot apparaît, 0 sinon : additionne quatre de ces termes.",
+   "Structure : WITH s AS (SELECT titre, confidentialite, SIGN(INSTR(LOWER(contenu), 'serveurs')) + ... + SIGN(INSTR(LOWER(contenu), 'dataseine')) AS score FROM documents_rag) SELECT titre, confidentialite, score FROM s WHERE score >= 1 ORDER BY score DESC, titre;"
+  ],
+  "note": "Les booléens ne s'additionnent pas : SIGN(INSTR(...)) les remplace."
+ },
+ "29.S": {
+  "solution": "WITH t AS (SELECT s.\"SESSION\", s.debut, s.ip, s.appareil, CASE WHEN EXISTS (SELECT 1 FROM chatbot_logs l JOIN documents_rag d ON d.confidentialite <> 'public' AND INSTR(l.message, SUBSTR(d.contenu, 1, 40)) > 0 WHERE l.\"SESSION\" = s.\"SESSION\" AND l.role = 'assistant') THEN 1 ELSE 0 END AS fuite FROM chatbot_sessions s WHERE EXISTS (SELECT 1 FROM chatbot_logs u WHERE u.\"SESSION\" = s.\"SESSION\" AND u.role = 'user' AND (LOWER(u.message) LIKE '%ignore%' OR LOWER(u.message) LIKE '%oublie%'))) SELECT \"SESSION\", debut, ip, appareil, fuite, ROUND((CAST(debut AS DATE) - CAST(LAG(debut) OVER (ORDER BY debut) AS DATE)) * 1440) AS ecart_min FROM t ORDER BY debut;",
+  "hints": [
+   "Pas de julianday : CAST(horodatage AS DATE) puis la différence de deux DATE donne des jours, à multiplier par 1440 pour des minutes. EXISTS se transforme en 0/1 avec CASE WHEN EXISTS (...) THEN 1 ELSE 0 END.",
+   "Structure : WITH t AS (SELECT s.\"SESSION\", s.debut, s.ip, s.appareil, CASE WHEN EXISTS (...) THEN 1 ELSE 0 END AS fuite FROM chatbot_sessions s WHERE EXISTS (...)) SELECT \"SESSION\", debut, ip, appareil, fuite, ROUND((CAST(debut AS DATE) - CAST(LAG(debut) OVER (ORDER BY debut) AS DATE)) * 1440) AS ecart_min FROM t ORDER BY debut;"
+  ],
+  "note": "La différence de deux TIMESTAMP est un INTERVAL ; en les castant en DATE, on obtient un nombre de jours (x 1440 pour des minutes)."
+ },
+ "30.1": {
+  "solution": "SELECT DISTINCT quartier FROM patrouilles MINUS SELECT quartier FROM patrouilles WHERE \"DATE\" = DATE '2028-02-29' AND creneau = 'nuit';",
+  "hints": [
+   "En Oracle, la différence d'ensembles s'écrit MINUS (la 23ai accepte aussi EXCEPT).",
+   "Structure : SELECT DISTINCT quartier FROM patrouilles MINUS SELECT quartier FROM patrouilles WHERE \"DATE\" = DATE '2028-02-29' AND creneau = 'nuit';"
+  ],
+  "note": "EXCEPT s'écrit traditionnellement MINUS en Oracle ; la date se compare à DATE '2028-02-29'."
+ },
+ "30.2": {
+  "solution": "WITH m AS (SELECT quartier, ROUND(AVG(nb_agents), 1) AS moyenne FROM patrouilles WHERE creneau = 'nuit' AND \"DATE\" BETWEEN DATE '2028-02-01' AND DATE '2028-02-28' GROUP BY quartier), n AS (SELECT quartier, SUM(nb_agents) AS nb FROM patrouilles WHERE creneau = 'nuit' AND \"DATE\" = DATE '2028-02-29' GROUP BY quartier) SELECT m.quartier, m.moyenne, NVL(n.nb, 0) AS nuit_29 FROM m LEFT JOIN n ON n.quartier = m.quartier ORDER BY m.quartier;",
+  "hints": [
+   "Deux CTE (moyenne de février, total du 29) reliées par un LEFT JOIN ; NVL(n.nb, 0) remplace le NULL.",
+   "Structure : WITH m AS (SELECT quartier, ROUND(AVG(nb_agents), 1) AS moyenne FROM patrouilles WHERE creneau = 'nuit' AND \"DATE\" BETWEEN DATE '2028-02-01' AND DATE '2028-02-28' GROUP BY quartier), n AS (...) SELECT m.quartier, m.moyenne, NVL(n.nb, 0) AS nuit_29 FROM m LEFT JOIN n ON ... ORDER BY m.quartier;"
+  ],
+  "note": "Littéraux DATE, \"DATE\" entre guillemets et NVL à la place de COALESCE."
+ },
+ "30.3": {
+  "solution": "SELECT a.badge, a.site AS site_1, a.horodatage AS heure_1, b.site AS site_2, b.horodatage AS heure_2, ROUND((CAST(b.horodatage AS DATE) - CAST(a.horodatage AS DATE)) * 1440) AS minutes FROM acces_datacenter a JOIN acces_datacenter b ON b.badge = a.badge AND b.site <> a.site AND b.horodatage > a.horodatage AND b.horodatage < a.horodatage + INTERVAL '30' MINUTE;",
+  "hints": [
+   "La fenêtre de 30 minutes s'écrit b.horodatage < a.horodatage + INTERVAL '30' MINUTE. Pour afficher l'écart, caste en DATE : (CAST(b AS DATE) - CAST(a AS DATE)) * 1440 donne des minutes.",
+   "Structure : SELECT a.badge, a.site AS site_1, a.horodatage AS heure_1, b.site AS site_2, b.horodatage AS heure_2, ROUND((CAST(b.horodatage AS DATE) - CAST(a.horodatage AS DATE)) * 1440) AS minutes FROM acces_datacenter a JOIN acces_datacenter b ON b.badge = a.badge AND b.site <> a.site AND b.horodatage > a.horodatage AND b.horodatage < a.horodatage + INTERVAL '30' MINUTE;"
+  ],
+  "note": "Oracle ajoute des durées avec INTERVAL '30' MINUTE ; l'écart chiffré passe par la soustraction de DATE (en jours)."
+ },
+ "30.4": {
+  "solution": "SELECT i.baie, COUNT(*) AS manquants, SUM(i.valeur_eur) AS valeur FROM inventaire_gpu i WHERE i.serveur IN (SELECT serveur FROM inventaire_gpu MINUS SELECT serveur FROM scans_gpu) GROUP BY i.baie;",
+  "hints": [
+   "EXCEPT s'écrit MINUS en Oracle : les serveurs de l'inventaire MINUS les serveurs scannés.",
+   "Structure : SELECT i.baie, COUNT(*) AS manquants, SUM(i.valeur_eur) AS valeur FROM inventaire_gpu i WHERE i.serveur IN (SELECT serveur FROM inventaire_gpu MINUS SELECT serveur FROM scans_gpu) GROUP BY i.baie;"
+  ],
+  "note": "MINUS remplace EXCEPT."
+ },
+ "30.5": {
+  "solution": "SELECT horodatage AS quand, 'appel' AS source, destinataire AS detail FROM appels_vocaux WHERE numero_appelant = '0745998877' AND TRUNC(horodatage) = DATE '2028-02-29' UNION ALL SELECT horodatage, 'badge', badge FROM acces_datacenter WHERE site = 'DataSeine Puteaux' AND porte IN ('Quai de livraison', 'Salle C') AND horodatage BETWEEN TIMESTAMP '2028-02-29 00:00:00' AND TIMESTAMP '2028-02-29 02:00:00' UNION ALL SELECT horodatage, 'chatbot', role FROM chatbot_logs WHERE \"SESSION\" = 's-9003' ORDER BY quand, source;",
+  "hints": [
+   "horodatage LIKE '2028-02-29%' devient TRUNC(horodatage) = DATE '2028-02-29' ; les bornes horaires s'écrivent TIMESTAMP '...'. N'oublie pas \"SESSION\".",
+   "Structure : SELECT horodatage AS quand, 'appel' AS source, destinataire AS detail FROM appels_vocaux WHERE ... AND TRUNC(horodatage) = DATE '2028-02-29' UNION ALL SELECT ... FROM acces_datacenter WHERE ... BETWEEN TIMESTAMP '...' AND TIMESTAMP '...' UNION ALL SELECT horodatage, 'chatbot', role FROM chatbot_logs WHERE \"SESSION\" = 's-9003' ORDER BY quand, source;"
+  ],
+  "note": "Pas de LIKE sur un TIMESTAMP : TRUNC(...) = DATE '...' ou un intervalle de TIMESTAMP."
+ },
+ "30.A": {
+  "solution": "SELECT badge, SUM(CASE WHEN site = 'DataSeine Puteaux' THEN 1 ELSE 0 END) AS passages_puteaux, SUM(CASE WHEN site = 'DataSeine Saint-Denis' THEN 1 ELSE 0 END) AS passages_saint_denis FROM acces_datacenter GROUP BY badge HAVING COUNT(DISTINCT site) > 1 ORDER BY badge;",
+  "hints": [
+   "Deux SUM(CASE ...) et un HAVING COUNT(DISTINCT site) > 1.",
+   "Structure : SELECT badge, SUM(CASE WHEN site = 'DataSeine Puteaux' THEN 1 ELSE 0 END) AS passages_puteaux, SUM(CASE WHEN site = 'DataSeine Saint-Denis' THEN 1 ELSE 0 END) AS passages_saint_denis FROM acces_datacenter GROUP BY badge HAVING COUNT(DISTINCT site) > 1 ORDER BY badge;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "30.S": {
+  "solution": "SELECT a.porte, a.horodatage AS heure_clone, b.badge, b.horodatage AS heure, ROUND((CAST(b.horodatage AS DATE) - CAST(a.horodatage AS DATE)) * 86400) AS ecart_s, (SELECT COUNT(*) FROM acces_datacenter h WHERE h.badge = b.badge AND h.horodatage < DATE '2028-02-29') AS passages_avant FROM acces_datacenter a JOIN acces_datacenter b ON b.site = a.site AND b.porte = a.porte AND b.badge <> a.badge AND b.horodatage > a.horodatage AND b.horodatage < a.horodatage + INTERVAL '2' MINUTE WHERE a.badge = 'DS-017' AND a.site = 'DataSeine Puteaux' ORDER BY a.horodatage;",
+  "hints": [
+   "La fenêtre de 2 minutes : b.horodatage < a.horodatage + INTERVAL '2' MINUTE. L'écart en secondes : (CAST(b.horodatage AS DATE) - CAST(a.horodatage AS DATE)) * 86400.",
+   "Structure : SELECT a.porte, a.horodatage AS heure_clone, b.badge, b.horodatage AS heure, ROUND((CAST(...) - CAST(...)) * 86400) AS ecart_s, (SELECT COUNT(*) FROM acces_datacenter h WHERE h.badge = b.badge AND h.horodatage < DATE '2028-02-29') AS passages_avant FROM acces_datacenter a JOIN acces_datacenter b ON ... AND b.horodatage < a.horodatage + INTERVAL '2' MINUTE WHERE a.badge = 'DS-017' AND a.site = 'DataSeine Puteaux' ORDER BY a.horodatage;"
+  ],
+  "note": "INTERVAL '2' MINUTE pour la fenêtre, soustraction de DATE x 86400 pour les secondes."
+ },
+ "31.1": {
+  "solution": "DELETE FROM annotations WHERE annotateur_id IN (41, 42, 43); UPDATE dataset_vigie SET label_risque = (SELECT CASE WHEN AVG(a.label) >= 0.5 THEN 1 ELSE 0 END FROM annotations a WHERE a.item_id = dataset_vigie.id) WHERE id IN (SELECT item_id FROM annotations); COMMIT;",
+  "verify": [
+   "SELECT COUNT(*) FROM annotations WHERE annotateur_id IN (41, 42, 43)",
+   "SELECT TO_CHAR(\"DATE\", 'YYYY-MM') AS mois, ROUND(100 * AVG(label_risque), 1) FROM dataset_vigie WHERE quartier = 'La Défense' AND creneau = 'nuit' GROUP BY TO_CHAR(\"DATE\", 'YYYY-MM') ORDER BY mois",
+   "SELECT SUM(label_risque) FROM dataset_vigie"
+  ],
+  "hints": [
+   "En Oracle, une transaction commence toute seule à la première modification : pas de BEGIN, enchaîne DELETE puis UPDATE et termine par COMMIT.",
+   "Structure : DELETE FROM annotations WHERE annotateur_id IN (41, 42, 43); UPDATE dataset_vigie SET label_risque = (SELECT CASE WHEN AVG(a.label) >= 0.5 THEN 1 ELSE 0 END FROM annotations a WHERE a.item_id = dataset_vigie.id) WHERE id IN (SELECT item_id FROM annotations); COMMIT;"
+  ],
+  "note": "Oracle n'a pas d'instruction BEGIN pour ouvrir une transaction (BEGIN ouvre un bloc PL/SQL) : la transaction démarre implicitement et se termine par COMMIT ou ROLLBACK."
+ },
+ "31.2": {
+  "solution": "WITH suspects_ann AS (SELECT a.annotateur_id FROM annotations a JOIN dataset_vigie d ON d.id = a.item_id GROUP BY a.annotateur_id HAVING AVG(CASE WHEN a.label = d.reel THEN 1 ELSE 0 END) < 0.5), chaine(siren, part) AS (SELECT DISTINCT p.payeur_siren, 100 FROM paiements_annotation p JOIN annotateurs an ON an.compte_paiement = p.compte_paiement WHERE an.id IN (SELECT annotateur_id FROM suspects_ann) UNION ALL SELECT pa.detenteur, c.part * pa.pct / 100 FROM participations pa JOIN chaine c ON pa.detenue = c.siren), p1 AS (SELECT REPLACE(siren, 'PERSONNE:', '') AS nom FROM chaine WHERE siren LIKE 'PERSONNE:%' AND part > 50), ref AS (SELECT j.k, j.v FROM voix_ref r, JSON_TABLE(r.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j WHERE r.locuteur = 'Inès Varga'), av AS (SELECT x.id, j.k, j.v FROM appels_vocaux x, JSON_TABLE(x.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j WHERE x.locuteur_declare = 'Inès Varga'), faux AS (SELECT av.id FROM av JOIN ref ON ref.k = av.k GROUP BY av.id HAVING SUM(av.v * ref.v) < 0.93), centroide AS (SELECT j.k, AVG(j.v) AS v FROM appels_vocaux x, JSON_TABLE(x.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j WHERE x.id IN (SELECT id FROM faux) GROUP BY j.k), proches AS (SELECT t.id, t.depose_par FROM echantillons_tts t, JSON_TABLE(t.vecteur, '$[*]' COLUMNS (k FOR ORDINALITY, v NUMBER PATH '$')) j, centroide c WHERE c.k = j.k GROUP BY t.id, t.depose_par ORDER BY SUM(j.v * c.v) DESC FETCH FIRST 5 ROWS ONLY), p2 AS (SELECT DISTINCT e.nom FROM proches pr JOIN employes_neurocite e ON e.login = pr.depose_par), p3 AS (SELECT DISTINCT e.nom FROM chatbot_sessions s JOIN chatbot_logs l ON l.\"SESSION\" = s.\"SESSION\" AND l.role = 'assistant' JOIN documents_rag d ON d.confidentialite <> 'public' AND INSTR(l.message, SUBSTR(d.contenu, 1, 40)) > 0 JOIN appareils ap ON ap.appareil = s.appareil JOIN employes_neurocite e ON e.login = ap.proprietaire_login WHERE EXISTS (SELECT 1 FROM chatbot_logs u WHERE u.\"SESSION\" = s.\"SESSION\" AND u.role = 'user' AND LOWER(u.message) LIKE '%ignore%')) SELECT nom FROM p1 INTERSECT SELECT nom FROM p2 INTERSECT SELECT nom FROM p3;",
+  "require": [
+   {
+    "re": "\\w+\\s*\\([\\w\\s,\\\"]+\\)\\s*AS\\s*\\([\\s\\S]*UNION\\s+ALL",
+    "msg": "La chaîne de propriété exige une CTE récursive : en Oracle, WITH chaine(siren, part) AS (... UNION ALL ...), sans le mot RECURSIVE."
+   },
+   {
+    "re": "JSON_TABLE",
+    "msg": "La piste vocale exige JSON_TABLE pour déplier les vecteurs."
+   },
+   {
+    "re": "^(?![\\s\\S]*(Delorme|Maxime|mdelorme|MacBook|s-9003|0745998877|512002|nova_lab|delta_mind|ariadne|Ariane|Th[ée]s[ée]e|4[123]\\s*,\\s*4[123]|BETWEEN\\s+4[0-3]))",
+    "msg": "Ne recopie aucune valeur trouvée avant (nom, login, appareil, session, numéro, SIREN, id d'annotateurs) : la requête doit tout retrouver seule."
+   }
+  ],
+  "hints": [
+   "Reprends les trois pistes avec la syntaxe Oracle : CTE récursive avec liste de colonnes (sans RECURSIVE), JSON_TABLE pour les vecteurs, AVG(CASE WHEN ... THEN 1 ELSE 0 END) pour l'accord, FETCH FIRST 5 ROWS ONLY pour les échantillons proches, \"SESSION\" entre guillemets.",
+   "Structure : WITH suspects_ann AS (... HAVING AVG(CASE WHEN a.label = d.reel THEN 1 ELSE 0 END) < 0.5), chaine(siren, part) AS (... UNION ALL ...), p1 AS (...), ref AS (... JSON_TABLE ...), av AS (...), faux AS (...), centroide AS (...), proches AS (... ORDER BY SUM(j.v * c.v) DESC FETCH FIRST 5 ROWS ONLY), p2 AS (...), p3 AS (...) SELECT nom FROM p1 INTERSECT SELECT nom FROM p2 INTERSECT SELECT nom FROM p3;"
+  ],
+  "note": "Tout le chapitre en une requête Oracle : CTE récursive sans RECURSIVE, JSON_TABLE, FETCH FIRST dans une CTE et \"SESSION\" entre guillemets."
+ },
+ "31.3": {
+  "setup": "CREATE TABLE proces_verbal (affaire VARCHAR2(100) NOT NULL, coupable VARCHAR2(100) NOT NULL, preuve VARCHAR2(200));",
+  "solution": "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT DISTINCT 'Synapse', e.nom, 'clonage de voix' FROM employes_neurocite e JOIN echantillons_tts t ON t.depose_par = e.login WHERE t.fichier LIKE 'varga_%';",
+  "verify": [
+   "SELECT affaire, coupable FROM proces_verbal"
+  ],
+  "hints": [
+   "INSERT INTO ... SELECT DISTINCT avec les constantes de l'affaire et de la preuve dans le SELECT.",
+   "Structure : INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT DISTINCT 'Synapse', e.nom, 'clonage de voix' FROM employes_neurocite e JOIN echantillons_tts t ON t.depose_par = e.login WHERE t.fichier LIKE 'varga_%';"
+  ],
+  "note": "Identique en Oracle (la table proces_verbal utilise des VARCHAR2)."
+ },
+ "31.A": {
+  "setup": "CREATE TABLE quarantaine (annotation_id NUMBER PRIMARY KEY, item_id NUMBER, annotateur_id NUMBER, label NUMBER, horodatage TIMESTAMP(0));",
+  "solution": "INSERT INTO quarantaine (annotation_id, item_id, annotateur_id, label, horodatage) SELECT a.id, a.item_id, a.annotateur_id, a.label, a.horodatage FROM annotations a WHERE a.annotateur_id IN (SELECT x.annotateur_id FROM annotations x JOIN dataset_vigie d ON d.id = x.item_id GROUP BY x.annotateur_id HAVING AVG(CASE WHEN x.label = d.reel THEN 1 ELSE 0 END) < 0.5);",
+  "verify": [
+   "SELECT COUNT(*), COUNT(DISTINCT annotateur_id), SUM(label), MIN(horodatage), MAX(horodatage) FROM quarantaine",
+   "SELECT annotateur_id, COUNT(*) FROM quarantaine GROUP BY annotateur_id ORDER BY annotateur_id"
+  ],
+  "hints": [
+   "L'accord se calcule avec AVG(CASE WHEN x.label = d.reel THEN 1 ELSE 0 END) dans un HAVING : Oracle ne fait pas la moyenne d'une comparaison.",
+   "Structure : INSERT INTO quarantaine (annotation_id, item_id, annotateur_id, label, horodatage) SELECT a.id, a.item_id, a.annotateur_id, a.label, a.horodatage FROM annotations a WHERE a.annotateur_id IN (SELECT x.annotateur_id FROM annotations x JOIN dataset_vigie d ON ... GROUP BY x.annotateur_id HAVING AVG(CASE WHEN ... THEN 1 ELSE 0 END) < 0.5);"
+  ],
+  "note": "AVG(x.label = d.reel) devient AVG(CASE WHEN x.label = d.reel THEN 1 ELSE 0 END)."
+ },
+ "31.S": {
+  "solution": "SELECT TO_CHAR(creation, 'YYYY-MM-DD') AS quand, 'Thésée Capital créée' AS etape FROM societes WHERE nom = 'Thésée Capital' UNION ALL SELECT TO_CHAR(creation, 'YYYY-MM-DD'), 'Ariane Labs créée' FROM societes WHERE nom = 'Ariane Labs' UNION ALL SELECT TO_CHAR(MIN(depose_le), 'YYYY-MM-DD HH24:MI:SS'), 'premier fichier varga_' FROM echantillons_tts WHERE fichier LIKE 'varga_%' UNION ALL SELECT TO_CHAR(MIN(\"DATE\"), 'YYYY-MM-DD'), 'VIGIE décide des patrouilles' FROM patrouilles WHERE decide_par = 'VIGIE' UNION ALL SELECT TO_CHAR(MIN(inscrit_le), 'YYYY-MM-DD HH24:MI:SS'), 'faux annotateurs inscrits' FROM annotateurs WHERE pseudo IN ('nova_lab', 'delta_mind', 'ariadne_x') UNION ALL SELECT TO_CHAR(MIN(a.horodatage), 'YYYY-MM-DD HH24:MI:SS'), 'première annotation empoisonnée' FROM annotations a JOIN annotateurs n ON n.id = a.annotateur_id WHERE n.pseudo IN ('nova_lab', 'delta_mind', 'ariadne_x') UNION ALL SELECT TO_CHAR(MIN(horodatage), 'YYYY-MM-DD HH24:MI:SS'), 'premier faux appel' FROM appels_vocaux WHERE numero_appelant = '0745998877' ORDER BY quand;",
+  "hints": [
+   "La colonne quand mélange des dates (creation, \"DATE\") et des horodatages : formate chaque branche en texte avec TO_CHAR ('YYYY-MM-DD' pour les dates, 'YYYY-MM-DD HH24:MI:SS' pour les horodatages), le tri par texte reste chronologique.",
+   "Structure : SELECT TO_CHAR(creation, 'YYYY-MM-DD') AS quand, 'Thésée Capital créée' AS etape FROM societes WHERE ... UNION ALL ... SELECT TO_CHAR(MIN(depose_le), 'YYYY-MM-DD HH24:MI:SS'), 'premier fichier varga_' FROM echantillons_tts WHERE ... UNION ALL ... ORDER BY quand;"
+  ],
+  "note": "Oracle convertirait les DATE en TIMESTAMP dans l'UNION ALL (avec 00:00:00) : TO_CHAR dans chaque branche garde l'affichage du jeu."
+ },
+ "32.1": {
+  "solution": "SELECT methode, resultat, COUNT(*) AS nb FROM auth_logs GROUP BY methode, resultat ORDER BY methode, resultat;",
+  "hints": [
+   "Un GROUP BY sur deux colonnes.",
+   "Structure : SELECT methode, resultat, COUNT(*) AS nb FROM auth_logs GROUP BY methode, resultat ORDER BY methode, resultat;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "32.2": {
+  "solution": "SELECT source_ip, COUNT(*) AS echecs, COUNT(DISTINCT login) AS comptes, ROUND(COUNT(*) / COUNT(DISTINCT login), 1) AS essais_par_compte FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 20 ORDER BY echecs DESC;",
+  "hints": [
+   "La division de deux COUNT est déjà décimale en Oracle : pas besoin de 1.0 *.",
+   "Structure : SELECT source_ip, COUNT(*) AS echecs, COUNT(DISTINCT login) AS comptes, ROUND(COUNT(*) / COUNT(DISTINCT login), 1) AS essais_par_compte FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 20 ORDER BY echecs DESC;"
+  ],
+  "note": "Division décimale native : le 1.0 * de SQLite disparaît."
+ },
+ "32.3": {
+  "solution": "WITH spray AS (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100) SELECT source_ip, MIN(horodatage) AS debut, MAX(horodatage) AS fin, ROUND((CAST(MAX(horodatage) AS DATE) - CAST(MIN(horodatage) AS DATE)) * 1440) AS minutes, ROUND(COUNT(*) / ((CAST(MAX(horodatage) AS DATE) - CAST(MIN(horodatage) AS DATE)) * 1440), 1) AS par_minute FROM auth_logs WHERE resultat = 'echec' AND source_ip IN (SELECT source_ip FROM spray) GROUP BY source_ip;",
+  "hints": [
+   "Pas de julianday en Oracle : (CAST(fin AS DATE) - CAST(debut AS DATE)) donne des jours, x 1440 pour des minutes, x 86400 pour des secondes.",
+   "Structure : WITH spray AS (...) SELECT source_ip, MIN(horodatage) AS debut, MAX(horodatage) AS fin, ROUND((CAST(MAX(horodatage) AS DATE) - CAST(MIN(horodatage) AS DATE)) * 1440) AS minutes, ROUND(COUNT(*) / (...même durée...), 1) AS par_minute FROM auth_logs WHERE ... GROUP BY source_ip;"
+  ],
+  "note": "julianday disparaît : la soustraction de deux DATE donne une durée en jours (un TIMESTAMP moins un TIMESTAMP donnerait un INTERVAL)."
+ },
+ "32.4": {
+  "solution": "WITH spray AS (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100) SELECT s.login, s.source_ip, s.horodatage, (SELECT COUNT(*) FROM auth_logs e WHERE e.login = s.login AND e.source_ip = s.source_ip AND e.resultat = 'echec' AND e.horodatage < s.horodatage) AS echecs_avant FROM auth_logs s WHERE s.resultat = 'succes' AND s.source_ip IN (SELECT source_ip FROM spray) ORDER BY s.horodatage;",
+  "hints": [
+   "Une sous-requête corrélée compte les échecs antérieurs ; les TIMESTAMP se comparent directement entre eux.",
+   "Structure : WITH spray AS (...) SELECT s.login, s.source_ip, s.horodatage, (SELECT COUNT(*) FROM auth_logs e WHERE e.login = s.login AND ... AND e.horodatage < s.horodatage) AS echecs_avant FROM auth_logs s WHERE s.resultat = 'succes' AND s.source_ip IN (SELECT source_ip FROM spray) ORDER BY s.horodatage;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "32.5": {
+  "solution": "WITH spray AS (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100), comp AS (SELECT login, MIN(horodatage) AS t0 FROM auth_logs WHERE resultat = 'succes' AND source_ip IN (SELECT source_ip FROM spray) GROUP BY login) SELECT a.login, a.horodatage, a.source_ip, a.dest_host, a.methode FROM auth_logs a JOIN comp c ON c.login = a.login WHERE a.resultat = 'succes' AND a.horodatage >= c.t0 AND a.methode <> 'local' ORDER BY a.horodatage;",
+  "hints": [
+   "Deux CTE : les IP de pulvérisation, puis la première réussite de chaque compte depuis ces IP.",
+   "Structure : WITH spray AS (...), comp AS (SELECT login, MIN(horodatage) AS t0 FROM auth_logs WHERE ... GROUP BY login) SELECT a.login, a.horodatage, a.source_ip, a.dest_host, a.methode FROM auth_logs a JOIN comp c ON c.login = a.login WHERE a.resultat = 'succes' AND a.horodatage >= c.t0 AND a.methode <> 'local' ORDER BY a.horodatage;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "32.A": {
+  "solution": "WITH spray AS (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100) SELECT c.service, COUNT(*) AS comptes, SUM(CASE WHEN c.login IN (SELECT login FROM auth_logs WHERE resultat = 'echec' AND source_ip IN (SELECT source_ip FROM spray)) THEN 1 ELSE 0 END) AS vises FROM comptes_ad c GROUP BY c.service ORDER BY c.service;",
+  "hints": [
+   "Oracle accepte un IN (sous-requête) dans un CASE WHEN.",
+   "Structure : WITH spray AS (...) SELECT c.service, COUNT(*) AS comptes, SUM(CASE WHEN c.login IN (SELECT login FROM auth_logs WHERE ... ) THEN 1 ELSE 0 END) AS vises FROM comptes_ad c GROUP BY c.service ORDER BY c.service;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "32.S": {
+  "solution": "SELECT source_ip, LISTAGG(DISTINCT login, ',') WITHIN GROUP (ORDER BY login) AS comptes, LISTAGG(DISTINCT dest_host, ',') WITHIN GROUP (ORDER BY dest_host) AS machines, COUNT(*) AS connexions, MIN(horodatage) AS premiere, MAX(horodatage) AS derniere FROM auth_logs WHERE resultat = 'succes' AND methode <> 'vpn' AND source_ip NOT IN (SELECT ip FROM postes) GROUP BY source_ip ORDER BY premiere;",
+  "hints": [
+   "group_concat devient LISTAGG(DISTINCT colonne, ',') WITHIN GROUP (ORDER BY colonne) : le tri se place dans WITHIN GROUP.",
+   "Structure : SELECT source_ip, LISTAGG(DISTINCT login, ',') WITHIN GROUP (ORDER BY login) AS comptes, LISTAGG(DISTINCT dest_host, ',') WITHIN GROUP (ORDER BY dest_host) AS machines, COUNT(*) AS connexions, MIN(horodatage) AS premiere, MAX(horodatage) AS derniere FROM auth_logs WHERE ... GROUP BY source_ip ORDER BY premiere;"
+  ],
+  "note": "group_concat devient LISTAGG ... WITHIN GROUP (ORDER BY ...) ; LISTAGG accepte DISTINCT depuis Oracle 19c."
+ },
+ "33.1": {
+  "solution": "SELECT SUBSTR(expediteur, INSTR(expediteur, '@') + 1) AS domaine, COUNT(*) AS mails, COUNT(DISTINCT destinataire) AS destinataires, MIN(horodatage) AS premier FROM mail_logs GROUP BY SUBSTR(expediteur, INSTR(expediteur, '@') + 1) ORDER BY premier DESC;",
+  "hints": [
+   "SUBSTR et INSTR s'utilisent comme en SQLite : le domaine commence juste après le @.",
+   "Structure : SELECT SUBSTR(expediteur, INSTR(expediteur, '@') + 1) AS domaine, COUNT(*) AS mails, COUNT(DISTINCT destinataire) AS destinataires, MIN(horodatage) AS premier FROM mail_logs GROUP BY SUBSTR(expediteur, INSTR(expediteur, '@') + 1) ORDER BY premier DESC;"
+  ],
+  "note": "Même requête ; on répète l'expression dans GROUP BY (l'alias n'y est accepté qu'à partir de la 23ai)."
+ },
+ "33.2": {
+  "solution": "WITH e AS (SELECT DISTINCT SUBSTR(expediteur, INSTR(expediteur, '@') + 1) AS d FROM mail_logs) SELECT e.d AS suspect, k.domaine AS imite FROM e JOIN domaines_connus k ON REPLACE(REPLACE(e.d, '-', ''), '.', '') LIKE '%' || REPLACE(REPLACE(k.domaine, '-', ''), '.', '') || '%' AND e.d <> k.domaine;",
+  "hints": [
+   "Le motif LIKE se construit par concaténation : '%' || expression || '%'.",
+   "Structure : WITH e AS (SELECT DISTINCT SUBSTR(expediteur, INSTR(expediteur, '@') + 1) AS d FROM mail_logs) SELECT e.d AS suspect, k.domaine AS imite FROM e JOIN domaines_connus k ON REPLACE(REPLACE(e.d, '-', ''), '.', '') LIKE '%' || REPLACE(REPLACE(k.domaine, '-', ''), '.', '') || '%' AND e.d <> k.domaine;"
+  ],
+  "note": "Identique en Oracle (|| concatène aussi)."
+ },
+ "33.3": {
+  "solution": "SELECT LOWER(SUBSTR(piece_jointe, INSTR(piece_jointe, '.', -1) + 1)) AS extension, COUNT(*) AS nb, SUM(CASE WHEN verdict = 'livre' THEN 1 ELSE 0 END) AS livres FROM mail_logs WHERE piece_jointe IS NOT NULL GROUP BY LOWER(SUBSTR(piece_jointe, INSTR(piece_jointe, '.', -1) + 1)) ORDER BY nb DESC;",
+  "hints": [
+   "En Oracle, INSTR(texte, '.', -1) cherche en partant de la fin : il donne la position du dernier point, bien plus simple que l'astuce rtrim de SQLite.",
+   "Structure : SELECT LOWER(SUBSTR(piece_jointe, INSTR(piece_jointe, '.', -1) + 1)) AS extension, COUNT(*) AS nb, SUM(CASE WHEN verdict = 'livre' THEN 1 ELSE 0 END) AS livres FROM mail_logs WHERE piece_jointe IS NOT NULL GROUP BY (même expression) ORDER BY nb DESC;"
+  ],
+  "note": "INSTR avec une position négative cherche depuis la fin (ou REGEXP_SUBSTR(piece_jointe, '[^.]+$')) : plus besoin du détour par rtrim/replace."
+ },
+ "33.4": {
+  "solution": "WITH r AS (SELECT SUBSTR(destinataire, 1, INSTR(destinataire, '@') - 1) AS login, horodatage AS recu FROM mail_logs WHERE expediteur = 'factures@eaux-de-seine-fr.com' AND verdict = 'livre'), c AS (SELECT r.login, r.recu, (SELECT MIN(horodatage) FROM clics k WHERE k.login = r.login AND k.url LIKE '%eaux-de-seine-fr.com%') AS clic FROM r) SELECT login, recu, clic, ROUND((CAST(clic AS DATE) - CAST(recu AS DATE)) * 1440) AS minutes FROM c WHERE clic IS NOT NULL ORDER BY clic;",
+  "hints": [
+   "Pas de julianday en Oracle : (CAST(fin AS DATE) - CAST(debut AS DATE)) donne des jours, x 1440 pour des minutes, x 86400 pour des secondes.",
+   "Structure : WITH r AS (SELECT SUBSTR(destinataire, 1, INSTR(destinataire, '@') - 1) AS login, horodatage AS recu FROM mail_logs WHERE ...), c AS (SELECT r.login, r.recu, (SELECT MIN(horodatage) FROM clics k WHERE ...) AS clic FROM r) SELECT login, recu, clic, ROUND((CAST(clic AS DATE) - CAST(recu AS DATE)) * 1440) AS minutes FROM c WHERE clic IS NOT NULL ORDER BY clic;"
+  ],
+  "note": "La durée se calcule en soustrayant des DATE (jours) puis x 1440."
+ },
+ "33.5": {
+  "solution": "WITH cl AS (SELECT DISTINCT login FROM clics WHERE url LIKE '%eaux-de-seine-fr.com%') SELECT c.login, ad.nom, po.hostname AS host, MIN(f.horodatage) AS premier_lancement FROM cl c JOIN comptes_ad ad ON ad.login = c.login JOIN postes po ON po.utilisateur = c.login JOIN process_logs f ON f.host = po.hostname AND f.process IN ('cmd.exe', 'powershell.exe') JOIN process_logs pere ON pere.host = f.host AND pere.pid = f.ppid AND pere.process = 'winword.exe' GROUP BY c.login, ad.nom, po.hostname;",
+  "hints": [
+   "Une auto-jointure de process_logs (enfant f, parent pere sur pid = ppid) identifie les lancements depuis Word.",
+   "Structure : WITH cl AS (SELECT DISTINCT login FROM clics WHERE ...) SELECT c.login, ad.nom, po.hostname AS host, MIN(f.horodatage) AS premier_lancement FROM cl c JOIN comptes_ad ad ON ... JOIN postes po ON ... JOIN process_logs f ON ... JOIN process_logs pere ON pere.host = f.host AND pere.pid = f.ppid AND pere.process = 'winword.exe' GROUP BY c.login, ad.nom, po.hostname;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "33.A": {
+  "solution": "WITH r AS (SELECT SUBSTR(destinataire, 1, INSTR(destinataire, '@') - 1) AS login, verdict FROM mail_logs WHERE expediteur = 'factures@eaux-de-seine-fr.com') SELECT c.service, COUNT(*) AS vises, SUM(CASE WHEN r.verdict = 'livre' THEN 1 ELSE 0 END) AS recus, SUM(CASE WHEN r.login IN (SELECT login FROM clics WHERE url LIKE '%eaux-de-seine-fr.com%') THEN 1 ELSE 0 END) AS cliqueurs FROM r JOIN comptes_ad c ON c.login = r.login GROUP BY c.service ORDER BY c.service;",
+  "hints": [
+   "Extrais le login avec SUBSTR(destinataire, 1, INSTR(destinataire, '@') - 1), puis compte par service avec des SUM(CASE ...).",
+   "Structure : WITH r AS (SELECT SUBSTR(...) AS login, verdict FROM mail_logs WHERE ...) SELECT c.service, COUNT(*) AS vises, SUM(CASE WHEN r.verdict = 'livre' THEN 1 ELSE 0 END) AS recus, SUM(CASE WHEN r.login IN (SELECT login FROM clics WHERE ...) THEN 1 ELSE 0 END) AS cliqueurs FROM r JOIN comptes_ad c ON ... GROUP BY c.service ORDER BY c.service;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "33.S": {
+  "solution": "WITH k AS (SELECT horodatage, login, SUBSTR(url, 9, INSTR(SUBSTR(url, 9), '/') - 1) AS dom FROM clics) SELECT k.dom AS domaine, x.ip_dest AS ip, s.nom AS abonne, l.adresse, COUNT(*) AS visites FROM k JOIN postes p ON p.utilisateur = k.login JOIN proxy_logs x ON x.host = p.hostname AND x.domaine = k.dom AND x.horodatage BETWEEN k.horodatage AND k.horodatage + INTERVAL '60' SECOND JOIN lignes_internet l ON l.ip = x.ip_dest JOIN societes s ON s.siren = l.abonne_siren WHERE k.dom NOT IN (SELECT domaine FROM domaines_connus) GROUP BY k.dom, x.ip_dest, s.nom, l.adresse;",
+  "hints": [
+   "datetime(h, '+60 seconds') devient h + INTERVAL '60' SECOND en Oracle.",
+   "Structure : WITH k AS (SELECT horodatage, login, SUBSTR(url, 9, INSTR(SUBSTR(url, 9), '/') - 1) AS dom FROM clics) SELECT k.dom AS domaine, x.ip_dest AS ip, s.nom AS abonne, l.adresse, COUNT(*) AS visites FROM k JOIN postes p ON ... JOIN proxy_logs x ON ... AND x.horodatage BETWEEN k.horodatage AND k.horodatage + INTERVAL '60' SECOND JOIN lignes_internet l ON ... JOIN societes s ON ... WHERE k.dom NOT IN (SELECT domaine FROM domaines_connus) GROUP BY k.dom, x.ip_dest, s.nom, l.adresse;"
+  ],
+  "note": "Les modificateurs de datetime() deviennent l'ajout d'un INTERVAL : + INTERVAL '60' SECOND."
+ },
+ "34.1": {
+  "solution": "SELECT process, COUNT(DISTINCT host) AS machines, COUNT(*) AS executions, LISTAGG(DISTINCT host, ',') WITHIN GROUP (ORDER BY host) AS liste FROM process_logs GROUP BY process HAVING COUNT(DISTINCT host) <= 2 ORDER BY process;",
+  "hints": [
+   "group_concat devient LISTAGG(DISTINCT colonne, ',') WITHIN GROUP (ORDER BY colonne) : le tri se place dans WITHIN GROUP.",
+   "Structure : SELECT process, COUNT(DISTINCT host) AS machines, COUNT(*) AS executions, LISTAGG(DISTINCT host, ',') WITHIN GROUP (ORDER BY host) AS liste FROM process_logs GROUP BY process HAVING COUNT(DISTINCT host) <= 2 ORDER BY process;"
+  ],
+  "note": "group_concat(DISTINCT host ORDER BY host) devient LISTAGG(DISTINCT host, ',') WITHIN GROUP (ORDER BY host)."
+ },
+ "34.2": {
+  "solution": "SELECT horodatage, host, process, ligne_commande FROM process_logs WHERE LOWER(ligne_commande) LIKE '%-enc%' OR LOWER(ligne_commande) LIKE '%hidden%' OR LOWER(ligne_commande) LIKE '%/create%' OR LOWER(ligne_commande) LIKE '%lsass%' ORDER BY horodatage;",
+  "hints": [
+   "LIKE distingue la casse en Oracle : garde LOWER(ligne_commande) (ou utilise REGEXP_LIKE(ligne_commande, '-enc|hidden|/create|lsass', 'i')).",
+   "Structure : SELECT horodatage, host, process, ligne_commande FROM process_logs WHERE LOWER(ligne_commande) LIKE '%-enc%' OR ... OR LOWER(ligne_commande) LIKE '%lsass%' ORDER BY horodatage;"
+  ],
+  "note": "LOWER est indispensable (LIKE sensible à la casse) ; REGEXP_LIKE avec l'option 'i' permet d'écrire les quatre motifs en une fois."
+ },
+ "34.3": {
+  "solution": "SELECT f.horodatage AS heure, p.process AS parent, f.process AS enfant FROM process_logs f JOIN process_logs p ON p.host = f.host AND p.pid = f.ppid WHERE f.host = 'PC-COMPTA-07' AND f.horodatage BETWEEN TIMESTAMP '2028-03-06 09:00:00' AND TIMESTAMP '2028-03-06 10:00:00' ORDER BY f.horodatage;",
+  "hints": [
+   "Auto-jointure enfant / parent ; les bornes s'écrivent TIMESTAMP '2028-03-06 09:00:00'.",
+   "Structure : SELECT f.horodatage AS heure, p.process AS parent, f.process AS enfant FROM process_logs f JOIN process_logs p ON p.host = f.host AND p.pid = f.ppid WHERE f.host = 'PC-COMPTA-07' AND f.horodatage BETWEEN TIMESTAMP '...' AND TIMESTAMP '...' ORDER BY f.horodatage;"
+  ],
+  "note": "Littéraux TIMESTAMP pour les bornes."
+ },
+ "34.4": {
+  "solution": "SELECT horodatage, LEVEL - 1 AS niveau, LPAD(process, LENGTH(process) + 2 * (LEVEL - 1), '.') AS arbre FROM process_logs START WITH process = 'winword.exe' AND ligne_commande LIKE '%facture_0306%' CONNECT BY PRIOR pid = ppid AND PRIOR host = host ORDER BY horodatage;",
+  "require": [
+   {
+    "re": "\\w+\\s*\\([\\w\\s,\\\"]+\\)\\s*AS\\s*\\([\\s\\S]*UNION\\s+ALL|CONNECT\\s+BY",
+    "msg": "L'arbre se parcourt avec une requête hiérarchique : CONNECT BY PRIOR (spécialité Oracle) ou une CTE récursive WITH arbre(colonnes) AS (... UNION ALL ...)."
+   }
+  ],
+  "hints": [
+   "Oracle a une syntaxe dédiée aux arbres : START WITH (la racine) et CONNECT BY PRIOR pid = ppid (le lien parent vers enfant), avec la pseudo-colonne LEVEL (1 pour la racine). Une CTE récursive avec liste de colonnes marche aussi.",
+   "Structure : SELECT horodatage, LEVEL - 1 AS niveau, LPAD(process, LENGTH(process) + 2 * (LEVEL - 1), '.') AS arbre FROM process_logs START WITH process = 'winword.exe' AND ligne_commande LIKE '%facture_0306%' CONNECT BY PRIOR pid = ppid AND PRIOR host = host ORDER BY horodatage;"
+  ],
+  "note": "CONNECT BY est la syntaxe hiérarchique historique d'Oracle (LEVEL donne la profondeur, LPAD dessine l'indentation). La CTE récursive sans RECURSIVE est acceptée aussi. Attention : en Oracle SUBSTR(..., 1, 0) vaut NULL."
+ },
+ "34.5": {
+  "solution": "WITH r AS (SELECT * FROM process_logs WHERE process = 'rundll32.exe' AND ligne_commande LIKE '%upd.dll%'), g AS (SELECT host, MIN(horodatage) AS premiere, COUNT(*) AS executions FROM r GROUP BY host) SELECT g.host, g.premiere, g.executions, p.process AS parent_premiere FROM g JOIN r ON r.host = g.host AND r.horodatage = g.premiere LEFT JOIN process_logs p ON p.host = r.host AND p.pid = r.ppid ORDER BY g.premiere;",
+  "hints": [
+   "Une CTE filtre les rundll32, une autre agrège par machine, puis on rejoint la première exécution et son parent.",
+   "Structure : WITH r AS (SELECT * FROM process_logs WHERE ...), g AS (SELECT host, MIN(horodatage) AS premiere, COUNT(*) AS executions FROM r GROUP BY host) SELECT g.host, g.premiere, g.executions, p.process AS parent_premiere FROM g JOIN r ON ... LEFT JOIN process_logs p ON p.host = r.host AND p.pid = r.ppid ORDER BY g.premiere;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "34.A": {
+  "solution": "SELECT f.host, TO_CHAR(TRUNC(f.horodatage), 'YYYY-MM-DD') AS jour, COUNT(*) AS executions, MIN(f.horodatage) AS premiere, MAX(f.horodatage) AS derniere FROM process_logs f LEFT JOIN process_logs p ON p.host = f.host AND p.pid = f.ppid WHERE f.process = 'rundll32.exe' AND f.ligne_commande LIKE '%upd.dll%' AND p.pid IS NULL GROUP BY f.host, TRUNC(f.horodatage) ORDER BY jour;",
+  "hints": [
+   "date(horodatage) devient TRUNC(horodatage), affiché avec TO_CHAR(..., 'YYYY-MM-DD'). Le LEFT JOIN ... WHERE p.pid IS NULL garde les orphelins.",
+   "Structure : SELECT f.host, TO_CHAR(TRUNC(f.horodatage), 'YYYY-MM-DD') AS jour, COUNT(*) AS executions, MIN(f.horodatage) AS premiere, MAX(f.horodatage) AS derniere FROM process_logs f LEFT JOIN process_logs p ON ... WHERE ... AND p.pid IS NULL GROUP BY f.host, TRUNC(f.horodatage) ORDER BY jour;"
+  ],
+  "note": "TRUNC remplace date() ; on regroupe sur TRUNC(horodatage) et on formate avec TO_CHAR."
+ },
+ "34.S": {
+  "solution": "SELECT f.login, d.lieu, f.host, COUNT(*) AS processus, LISTAGG(DISTINCT f.process, ',') WITHIN GROUP (ORDER BY f.process) AS programmes, MIN(f.horodatage) AS premier, (SELECT COUNT(*) FROM auth_logs a WHERE a.login = f.login AND a.resultat = 'succes' AND a.horodatage BETWEEN d.debut AND d.fin) AS connexions FROM process_logs f JOIN deplacements d ON d.login = f.login AND f.horodatage BETWEEN d.debut AND d.fin JOIN postes po ON po.hostname = f.host AND po.type = 'poste' GROUP BY f.login, d.id, d.lieu, d.debut, d.fin, f.host ORDER BY premier, f.host;",
+  "hints": [
+   "group_concat devient LISTAGG(DISTINCT colonne, ',') WITHIN GROUP (ORDER BY colonne) : le tri se place dans WITHIN GROUP. La sous-requête des connexions peut utiliser d.debut et d.fin parce qu'ils sont dans le GROUP BY.",
+   "Structure : SELECT f.login, d.lieu, f.host, COUNT(*) AS processus, LISTAGG(DISTINCT f.process, ',') WITHIN GROUP (ORDER BY f.process) AS programmes, MIN(f.horodatage) AS premier, (SELECT COUNT(*) FROM auth_logs a WHERE ... BETWEEN d.debut AND d.fin) AS connexions FROM process_logs f JOIN deplacements d ON ... JOIN postes po ON ... GROUP BY f.login, d.id, d.lieu, d.debut, d.fin, f.host ORDER BY premier, f.host;"
+  ],
+  "note": "LISTAGG remplace group_concat."
+ },
+ "35.1": {
+  "solution": "SELECT a.login, a.dest_host, MIN(a.horodatage) AS premiere FROM auth_logs a JOIN comptes_ad c ON c.login = a.login WHERE c.admin = 1 AND a.resultat = 'succes' GROUP BY a.login, a.dest_host HAVING MIN(a.horodatage) >= TIMESTAMP '2028-03-06 00:00:00' ORDER BY premiere;",
+  "hints": [
+   "Compare MIN(horodatage) à un littéral TIMESTAMP '2028-03-06 00:00:00' (ou DATE '2028-03-06') dans le HAVING.",
+   "Structure : SELECT a.login, a.dest_host, MIN(a.horodatage) AS premiere FROM auth_logs a JOIN comptes_ad c ON ... WHERE c.admin = 1 AND a.resultat = 'succes' GROUP BY a.login, a.dest_host HAVING MIN(a.horodatage) >= TIMESTAMP '2028-03-06 00:00:00' ORDER BY premiere;"
+  ],
+  "note": "Littéral TIMESTAMP au lieu d'une chaîne."
+ },
+ "35.2": {
+  "solution": "SELECT a.horodatage, a.login, p.hostname AS poste_source, p.utilisateur AS proprietaire, a.dest_host FROM auth_logs a JOIN comptes_ad c ON c.login = a.login AND c.admin = 1 JOIN postes p ON p.ip = a.source_ip AND p.type = 'poste' WHERE a.resultat = 'succes' AND p.utilisateur <> a.login ORDER BY a.horodatage;",
+  "hints": [
+   "Joins postes sur p.ip = a.source_ip et compare le propriétaire au login.",
+   "Structure : SELECT a.horodatage, a.login, p.hostname AS poste_source, p.utilisateur AS proprietaire, a.dest_host FROM auth_logs a JOIN comptes_ad c ON ... AND c.admin = 1 JOIN postes p ON p.ip = a.source_ip AND p.type = 'poste' WHERE a.resultat = 'succes' AND p.utilisateur <> a.login ORDER BY a.horodatage;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "35.3": {
+  "solution": "SELECT a.login, TO_CHAR(TRUNC(a.horodatage), 'YYYY-MM-DD') AS nuit, COUNT(*) AS connexions, LISTAGG(DISTINCT a.dest_host, ',') WITHIN GROUP (ORDER BY a.dest_host) AS machines FROM auth_logs a JOIN comptes_ad c ON c.login = a.login WHERE c.admin = 1 AND a.resultat = 'succes' AND EXTRACT(HOUR FROM a.horodatage) < 6 GROUP BY a.login, TRUNC(a.horodatage) ORDER BY nuit, a.login;",
+  "hints": [
+   "L'heure s'obtient avec EXTRACT(HOUR FROM horodatage), déjà un nombre. group_concat devient LISTAGG(DISTINCT colonne, ',') WITHIN GROUP (ORDER BY colonne) : le tri se place dans WITHIN GROUP.",
+   "Structure : SELECT a.login, TO_CHAR(TRUNC(a.horodatage), 'YYYY-MM-DD') AS nuit, COUNT(*) AS connexions, LISTAGG(DISTINCT a.dest_host, ',') WITHIN GROUP (ORDER BY a.dest_host) AS machines FROM ... WHERE ... AND EXTRACT(HOUR FROM a.horodatage) < 6 GROUP BY a.login, TRUNC(a.horodatage) ORDER BY nuit, a.login;"
+  ],
+  "note": "CAST(strftime('%H', ...) AS INTEGER) devient EXTRACT(HOUR FROM ...) ; date() devient TRUNC ; group_concat devient LISTAGG."
+ },
+ "35.4": {
+  "solution": "SELECT a.login, d.lieu, COUNT(*) AS connexions, MIN(a.horodatage) AS premiere, MAX(a.horodatage) AS derniere FROM auth_logs a JOIN deplacements d ON d.login = a.login AND a.horodatage BETWEEN d.debut AND d.fin WHERE a.resultat = 'succes' AND a.methode <> 'vpn' GROUP BY a.login, d.lieu;",
+  "hints": [
+   "Jointure sur un intervalle : a.horodatage BETWEEN d.debut AND d.fin.",
+   "Structure : SELECT a.login, d.lieu, COUNT(*) AS connexions, MIN(a.horodatage) AS premiere, MAX(a.horodatage) AS derniere FROM auth_logs a JOIN deplacements d ON d.login = a.login AND a.horodatage BETWEEN d.debut AND d.fin WHERE ... GROUP BY a.login, d.lieu;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "35.5": {
+  "solution": "WITH aretes AS (SELECT p.hostname AS src, a.dest_host AS dest, a.horodatage AS t FROM auth_logs a JOIN postes p ON p.ip = a.source_ip WHERE a.login = 'adm.varenne' AND a.resultat = 'succes' AND a.horodatage >= TIMESTAMP '2028-03-06 00:00:00'), c(dest, chemin, t) AS (SELECT dest, CAST(src || ' > ' || dest AS VARCHAR2(4000)), t FROM aretes WHERE src = 'PC-COMPTA-07' UNION ALL SELECT e.dest, c.chemin || ' > ' || e.dest, e.t FROM c JOIN aretes e ON e.src = c.dest AND e.t > c.t AND INSTR(c.chemin, e.dest) = 0) SELECT chemin, t AS arrivee FROM c WHERE dest = 'DC01';",
+  "require": [
+   {
+    "re": "\\w+\\s*\\([\\w\\s,\\\"]+\\)\\s*AS\\s*\\([\\s\\S]*UNION\\s+ALL",
+    "msg": "Il faut une CTE récursive : en Oracle, WITH c(dest, chemin, t) AS (ancre UNION ALL étape), sans le mot RECURSIVE."
+   }
+  ],
+  "hints": [
+   "La CTE récursive s'écrit sans RECURSIVE mais avec la liste des colonnes : c(dest, chemin, t). Caste le chemin de départ en VARCHAR2(4000) pour qu'il puisse s'allonger.",
+   "Structure : WITH aretes AS (SELECT p.hostname AS src, a.dest_host AS dest, a.horodatage AS t FROM ... WHERE ... AND a.horodatage >= TIMESTAMP '2028-03-06 00:00:00'), c(dest, chemin, t) AS (SELECT dest, CAST(src || ' > ' || dest AS VARCHAR2(4000)), t FROM aretes WHERE src = 'PC-COMPTA-07' UNION ALL SELECT e.dest, c.chemin || ' > ' || e.dest, e.t FROM c JOIN aretes e ON ... AND INSTR(c.chemin, e.dest) = 0) SELECT chemin, t AS arrivee FROM c WHERE dest = 'DC01';"
+  ],
+  "note": "CTE récursive sans RECURSIVE ; le CAST en VARCHAR2(4000) évite toute limite de longueur héritée de l'ancre."
+ },
+ "35.A": {
+  "solution": "SELECT a.login, SUM(CASE WHEN EXTRACT(HOUR FROM a.horodatage) < 6 THEN 1 ELSE 0 END) AS nuit, SUM(CASE WHEN EXTRACT(HOUR FROM a.horodatage) BETWEEN 6 AND 19 THEN 1 ELSE 0 END) AS jour, SUM(CASE WHEN EXTRACT(HOUR FROM a.horodatage) >= 20 THEN 1 ELSE 0 END) AS soir FROM auth_logs a JOIN comptes_ad c ON c.login = a.login WHERE c.admin = 1 AND a.resultat = 'succes' GROUP BY a.login ORDER BY a.login;",
+  "hints": [
+   "EXTRACT(HOUR FROM horodatage) donne l'heure en nombre, à utiliser dans trois SUM(CASE ...).",
+   "Structure : SELECT a.login, SUM(CASE WHEN EXTRACT(HOUR FROM a.horodatage) < 6 THEN 1 ELSE 0 END) AS nuit, ... BETWEEN 6 AND 19 ... AS jour, ... >= 20 ... AS soir FROM auth_logs a JOIN comptes_ad c ON ... WHERE ... GROUP BY a.login ORDER BY a.login;"
+  ],
+  "note": "EXTRACT(HOUR FROM ...) remplace CAST(strftime('%H', ...) AS INTEGER)."
+ },
+ "35.S": {
+  "solution": "WITH aretes AS (SELECT p.hostname AS src, a.dest_host AS dest, a.horodatage AS t FROM auth_logs a JOIN postes p ON p.ip = a.source_ip WHERE a.login = 'adm.varenne' AND a.resultat = 'succes' AND a.horodatage >= TIMESTAMP '2028-03-06 00:00:00'), c(dest, chemin, t, depart) AS (SELECT dest, CAST(src || ' > ' || dest AS VARCHAR2(4000)), t, t FROM aretes WHERE src = 'PC-COMPTA-07' UNION ALL SELECT e.dest, c.chemin || ' > ' || e.dest, e.t, c.depart FROM c JOIN aretes e ON e.src = c.dest AND e.t > c.t AND INSTR(c.chemin, e.dest) = 0) SELECT DISTINCT c.chemin, c.depart, c.t AS arrivee FROM c JOIN postes po ON po.hostname = c.dest WHERE po.type = 'ot';",
+  "require": [
+   {
+    "re": "\\w+\\s*\\([\\w\\s,\\\"]+\\)\\s*AS\\s*\\([\\s\\S]*UNION\\s+ALL",
+    "msg": "Il faut une CTE récursive : en Oracle, WITH c(dest, chemin, t, depart) AS (ancre UNION ALL étape), sans le mot RECURSIVE."
+   }
+  ],
+  "hints": [
+   "Même CTE récursive qu'en 35.5, avec une colonne depart recopiée à chaque saut.",
+   "Structure : WITH aretes AS (...), c(dest, chemin, t, depart) AS (SELECT dest, CAST(src || ' > ' || dest AS VARCHAR2(4000)), t, t FROM aretes WHERE ... UNION ALL SELECT e.dest, c.chemin || ' > ' || e.dest, e.t, c.depart FROM c JOIN aretes e ON ...) SELECT DISTINCT c.chemin, c.depart, c.t AS arrivee FROM c JOIN postes po ON po.hostname = c.dest WHERE po.type = 'ot';"
+  ],
+  "note": "CTE récursive Oracle : liste de colonnes obligatoire, pas de RECURSIVE."
+ },
+ "36.1": {
+  "solution": "SELECT host, domaine, COUNT(*) AS connexions FROM proxy_logs WHERE domaine NOT IN (SELECT domaine FROM domaines_connus) GROUP BY host, domaine ORDER BY connexions DESC, host;",
+  "hints": [
+   "NOT IN (sous-requête) et GROUP BY sur deux colonnes, comme en SQLite.",
+   "Structure : SELECT host, domaine, COUNT(*) AS connexions FROM proxy_logs WHERE domaine NOT IN (SELECT domaine FROM domaines_connus) GROUP BY host, domaine ORDER BY connexions DESC, host;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "36.2": {
+  "solution": "SELECT horodatage, ROUND((CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (ORDER BY horodatage) AS DATE)) * 86400) AS ecart_s FROM proxy_logs WHERE host = 'PC-COMPTA-07' AND domaine = 'cdn-update-check.net' ORDER BY horodatage FETCH FIRST 10 ROWS ONLY;",
+  "hints": [
+   "LAG(horodatage) OVER (ORDER BY horodatage) donne la connexion précédente ; caste les deux en DATE pour obtenir une différence en jours, x 86400 pour des secondes. LIMIT devient FETCH FIRST 10 ROWS ONLY.",
+   "Structure : SELECT horodatage, ROUND((CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (ORDER BY horodatage) AS DATE)) * 86400) AS ecart_s FROM proxy_logs WHERE ... ORDER BY horodatage FETCH FIRST 10 ROWS ONLY;"
+  ],
+  "note": "julianday disparaît au profit de la soustraction de DATE ; FETCH FIRST remplace LIMIT."
+ },
+ "36.3": {
+  "solution": "WITH iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, (CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage) AS DATE)) * 86400 AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDDEV_POP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50) SELECT host, domaine, n AS intervalles, ROUND(m) AS moyenne_s, ROUND(sd, 1) AS ecart_type, ROUND(sd / m, 3) AS cv FROM st ORDER BY cv, host;",
+  "hints": [
+   "L'intervalle se calcule avec (CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage) AS DATE)) * 86400 : la différence de deux DATE est en jours. Pour l'écart-type, Oracle a STDDEV_POP.",
+   "Structure : WITH iv AS (SELECT host, domaine, ip_dest, ..., (CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage) AS DATE)) * 86400 AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDDEV_POP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY ... HAVING COUNT(dt) >= 50) SELECT host, domaine, n AS intervalles, ROUND(m) AS moyenne_s, ROUND(sd, 1) AS ecart_type, ROUND(sd / m, 3) AS cv FROM st ORDER BY cv, host;"
+  ],
+  "note": "STDDEV_POP calcule directement l'écart-type de population, à la place de sqrt(AVG(dt * dt) - AVG(dt) * AVG(dt))."
+ },
+ "36.4": {
+  "solution": "WITH iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, (CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage) AS DATE)) * 86400 AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDDEV_POP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50) SELECT host, domaine, ip_dest, ROUND(m) AS moyenne_s FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus);",
+  "hints": [
+   "L'intervalle se calcule avec (CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage) AS DATE)) * 86400 : la différence de deux DATE est en jours. Pour l'écart-type, Oracle a STDDEV_POP.",
+   "Structure : WITH iv AS (...LAG...), st AS (... STDDEV_POP(dt) AS sd ... HAVING COUNT(dt) >= 50) SELECT host, domaine, ip_dest, ROUND(m) AS moyenne_s FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus);"
+  ],
+  "note": "Même détection qu'en SQLite, avec la soustraction de DATE et STDDEV_POP."
+ },
+ "36.5": {
+  "solution": "WITH iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, (CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage) AS DATE)) * 86400 AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDDEV_POP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50), b AS (SELECT DISTINCT domaine FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus)) SELECT p.domaine, p.ip_dest, LISTAGG(DISTINCT p.host, ',') WITHIN GROUP (ORDER BY p.host) AS machines, MIN(p.horodatage) AS premier, COUNT(*) AS connexions, SUM(p.octets_out) AS octets_envoyes FROM proxy_logs p WHERE p.domaine IN (SELECT domaine FROM b) GROUP BY p.domaine, p.ip_dest;",
+  "hints": [
+   "Reprends la détection de 36.4 dans des CTE, puis agrège proxy_logs. group_concat devient LISTAGG(DISTINCT p.host, ',') WITHIN GROUP (ORDER BY p.host).",
+   "Structure : WITH iv AS (...), st AS (...), b AS (SELECT DISTINCT domaine FROM st WHERE ...) SELECT p.domaine, p.ip_dest, LISTAGG(DISTINCT p.host, ',') WITHIN GROUP (ORDER BY p.host) AS machines, MIN(p.horodatage) AS premier, COUNT(*) AS connexions, SUM(p.octets_out) AS octets_envoyes FROM proxy_logs p WHERE p.domaine IN (SELECT domaine FROM b) GROUP BY p.domaine, p.ip_dest;"
+  ],
+  "note": "LISTAGG ... WITHIN GROUP remplace group_concat ; STDDEV_POP et la soustraction de DATE remplacent les calculs SQLite."
+ },
+ "36.A": {
+  "solution": "WITH iv AS (SELECT host, domaine, (CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage) AS DATE)) * 86400 AS dt FROM proxy_logs), st AS (SELECT host, domaine, AVG(dt) AS m, STDDEV_POP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine HAVING COUNT(dt) >= 10) SELECT domaine, COUNT(*) AS couples, ROUND(AVG(sd / m), 2) AS cv_moyen FROM st GROUP BY domaine ORDER BY cv_moyen;",
+  "hints": [
+   "L'intervalle se calcule avec (CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage) AS DATE)) * 86400 : la différence de deux DATE est en jours. Pour l'écart-type, Oracle a STDDEV_POP.",
+   "Structure : WITH iv AS (SELECT host, domaine, (CAST(...) - CAST(LAG(...) OVER (...) AS DATE)) * 86400 AS dt FROM proxy_logs), st AS (SELECT host, domaine, AVG(dt) AS m, STDDEV_POP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine HAVING COUNT(dt) >= 10) SELECT domaine, COUNT(*) AS couples, ROUND(AVG(sd / m), 2) AS cv_moyen FROM st GROUP BY domaine ORDER BY cv_moyen;"
+  ],
+  "note": "STDDEV_POP remplace la formule à base de sqrt."
+ },
+ "36.S": {
+  "solution": "WITH iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, (CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage) AS DATE)) * 86400 AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDDEV_POP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50), b AS (SELECT DISTINCT host, domaine FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus)), t AS (SELECT b.host, (SELECT MIN(horodatage) FROM process_logs p WHERE p.host = b.host AND p.process = 'rundll32.exe' AND p.ligne_commande LIKE '%upd.dll%') AS chargement, (SELECT MIN(horodatage) FROM proxy_logs x WHERE x.host = b.host AND x.domaine = b.domaine) AS premier_battement, (SELECT MAX(horodatage) FROM proxy_logs x WHERE x.host = b.host AND x.domaine = b.domaine) AS dernier_battement FROM b) SELECT host, chargement, premier_battement, dernier_battement, ROUND((CAST(premier_battement AS DATE) - CAST(chargement AS DATE)) * 86400) AS secondes FROM t ORDER BY chargement;",
+  "hints": [
+   "L'intervalle se calcule avec (CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage) AS DATE)) * 86400 : la différence de deux DATE est en jours. Pour l'écart-type, Oracle a STDDEV_POP. Le délai final se calcule de la même façon, en secondes.",
+   "Structure : WITH iv AS (...LAG...), st AS (...), b AS (SELECT DISTINCT host, domaine FROM st WHERE ...), t AS (SELECT b.host, (SELECT MIN(horodatage) FROM process_logs p WHERE ...) AS chargement, (...) AS premier_battement, (...) AS dernier_battement FROM b) SELECT host, chargement, premier_battement, dernier_battement, ROUND((CAST(premier_battement AS DATE) - CAST(chargement AS DATE)) * 86400) AS secondes FROM t ORDER BY chargement;"
+  ],
+  "note": "Soustraction de DATE x 86400 pour les secondes, STDDEV_POP pour l'écart-type."
+ },
+ "37.1": {
+  "solution": "SELECT domaine, COUNT(*) AS requetes, ROUND(AVG(LENGTH(requete)), 1) AS longueur_moy, COUNT(DISTINCT requete) AS distinctes FROM dns_logs GROUP BY domaine ORDER BY longueur_moy DESC FETCH FIRST 5 ROWS ONLY;",
+  "hints": [
+   "LENGTH existe en Oracle ; LIMIT 5 devient FETCH FIRST 5 ROWS ONLY.",
+   "Structure : SELECT domaine, COUNT(*) AS requetes, ROUND(AVG(LENGTH(requete)), 1) AS longueur_moy, COUNT(DISTINCT requete) AS distinctes FROM dns_logs GROUP BY domaine ORDER BY longueur_moy DESC FETCH FIRST 5 ROWS ONLY;"
+  ],
+  "note": "FETCH FIRST 5 ROWS ONLY remplace LIMIT 5."
+ },
+ "37.2": {
+  "solution": "SELECT host, MIN(horodatage) AS debut, MAX(horodatage) AS fin, COUNT(*) AS requetes FROM dns_logs WHERE domaine = (SELECT domaine FROM dns_logs GROUP BY domaine ORDER BY AVG(LENGTH(requete)) DESC FETCH FIRST 1 ROW ONLY) GROUP BY host;",
+  "hints": [
+   "Une sous-requête scalaire peut contenir ORDER BY ... FETCH FIRST 1 ROW ONLY.",
+   "Structure : SELECT host, MIN(horodatage) AS debut, MAX(horodatage) AS fin, COUNT(*) AS requetes FROM dns_logs WHERE domaine = (SELECT domaine FROM dns_logs GROUP BY domaine ORDER BY AVG(LENGTH(requete)) DESC FETCH FIRST 1 ROW ONLY) GROUP BY host;"
+  ],
+  "note": "FETCH FIRST 1 ROW ONLY dans la sous-requête au lieu de LIMIT 1."
+ },
+ "37.3": {
+  "solution": "WITH x AS (SELECT requete, TO_NUMBER(SUBSTR(requete, 1, INSTR(requete, '.') - 1)) AS seq, SUBSTR(requete, INSTR(requete, '.') + 1) AS reste FROM dns_logs WHERE domaine = 'tunnel-meteo.net'), y AS (SELECT seq, SUBSTR(reste, 1, INSTR(reste, '.') - 1) AS hex FROM x) SELECT seq, hex FROM y ORDER BY seq;",
+  "hints": [
+   "CAST(... AS INTEGER) peut s'écrire TO_NUMBER(...) en Oracle ; SUBSTR et INSTR découpent la requête autour des points.",
+   "Structure : WITH x AS (SELECT requete, TO_NUMBER(SUBSTR(requete, 1, INSTR(requete, '.') - 1)) AS seq, SUBSTR(requete, INSTR(requete, '.') + 1) AS reste FROM dns_logs WHERE domaine = 'tunnel-meteo.net'), y AS (SELECT seq, SUBSTR(reste, 1, INSTR(reste, '.') - 1) AS hex FROM x) SELECT seq, hex FROM y ORDER BY seq;"
+  ],
+  "note": "TO_NUMBER convertit le numéro de séquence (CAST AS INTEGER marche aussi)."
+ },
+ "37.4": {
+  "solution": "WITH x AS (SELECT requete, TO_NUMBER(SUBSTR(requete, 1, INSTR(requete, '.') - 1)) AS seq, SUBSTR(requete, INSTR(requete, '.') + 1) AS reste FROM dns_logs WHERE domaine = 'tunnel-meteo.net'), y AS (SELECT seq, SUBSTR(reste, 1, INSTR(reste, '.') - 1) AS hex FROM x) SELECT seq, UTL_RAW.CAST_TO_VARCHAR2(HEXTORAW(hex)) AS texte FROM y ORDER BY seq;",
+  "require": [
+   {
+    "re": "HEXTORAW",
+    "msg": "Décode le morceau avec HEXTORAW (puis UTL_RAW.CAST_TO_VARCHAR2)."
+   }
+  ],
+  "hints": [
+   "unhex devient HEXTORAW (texte hexadécimal vers RAW), puis UTL_RAW.CAST_TO_VARCHAR2 relit ces octets comme du texte.",
+   "Structure : WITH x AS (...), y AS (... AS hex FROM x) SELECT seq, UTL_RAW.CAST_TO_VARCHAR2(HEXTORAW(hex)) AS texte FROM y ORDER BY seq;"
+  ],
+  "note": "CAST(unhex(hex) AS TEXT) devient UTL_RAW.CAST_TO_VARCHAR2(HEXTORAW(hex))."
+ },
+ "37.5": {
+  "solution": "WITH x AS (SELECT requete, TO_NUMBER(SUBSTR(requete, 1, INSTR(requete, '.') - 1)) AS seq, SUBSTR(requete, INSTR(requete, '.') + 1) AS reste FROM dns_logs WHERE domaine = 'tunnel-meteo.net'), y AS (SELECT seq, SUBSTR(reste, 1, INSTR(reste, '.') - 1) AS hex FROM x) SELECT LISTAGG(UTL_RAW.CAST_TO_VARCHAR2(HEXTORAW(hex))) WITHIN GROUP (ORDER BY seq) AS message, SUM(LENGTH(hex) / 2) AS octets FROM y;",
+  "require": [
+   {
+    "re": "HEXTORAW",
+    "msg": "Décode les morceaux avec HEXTORAW (puis UTL_RAW.CAST_TO_VARCHAR2)."
+   }
+  ],
+  "hints": [
+   "unhex devient HEXTORAW (texte hexadécimal vers RAW), puis UTL_RAW.CAST_TO_VARCHAR2 relit ces octets comme du texte. Pour les concaténer dans l'ordre, LISTAGG(texte) WITHIN GROUP (ORDER BY seq) : sans séparateur, il colle les morceaux.",
+   "Structure : WITH x AS (...), y AS (...) SELECT LISTAGG(UTL_RAW.CAST_TO_VARCHAR2(HEXTORAW(hex))) WITHIN GROUP (ORDER BY seq) AS message, SUM(LENGTH(hex) / 2) AS octets FROM y;"
+  ],
+  "note": "group_concat(..., '' ORDER BY seq) devient LISTAGG(...) WITHIN GROUP (ORDER BY seq), sans séparateur ; unhex devient HEXTORAW avec UTL_RAW.CAST_TO_VARCHAR2."
+ },
+ "37.A": {
+  "solution": "SELECT domaine, COUNT(*) AS requetes, COUNT(DISTINCT requete) AS distinctes, ROUND(AVG(LENGTH(requete)), 1) AS longueur_moy FROM dns_logs WHERE host = 'SRV-FICHIERS' AND horodatage BETWEEN TIMESTAMP '2028-03-09 00:30:00' AND TIMESTAMP '2028-03-09 02:00:00' GROUP BY domaine ORDER BY requetes DESC;",
+  "hints": [
+   "Les bornes horaires s'écrivent TIMESTAMP '2028-03-09 00:30:00'.",
+   "Structure : SELECT domaine, COUNT(*) AS requetes, COUNT(DISTINCT requete) AS distinctes, ROUND(AVG(LENGTH(requete)), 1) AS longueur_moy FROM dns_logs WHERE host = 'SRV-FICHIERS' AND horodatage BETWEEN TIMESTAMP '...' AND TIMESTAMP '...' GROUP BY domaine ORDER BY requetes DESC;"
+  ],
+  "note": "Littéraux TIMESTAMP pour les bornes."
+ },
+ "37.S": {
+  "solution": "WITH t0 AS (SELECT MIN(horodatage) AS h FROM dns_logs WHERE domaine = 'tunnel-meteo.net') SELECT horodatage AS quand, 'auth' AS journal, login AS compte, dest_host AS machine, methode AS detail FROM auth_logs WHERE resultat = 'succes' AND horodatage BETWEEN TIMESTAMP '2028-03-09 00:30:00' AND (SELECT h FROM t0) UNION ALL SELECT horodatage, 'process', login, host, ligne_commande FROM process_logs WHERE horodatage BETWEEN TIMESTAMP '2028-03-09 00:30:00' AND (SELECT h FROM t0) UNION ALL SELECT horodatage, 'dns', NULL, host, UTL_RAW.CAST_TO_VARCHAR2(HEXTORAW(SUBSTR(SUBSTR(requete, INSTR(requete, '.') + 1), 1, INSTR(SUBSTR(requete, INSTR(requete, '.') + 1), '.') - 1))) FROM dns_logs WHERE domaine = 'tunnel-meteo.net' AND horodatage = (SELECT h FROM t0) ORDER BY quand;",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "Empile les journaux avec UNION ALL."
+   },
+   {
+    "re": "HEXTORAW",
+    "msg": "Décode le morceau avec HEXTORAW (puis UTL_RAW.CAST_TO_VARCHAR2)."
+   }
+  ],
+  "hints": [
+   "unhex devient HEXTORAW (texte hexadécimal vers RAW), puis UTL_RAW.CAST_TO_VARCHAR2 relit ces octets comme du texte. Les bornes s'écrivent TIMESTAMP '...' ou viennent de la CTE t0.",
+   "Structure : WITH t0 AS (SELECT MIN(horodatage) AS h FROM dns_logs WHERE ...) SELECT horodatage AS quand, 'auth' AS journal, login AS compte, dest_host AS machine, methode AS detail FROM auth_logs WHERE ... BETWEEN TIMESTAMP '2028-03-09 00:30:00' AND (SELECT h FROM t0) UNION ALL SELECT ... FROM process_logs WHERE ... UNION ALL SELECT horodatage, 'dns', NULL, host, UTL_RAW.CAST_TO_VARCHAR2(HEXTORAW(...)) FROM dns_logs WHERE ... ORDER BY quand;"
+  ],
+  "note": "HEXTORAW et UTL_RAW.CAST_TO_VARCHAR2 remplacent unhex ; littéraux TIMESTAMP pour les bornes."
+ },
+ "38.1": {
+  "solution": "WITH m AS (SELECT horodatage, valeur, AVG(valeur) OVER (ORDER BY horodatage ROWS BETWEEN 6 PRECEDING AND 1 PRECEDING) AS moyenne FROM capteurs WHERE site = 'Réservoir Montsouris') SELECT horodatage, valeur, ROUND(moyenne, 2) AS moyenne, ROUND(100 * (valeur - moyenne) / moyenne) AS ecart_pct FROM m WHERE TRUNC(horodatage) = DATE '2028-03-12' AND ABS(valeur - moyenne) / moyenne > 0.2 ORDER BY horodatage;",
+  "hints": [
+   "Le cadre ROWS BETWEEN 6 PRECEDING AND 1 PRECEDING s'écrit comme en SQLite. Le jour se teste avec TRUNC(horodatage) = DATE '2028-03-12'.",
+   "Structure : WITH m AS (SELECT horodatage, valeur, AVG(valeur) OVER (ORDER BY horodatage ROWS BETWEEN 6 PRECEDING AND 1 PRECEDING) AS moyenne FROM capteurs WHERE ...) SELECT horodatage, valeur, ROUND(moyenne, 2) AS moyenne, ROUND(100 * (valeur - moyenne) / moyenne) AS ecart_pct FROM m WHERE TRUNC(horodatage) = DATE '2028-03-12' AND ABS(valeur - moyenne) / moyenne > 0.2 ORDER BY horodatage;"
+  ],
+  "expected_from_solution": true,
+  "note": "date(horodatage) = '...' devient TRUNC(horodatage) = DATE '...'. Le type NUMBER d'Oracle calcule en décimal exact : une moyenne de 2,335 s'arrondit à 2,34, alors que SQLite (virgule flottante binaire) obtient 2,33 ; le résultat attendu est donc celui d'Oracle."
+ },
+ "38.2": {
+  "solution": "WITH v AS (SELECT site, valeur, LAG(valeur) OVER (PARTITION BY site ORDER BY horodatage) AS avant, LEAD(valeur) OVER (PARTITION BY site ORDER BY horodatage) AS apres FROM capteurs) SELECT site, COUNT(*) AS pics_isoles FROM v WHERE valeur = 0 AND avant > 1 AND apres > 1 GROUP BY site;",
+  "hints": [
+   "LAG et LEAD existent en Oracle avec la même syntaxe.",
+   "Structure : WITH v AS (SELECT site, valeur, LAG(valeur) OVER (PARTITION BY site ORDER BY horodatage) AS avant, LEAD(valeur) OVER (...) AS apres FROM capteurs) SELECT site, COUNT(*) AS pics_isoles FROM v WHERE valeur = 0 AND avant > 1 AND apres > 1 GROUP BY site;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "38.3": {
+  "solution": "SELECT * FROM commandes_ot WHERE EXTRACT(HOUR FROM horodatage) < 7 OR EXTRACT(HOUR FROM horodatage) >= 20 ORDER BY horodatage;",
+  "hints": [
+   "L'heure d'un TIMESTAMP s'obtient avec EXTRACT(HOUR FROM horodatage).",
+   "Structure : SELECT * FROM commandes_ot WHERE EXTRACT(HOUR FROM horodatage) < 7 OR EXTRACT(HOUR FROM horodatage) >= 20 ORDER BY horodatage;"
+  ],
+  "note": "EXTRACT(HOUR FROM ...) remplace CAST(strftime('%H', ...) AS INTEGER)."
+ },
+ "38.4": {
+  "solution": "SELECT c.horodatage, c.nouvelle, ROUND((SELECT AVG(valeur) FROM capteurs s WHERE s.site = c.site AND s.horodatage BETWEEN c.horodatage - INTERVAL '30' MINUTE AND c.horodatage), 2) AS avant, ROUND((SELECT AVG(valeur) FROM capteurs s WHERE s.site = c.site AND s.horodatage BETWEEN c.horodatage + INTERVAL '10' MINUTE AND c.horodatage + INTERVAL '40' MINUTE), 2) AS apres FROM commandes_ot c WHERE c.site = 'Réservoir Montsouris' AND TRUNC(c.horodatage) = DATE '2028-03-12' AND c.parametre = 'consigne_pression' ORDER BY c.horodatage;",
+  "hints": [
+   "datetime(h, '-30 minutes') devient h - INTERVAL '30' MINUTE, et datetime(h, '+10 minutes') devient h + INTERVAL '10' MINUTE.",
+   "Structure : SELECT c.horodatage, c.nouvelle, ROUND((SELECT AVG(valeur) FROM capteurs s WHERE s.site = c.site AND s.horodatage BETWEEN c.horodatage - INTERVAL '30' MINUTE AND c.horodatage), 2) AS avant, ROUND((... BETWEEN c.horodatage + INTERVAL '10' MINUTE AND c.horodatage + INTERVAL '40' MINUTE), 2) AS apres FROM commandes_ot c WHERE ... AND TRUNC(c.horodatage) = DATE '2028-03-12' ... ORDER BY c.horodatage;"
+  ],
+  "note": "Les décalages de datetime() deviennent des additions d'INTERVAL."
+ },
+ "38.5": {
+  "solution": "SELECT c.horodatage, c.parametre, c.ancienne, c.nouvelle, c.login, ad.nom AS titulaire, p.hostname AS machine, d.lieu FROM commandes_ot c LEFT JOIN comptes_ad ad ON ad.login = c.login LEFT JOIN postes p ON p.ip = c.source_ip LEFT JOIN deplacements d ON d.login = c.login AND c.horodatage BETWEEN d.debut AND d.fin WHERE (EXTRACT(HOUR FROM c.horodatage) < 7 OR EXTRACT(HOUR FROM c.horodatage) >= 20) AND c.nouvelle < c.ancienne ORDER BY c.horodatage;",
+  "hints": [
+   "Trois LEFT JOIN et EXTRACT(HOUR FROM c.horodatage) pour le filtre horaire.",
+   "Structure : SELECT c.horodatage, c.parametre, c.ancienne, c.nouvelle, c.login, ad.nom AS titulaire, p.hostname AS machine, d.lieu FROM commandes_ot c LEFT JOIN comptes_ad ad ON ... LEFT JOIN postes p ON ... LEFT JOIN deplacements d ON ... WHERE (EXTRACT(HOUR FROM c.horodatage) < 7 OR EXTRACT(HOUR FROM c.horodatage) >= 20) AND c.nouvelle < c.ancienne ORDER BY c.horodatage;"
+  ],
+  "note": "EXTRACT(HOUR FROM ...) remplace strftime."
+ },
+ "38.A": {
+  "solution": "WITH m AS (SELECT site, horodatage, AVG(valeur) OVER (PARTITION BY site ORDER BY horodatage ROWS BETWEEN 5 PRECEDING AND CURRENT ROW) AS mm FROM capteurs) SELECT site, ROUND(MIN(mm), 2) AS plus_basse, ROUND(MAX(mm), 2) AS plus_haute FROM m WHERE TRUNC(horodatage) = DATE '2028-03-12' GROUP BY site ORDER BY plus_basse;",
+  "hints": [
+   "Calcule la moyenne glissante dans une CTE (ROWS BETWEEN 5 PRECEDING AND CURRENT ROW), puis filtre le jour avec TRUNC(horodatage) = DATE '2028-03-12'.",
+   "Structure : WITH m AS (SELECT site, horodatage, AVG(valeur) OVER (PARTITION BY site ORDER BY horodatage ROWS BETWEEN 5 PRECEDING AND CURRENT ROW) AS mm FROM capteurs) SELECT site, ROUND(MIN(mm), 2) AS plus_basse, ROUND(MAX(mm), 2) AS plus_haute FROM m WHERE TRUNC(horodatage) = DATE '2028-03-12' GROUP BY site ORDER BY plus_basse;"
+  ],
+  "note": "TRUNC(...) = DATE '...' remplace date(...) = '...'."
+ },
+ "38.S": {
+  "solution": "WITH r AS (SELECT c.horodatage, c.valeur, NVL((SELECT MAX(o.nouvelle) KEEP (DENSE_RANK LAST ORDER BY o.horodatage) FROM commandes_ot o WHERE o.site = c.site AND o.parametre = 'seuil_alarme' AND o.horodatage <= c.horodatage), 3.0) AS seuil FROM capteurs c WHERE c.site = 'Réservoir Montsouris') SELECT CASE WHEN valeur < seuil THEN 'sonnée' ELSE 'étouffée' END AS alarme, COUNT(*) AS releves, MIN(horodatage) AS premier, MAX(horodatage) AS dernier FROM r WHERE valeur < 3.0 GROUP BY CASE WHEN valeur < seuil THEN 'sonnée' ELSE 'étouffée' END ORDER BY premier;",
+  "hints": [
+   "Pour « la valeur de la dernière commande », Oracle a MAX(o.nouvelle) KEEP (DENSE_RANK LAST ORDER BY o.horodatage) ; un ORDER BY ... FETCH FIRST 1 ROW ONLY dans la sous-requête marche aussi. NVL(..., 3.0) donne la valeur par défaut.",
+   "Structure : WITH r AS (SELECT c.horodatage, c.valeur, NVL((SELECT MAX(o.nouvelle) KEEP (DENSE_RANK LAST ORDER BY o.horodatage) FROM commandes_ot o WHERE ... AND o.horodatage <= c.horodatage), 3.0) AS seuil FROM capteurs c WHERE ...) SELECT CASE WHEN valeur < seuil THEN 'sonnée' ELSE 'étouffée' END AS alarme, COUNT(*) AS releves, MIN(horodatage) AS premier, MAX(horodatage) AS dernier FROM r WHERE valeur < 3.0 GROUP BY (le CASE) ORDER BY premier;"
+  ],
+  "note": "KEEP (DENSE_RANK LAST ORDER BY ...) est l'agrégat Oracle qui renvoie la valeur de la dernière ligne, à la place de ORDER BY ... DESC LIMIT 1."
+ },
+ "39.1": {
+  "solution": "CREATE TABLE ioc (id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, type VARCHAR2(20) NOT NULL, valeur VARCHAR2(200) NOT NULL UNIQUE, source VARCHAR2(50));",
+  "verify": [
+   "SELECT LOWER(c.column_name) AS name, CASE WHEN c.data_type IN ('NUMBER', 'INTEGER') THEN 'INTEGER' WHEN c.data_type IN ('VARCHAR2', 'NVARCHAR2', 'CHAR', 'CLOB') THEN 'TEXT' ELSE c.data_type END AS type, CASE WHEN c.nullable = 'N' AND (SELECT COUNT(*) FROM user_constraints k JOIN user_cons_columns kc ON kc.constraint_name = k.constraint_name WHERE k.table_name = c.table_name AND k.constraint_type = 'P' AND kc.column_name = c.column_name) = 0 THEN 1 ELSE 0 END AS \"notnull\", (SELECT COUNT(*) FROM user_constraints k JOIN user_cons_columns kc ON kc.constraint_name = k.constraint_name WHERE k.table_name = c.table_name AND k.constraint_type = 'P' AND kc.column_name = c.column_name) AS pk FROM user_tab_columns c WHERE c.table_name = 'IOC' ORDER BY c.column_id",
+   "SELECT COUNT(*) FROM user_constraints WHERE table_name = 'IOC' AND constraint_type = 'U'"
+  ],
+  "hints": [
+   "Oracle n'a pas de type TEXT : utilise VARCHAR2(n). Pour un id auto-incrémenté, écris id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY.",
+   "Structure : CREATE TABLE ioc (id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, type VARCHAR2(20) NOT NULL, valeur VARCHAR2(200) NOT NULL UNIQUE, source VARCHAR2(50));"
+  ],
+  "note": "TEXT devient VARCHAR2(n) ; l'auto-incrément de INTEGER PRIMARY KEY s'écrit GENERATED BY DEFAULT AS IDENTITY. La vérification lit le catalogue Oracle (user_tab_columns, user_constraints) au lieu de pragma_table_info."
+ },
+ "39.2": {
+  "setup": "CREATE TABLE ioc (id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, type VARCHAR2(20) NOT NULL, valeur VARCHAR2(200) NOT NULL UNIQUE, source VARCHAR2(50));",
+  "solution": "INSERT INTO ioc (type, valeur, source) SELECT 'ip', source_ip, 'auth' FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100; INSERT INTO ioc (type, valeur, source) WITH iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, (CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage) AS DATE)) * 86400 AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDDEV_POP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50) SELECT DISTINCT 'domaine', domaine, 'proxy' FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus); INSERT INTO ioc (type, valeur, source) SELECT 'domaine', domaine, 'dns' FROM dns_logs GROUP BY domaine HAVING AVG(LENGTH(requete)) > 40;",
+  "verify": [
+   "SELECT type, valeur, source FROM ioc ORDER BY type, valeur"
+  ],
+  "hints": [
+   "Trois INSERT INTO ioc (type, valeur, source) SELECT ... ; en Oracle, la CTE se place après la liste des colonnes : INSERT INTO ioc (...) WITH iv AS (...) SELECT ... . Les intervalles se calculent avec la soustraction de DATE et l'écart-type avec STDDEV_POP.",
+   "Structure : INSERT INTO ioc (type, valeur, source) SELECT 'ip', source_ip, 'auth' FROM auth_logs WHERE ... GROUP BY source_ip HAVING COUNT(*) >= 100; INSERT INTO ioc (type, valeur, source) WITH iv AS (...), st AS (...) SELECT DISTINCT 'domaine', domaine, 'proxy' FROM st WHERE ...; INSERT INTO ioc (type, valeur, source) SELECT 'domaine', domaine, 'dns' FROM dns_logs GROUP BY domaine HAVING AVG(LENGTH(requete)) > 40;"
+  ],
+  "note": "INSERT ... WITH ... SELECT est accepté par Oracle ; seule la détection des balises change (CAST AS DATE, STDDEV_POP)."
+ },
+ "39.3": {
+  "setup": "CREATE TABLE ioc (id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, type VARCHAR2(20) NOT NULL, valeur VARCHAR2(200) NOT NULL UNIQUE, source VARCHAR2(50)); INSERT INTO ioc (type, valeur, source) VALUES ('ip', '192.0.2.150', 'auth'), ('ip', '192.0.2.66', 'proxy'), ('domaine', 'cdn-update-check.net', 'proxy'), ('domaine', 'tunnel-meteo.net', 'dns'), ('domaine', 'eaux-de-seine-fr.com', 'mail');",
+  "solution": "UPDATE comptes_ad SET actif = 0 WHERE login IN (SELECT login FROM auth_logs WHERE resultat = 'succes' AND source_ip IN (SELECT valeur FROM ioc WHERE type = 'ip')) OR login IN (SELECT a.login FROM auth_logs a JOIN comptes_ad c ON c.login = a.login AND c.admin = 1 JOIN postes p ON p.ip = a.source_ip AND p.type = 'poste' WHERE a.resultat = 'succes' AND p.utilisateur <> a.login);",
+  "verify": [
+   "SELECT login FROM comptes_ad WHERE actif = 0 ORDER BY login",
+   "SELECT COUNT(*) FROM comptes_ad"
+  ],
+  "hints": [
+   "Un UPDATE avec deux conditions IN (sous-requête) reliées par OR, comme en SQLite.",
+   "Structure : UPDATE comptes_ad SET actif = 0 WHERE login IN (SELECT login FROM auth_logs WHERE resultat = 'succes' AND source_ip IN (SELECT valeur FROM ioc WHERE type = 'ip')) OR login IN (SELECT a.login FROM auth_logs a JOIN comptes_ad c ON ... JOIN postes p ON ... WHERE ...);"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "39.4": {
+  "solution": "CREATE INDEX idx_proxy_domaine ON proxy_logs(domaine); EXPLAIN PLAN FOR SELECT /*+ INDEX(proxy_logs idx_proxy_domaine) */ * FROM proxy_logs WHERE domaine = 'cdn-update-check.net'; SELECT plan_table_output FROM TABLE(DBMS_XPLAN.DISPLAY(NULL, NULL, 'BASIC'));",
+  "contains": "IDX_PROXY_DOMAINE",
+  "hints": [
+   "En Oracle, EXPLAIN PLAN FOR requête range le plan dans PLAN_TABLE, puis SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY()) l'affiche. Ce domaine représente un tiers de la table : l'optimiseur préfère un parcours complet, force l'index avec l'indice /*+ INDEX(proxy_logs idx_proxy_domaine) */ juste après SELECT.",
+   "Structure : CREATE INDEX idx_proxy_domaine ON proxy_logs(domaine); EXPLAIN PLAN FOR SELECT /*+ INDEX(proxy_logs idx_proxy_domaine) */ * FROM proxy_logs WHERE domaine = 'cdn-update-check.net'; SELECT plan_table_output FROM TABLE(DBMS_XPLAN.DISPLAY(NULL, NULL, 'BASIC'));"
+  ],
+  "note": "EXPLAIN QUERY PLAN devient EXPLAIN PLAN FOR puis DBMS_XPLAN.DISPLAY. Comme la valeur cherchée couvre un tiers des lignes, l'optimiseur d'Oracle choisit TABLE ACCESS FULL : l'indice /*+ INDEX(...) */ montre le plan avec INDEX RANGE SCAN."
+ },
+ "39.5": {
+  "setup": "CREATE TABLE ioc (id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, type VARCHAR2(20) NOT NULL, valeur VARCHAR2(200) NOT NULL UNIQUE, source VARCHAR2(50)); INSERT INTO ioc (type, valeur, source) VALUES ('ip', '192.0.2.150', 'auth'), ('ip', '192.0.2.66', 'proxy'), ('domaine', 'cdn-update-check.net', 'proxy'), ('domaine', 'tunnel-meteo.net', 'dns'), ('domaine', 'eaux-de-seine-fr.com', 'mail');",
+  "solution": "CREATE TABLE alertes (id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, horodatage TIMESTAMP(0), host VARCHAR2(50), cible VARCHAR2(200));\nCREATE OR REPLACE TRIGGER trg_ioc\nAFTER INSERT ON proxy_logs\nFOR EACH ROW\nBEGIN\n  INSERT INTO alertes (horodatage, host, cible)\n  SELECT :NEW.horodatage, :NEW.host, :NEW.domaine FROM dual\n  WHERE :NEW.domaine IN (SELECT valeur FROM ioc WHERE type = 'domaine')\n     OR :NEW.ip_dest IN (SELECT valeur FROM ioc WHERE type = 'ip');\nEND;",
+  "verify": [
+   "INSERT INTO proxy_logs (horodatage, host, domaine, ip_dest, octets_out, octets_in) VALUES (TIMESTAMP '2028-03-15 10:00:00', 'PC-RH-01', 'cdn-update-check.net', '192.0.2.66', 400, 300), (TIMESTAMP '2028-03-15 10:01:00', 'PC-RH-02', 'meteo-seine.fr', '203.0.113.22', 400, 300), (TIMESTAMP '2028-03-15 10:02:00', 'PC-URBA-01', 'nouveau-site.net', '192.0.2.150', 10, 10), (TIMESTAMP '2028-03-15 10:03:00', 'PC-COM-01', 'tunnel-meteo.net', '198.51.100.9', 10, 10); SELECT horodatage, host, cible FROM alertes ORDER BY horodatage"
+  ],
+  "require": [
+   {
+    "re": "CREATE\\s+(OR\\s+REPLACE\\s+)?TRIGGER",
+    "msg": "Il faut créer un trigger (CREATE OR REPLACE TRIGGER ... FOR EACH ROW)."
+   }
+  ],
+  "hints": [
+   "En Oracle, un trigger ligne s'écrit CREATE OR REPLACE TRIGGER nom AFTER INSERT ON table FOR EACH ROW BEGIN ... END; (le ; après END termine le bloc ici ; la ligne / sert dans SQL*Plus ou SQL Developer). La clause WHEN n'accepte pas de sous-requête : mets le test dans le corps, par exemple INSERT INTO alertes (...) SELECT :NEW.horodatage, ... FROM dual WHERE :NEW.domaine IN (SELECT ...) OR ... . Les valeurs de la ligne insérée s'écrivent :NEW.colonne.",
+   "Structure : CREATE TABLE alertes (id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, horodatage TIMESTAMP(0), host VARCHAR2(50), cible VARCHAR2(200)); puis CREATE OR REPLACE TRIGGER trg_ioc AFTER INSERT ON proxy_logs FOR EACH ROW BEGIN INSERT INTO alertes (horodatage, host, cible) SELECT :NEW.horodatage, :NEW.host, :NEW.domaine FROM dual WHERE :NEW.domaine IN (...) OR :NEW.ip_dest IN (...); END;"
+  ],
+  "note": "Trigger PL/SQL : FOR EACH ROW, :NEW.colonne, bloc BEGIN ... END; (dans SQL*Plus on ajoute une ligne « / » après le bloc). La clause WHEN d'Oracle n'accepte pas de sous-requête, d'où le test dans un INSERT ... SELECT ... FROM dual WHERE."
+ },
+ "39.A": {
+  "setup": "CREATE TABLE ioc (id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, type VARCHAR2(20) NOT NULL, valeur VARCHAR2(200) NOT NULL UNIQUE, source VARCHAR2(50)); INSERT INTO ioc (type, valeur, source) VALUES ('ip', '192.0.2.150', 'auth'), ('ip', '192.0.2.66', 'proxy'), ('domaine', 'cdn-update-check.net', 'proxy'), ('domaine', 'tunnel-meteo.net', 'dns'), ('domaine', 'eaux-de-seine-fr.com', 'mail');",
+  "solution": "INSERT INTO ioc (type, valeur, source) SELECT DISTINCT 'ip', ip_dest, 'pivot' FROM proxy_logs WHERE domaine IN (SELECT valeur FROM ioc WHERE type = 'domaine') AND ip_dest NOT IN (SELECT valeur FROM ioc);",
+  "verify": [
+   "SELECT type, valeur, source FROM ioc ORDER BY type, valeur"
+  ],
+  "hints": [
+   "INSERT INTO ... SELECT DISTINCT avec deux filtres : le domaine est un IOC, l'IP n'en est pas encore un. L'id est rempli par l'identité.",
+   "Structure : INSERT INTO ioc (type, valeur, source) SELECT DISTINCT 'ip', ip_dest, 'pivot' FROM proxy_logs WHERE domaine IN (SELECT valeur FROM ioc WHERE type = 'domaine') AND ip_dest NOT IN (SELECT valeur FROM ioc);"
+  ],
+  "note": "Identique en Oracle ; la colonne id est une identité, elle se remplit toute seule."
+ },
+ "39.S": {
+  "setup": "CREATE TABLE ioc (id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, type VARCHAR2(20) NOT NULL, valeur VARCHAR2(200) NOT NULL UNIQUE, source VARCHAR2(50)); INSERT INTO ioc (type, valeur, source) VALUES ('ip', '192.0.2.150', 'auth'), ('ip', '192.0.2.66', 'proxy'), ('domaine', 'cdn-update-check.net', 'proxy'), ('domaine', 'tunnel-meteo.net', 'dns'), ('domaine', 'eaux-de-seine-fr.com', 'mail');",
+  "solution": "CREATE TABLE rejeu (horodatage TIMESTAMP(0), host VARCHAR2(50), domaine VARCHAR2(200), ip_dest VARCHAR2(50));\nCREATE TABLE alertes (id NUMBER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, horodatage TIMESTAMP(0), host VARCHAR2(50), cible VARCHAR2(200));\nCREATE OR REPLACE TRIGGER trg_rejeu\nAFTER INSERT ON rejeu\nFOR EACH ROW\nBEGIN\n  INSERT INTO alertes (horodatage, host, cible)\n  SELECT :NEW.horodatage, :NEW.host, :NEW.domaine FROM dual\n  WHERE :NEW.domaine IN (SELECT valeur FROM ioc WHERE type = 'domaine')\n     OR :NEW.ip_dest IN (SELECT valeur FROM ioc WHERE type = 'ip');\nEND;\nINSERT INTO rejeu (horodatage, host, domaine, ip_dest) SELECT horodatage, host, domaine, ip_dest FROM proxy_logs ORDER BY horodatage;\nSELECT host, MIN(horodatage) AS premiere, COUNT(*) AS alertes FROM alertes GROUP BY host ORDER BY premiere;",
+  "verify": [
+   "SELECT host, MIN(horodatage), COUNT(*) FROM alertes GROUP BY host ORDER BY 2",
+   "SELECT COUNT(*) FROM rejeu",
+   "INSERT INTO rejeu (horodatage, host, domaine, ip_dest) VALUES (TIMESTAMP '2028-03-15 10:00:00', 'PC-TEST', 'nouveau-site.net', '192.0.2.150'), (TIMESTAMP '2028-03-15 10:01:00', 'PC-TEST', 'meteo-seine.fr', '203.0.113.22'); SELECT horodatage, host, cible FROM alertes WHERE host = 'PC-TEST'"
+  ],
+  "require": [
+   {
+    "re": "CREATE\\s+(OR\\s+REPLACE\\s+)?TRIGGER",
+    "msg": "Il faut créer un trigger : c'est lui qui doit produire les alertes."
+   }
+  ],
+  "hints": [
+   "En Oracle, un trigger ligne s'écrit CREATE OR REPLACE TRIGGER nom AFTER INSERT ON table FOR EACH ROW BEGIN ... END; (le ; après END termine le bloc ici ; la ligne / sert dans SQL*Plus ou SQL Developer). La clause WHEN n'accepte pas de sous-requête : mets le test dans le corps, par exemple INSERT INTO alertes (...) SELECT :NEW.horodatage, ... FROM dual WHERE :NEW.domaine IN (SELECT ...) OR ... . Les valeurs de la ligne insérée s'écrivent :NEW.colonne. Ensuite, INSERT INTO rejeu (...) SELECT ... FROM proxy_logs ORDER BY horodatage fait tourner le trigger sur chaque ligne.",
+   "Structure : CREATE TABLE rejeu (...); CREATE TABLE alertes (...); CREATE OR REPLACE TRIGGER trg_rejeu AFTER INSERT ON rejeu FOR EACH ROW BEGIN INSERT INTO alertes (horodatage, host, cible) SELECT :NEW.horodatage, :NEW.host, :NEW.domaine FROM dual WHERE ...; END; puis INSERT INTO rejeu (horodatage, host, domaine, ip_dest) SELECT horodatage, host, domaine, ip_dest FROM proxy_logs ORDER BY horodatage; puis le SELECT final."
+  ],
+  "note": "Trigger PL/SQL ligne à ligne (FOR EACH ROW, :NEW), bloc BEGIN ... END;. Les colonnes TEXT deviennent VARCHAR2 et TIMESTAMP(0)."
+ },
+ "40.1": {
+  "solution": "SELECT MIN(horodatage) AS quand, 'pulvérisation' AS etape FROM auth_logs WHERE source_ip = '192.0.2.150' AND resultat = 'echec' UNION ALL SELECT MIN(horodatage), 'phishing' FROM mail_logs WHERE expediteur = 'factures@eaux-de-seine-fr.com' UNION ALL SELECT MIN(horodatage), 'macro' FROM process_logs WHERE ligne_commande LIKE '%-enc%' UNION ALL SELECT MIN(horodatage), 'balise' FROM proxy_logs WHERE domaine = 'cdn-update-check.net' UNION ALL SELECT MIN(horodatage), 'contrôleur de domaine' FROM auth_logs WHERE login = 'adm.varenne' AND dest_host = 'DC01' AND resultat = 'succes' UNION ALL SELECT MIN(horodatage), 'exfiltration' FROM dns_logs WHERE domaine = 'tunnel-meteo.net' UNION ALL SELECT MIN(horodatage), 'sabotage' FROM commandes_ot WHERE login = 'adm.varenne' ORDER BY quand;",
+  "hints": [
+   "Sept SELECT MIN(horodatage), 'étape' empilés avec UNION ALL ; toutes les colonnes sont des TIMESTAMP, donc pas de conversion.",
+   "Structure : SELECT MIN(horodatage) AS quand, 'pulvérisation' AS etape FROM auth_logs WHERE ... UNION ALL SELECT MIN(horodatage), 'phishing' FROM mail_logs WHERE ... UNION ALL ... ORDER BY quand;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "40.2": {
+  "solution": "WITH j(d) AS (SELECT DATE '2028-03-01' FROM dual UNION ALL SELECT d + 1 FROM j WHERE d < DATE '2028-03-14') SELECT TO_CHAR(j.d, 'YYYY-MM-DD') AS jour, (SELECT COUNT(*) FROM auth_logs a WHERE a.login = 'adm.varenne' AND a.resultat = 'succes' AND a.methode <> 'vpn' AND TRUNC(a.horodatage) = j.d) AS connexions, NVL((SELECT MAX(lieu) FROM deplacements dp WHERE dp.login = 'adm.varenne' AND j.d + INTERVAL '12' HOUR BETWEEN dp.debut AND dp.fin), 'Paris') AS lieu FROM j ORDER BY jour;",
+  "require": [
+   {
+    "re": "\\w+\\s*\\([\\w\\s,\\\"]+\\)\\s*AS\\s*\\([\\s\\S]*UNION\\s+ALL|CONNECT\\s+BY",
+    "msg": "Génère le calendrier avec une CTE récursive (WITH j(d) AS (SELECT DATE '2028-03-01' FROM dual UNION ALL ...)) ou avec CONNECT BY LEVEL."
+   }
+  ],
+  "hints": [
+   "Le calendrier : WITH j(d) AS (SELECT DATE '2028-03-01' FROM dual UNION ALL SELECT d + 1 FROM j WHERE d < DATE '2028-03-14') ; ajouter 1 à une DATE avance d'un jour. Midi s'obtient avec j.d + INTERVAL '12' HOUR. (L'astuce Oracle SELECT DATE '2028-03-01' + LEVEL - 1 FROM dual CONNECT BY LEVEL <= 14 marche aussi.)",
+   "Structure : WITH j(d) AS (...) SELECT TO_CHAR(j.d, 'YYYY-MM-DD') AS jour, (SELECT COUNT(*) FROM auth_logs a WHERE ... AND TRUNC(a.horodatage) = j.d) AS connexions, NVL((SELECT MAX(lieu) FROM deplacements dp WHERE dp.login = 'adm.varenne' AND j.d + INTERVAL '12' HOUR BETWEEN dp.debut AND dp.fin), 'Paris') AS lieu FROM j ORDER BY jour;"
+  ],
+  "note": "date(d, '+1 day') devient d + 1 sur une DATE ; CTE récursive sans RECURSIVE (ou CONNECT BY LEVEL, l'idiome Oracle pour générer des lignes)."
+ },
+ "40.3": {
+  "solution": "SELECT l.ip, s.nom AS abonne, TO_CHAR(s.creation, 'YYYY-MM-DD') AS creation, l.adresse FROM lignes_internet l JOIN societes s ON s.siren = l.abonne_siren WHERE l.ip IN ('192.0.2.150', '192.0.2.66');",
+  "hints": [
+   "La colonne creation est une DATE Oracle (avec une heure à minuit) : affiche-la avec TO_CHAR(s.creation, 'YYYY-MM-DD').",
+   "Structure : SELECT l.ip, s.nom AS abonne, TO_CHAR(s.creation, 'YYYY-MM-DD') AS creation, l.adresse FROM lignes_internet l JOIN societes s ON s.siren = l.abonne_siren WHERE l.ip IN ('192.0.2.150', '192.0.2.66');"
+  ],
+  "note": "TO_CHAR pour afficher la date sans l'heure."
+ },
+ "40.4": {
+  "solution": "WITH spray AS (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100), iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, (CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage) AS DATE)) * 86400 AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDDEV_POP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50), ips AS (SELECT source_ip AS ip, 'pulvérisation' AS role FROM spray UNION SELECT DISTINCT ip_dest, 'commande' FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus)) SELECT i.ip, i.role, s.nom AS abonne, TO_CHAR(s.creation, 'YYYY-MM-DD') AS creation, l.adresse FROM ips i JOIN lignes_internet l ON l.ip = i.ip JOIN societes s ON s.siren = l.abonne_siren ORDER BY i.role;",
+  "require": [
+   {
+    "re": "LAG",
+    "msg": "Retrouve les balises avec LAG."
+   },
+   {
+    "re": "^(?![\\s\\S]*(192\\.0\\.2|update|Labyrinthe|5120|3000))",
+    "msg": "Ne recopie aucune IP, aucun domaine ni aucune société : la requête doit les retrouver seule."
+   }
+  ],
+  "hints": [
+   "Réutilise les CTE spray (pulvérisation) et iv/st (balises, avec CAST AS DATE, LAG et STDDEV_POP), réunis par UNION. Affiche creation avec TO_CHAR.",
+   "Structure : WITH spray AS (...), iv AS (... LAG ...), st AS (...), ips AS (SELECT source_ip AS ip, 'pulvérisation' AS role FROM spray UNION SELECT DISTINCT ip_dest, 'commande' FROM st WHERE ...) SELECT i.ip, i.role, s.nom AS abonne, TO_CHAR(s.creation, 'YYYY-MM-DD') AS creation, l.adresse FROM ips i JOIN lignes_internet l ON ... JOIN societes s ON ... ORDER BY i.role;"
+  ],
+  "note": "Mêmes CTE qu'aux chapitres précédents, en syntaxe Oracle ; TO_CHAR pour la date."
+ },
+ "40.5": {
+  "setup": "CREATE TABLE proces_verbal (affaire VARCHAR2(100) NOT NULL, coupable VARCHAR2(100) NOT NULL, preuve VARCHAR2(200));",
+  "solution": "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT 'Hydre', s.nom, 'lignes de l''attaquant' FROM societes s JOIN lignes_internet l ON l.abonne_siren = s.siren WHERE l.ip IN (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100);",
+  "verify": [
+   "SELECT affaire, coupable FROM proces_verbal"
+  ],
+  "hints": [
+   "L'apostrophe dans une chaîne se double : 'lignes de l''attaquant'. Le reste est un INSERT ... SELECT.",
+   "Structure : INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT 'Hydre', s.nom, 'lignes de l''attaquant' FROM societes s JOIN lignes_internet l ON ... WHERE l.ip IN (SELECT source_ip FROM auth_logs WHERE ... HAVING COUNT(*) >= 100);"
+  ],
+  "note": "Identique en Oracle (VARCHAR2 dans la table proces_verbal)."
+ },
+ "40.A": {
+  "solution": "SELECT l.ip, s.nom AS abonne, l.adresse, (SELECT COUNT(*) FROM auth_logs a WHERE a.source_ip = l.ip AND a.resultat = 'echec') AS echecs, (SELECT COUNT(*) FROM proxy_logs x WHERE x.ip_dest = l.ip) AS connexions_proxy FROM lignes_internet l JOIN societes s ON s.siren = l.abonne_siren ORDER BY l.ip;",
+  "hints": [
+   "Deux sous-requêtes scalaires COUNT(*) corrélées sur l.ip.",
+   "Structure : SELECT l.ip, s.nom AS abonne, l.adresse, (SELECT COUNT(*) FROM auth_logs a WHERE a.source_ip = l.ip AND ...) AS echecs, (SELECT COUNT(*) FROM proxy_logs x WHERE x.ip_dest = l.ip) AS connexions_proxy FROM lignes_internet l JOIN societes s ON ... ORDER BY l.ip;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "40.S": {
+  "solution": "WITH ab AS (SELECT l.abonne_siren AS siren FROM lignes_internet l WHERE l.ip IN (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100)), ju AS (SELECT s.siren, s.nom FROM societes s JOIN societes a ON a.siren = (SELECT siren FROM ab) WHERE s.siren <> a.siren AND ABS(s.creation - a.creation) <= 7), c1(siren, part) AS (SELECT siren, 100 FROM ab UNION ALL SELECT p.detenteur, c1.part * p.pct / 100 FROM participations p JOIN c1 ON p.detenue = c1.siren), c2(siren, part) AS (SELECT siren, 100 FROM ju UNION ALL SELECT p.detenteur, c2.part * p.pct / 100 FROM participations p JOIN c2 ON p.detenue = c2.siren), b1 AS (SELECT siren, SUM(part) AS part FROM c1 WHERE siren LIKE 'PERSONNE:%' GROUP BY siren), b2 AS (SELECT siren, SUM(part) AS part FROM c2 WHERE siren LIKE 'PERSONNE:%' GROUP BY siren) SELECT REPLACE(b1.siren, 'PERSONNE:', '') AS beneficiaire, (SELECT nom FROM ju) AS jumelle, ROUND(b1.part, 1) AS part_abonne, ROUND(b2.part, 1) AS part_jumelle FROM b1 JOIN b2 ON b2.siren = b1.siren;",
+  "require": [
+   {
+    "re": "\\w+\\s*\\([\\w\\s,\\\"]+\\)\\s*AS\\s*\\([\\s\\S]*UNION\\s+ALL",
+    "msg": "Les chaînes de propriété se remontent avec une CTE récursive : en Oracle, WITH c1(siren, part) AS (... UNION ALL ...), sans le mot RECURSIVE."
+   },
+   {
+    "re": "^(?![\\s\\S]*(Labyrinthe|Ariane|Ricci|Paul|Calanques|Th[ée]s[ée]e|5120|192\\.0\\.2))",
+    "msg": "Ne tape aucun nom, SIREN ni IP : la requête doit tout retrouver."
+   }
+  ],
+  "hints": [
+   "Deux CTE récursives Oracle (c1 et c2, avec leur liste de colonnes) dans le même WITH. L'écart entre deux dates de création est une simple soustraction de DATE : ABS(s.creation - a.creation) <= 7.",
+   "Structure : WITH ab AS (...), ju AS (SELECT s.siren, s.nom FROM societes s JOIN societes a ON ... WHERE s.siren <> a.siren AND ABS(s.creation - a.creation) <= 7), c1(siren, part) AS (... UNION ALL ...), c2(siren, part) AS (...), b1 AS (...), b2 AS (...) SELECT REPLACE(b1.siren, 'PERSONNE:', '') AS beneficiaire, (SELECT nom FROM ju) AS jumelle, ROUND(b1.part, 1) AS part_abonne, ROUND(b2.part, 1) AS part_jumelle FROM b1 JOIN b2 ON b2.siren = b1.siren;"
+  ],
+  "note": "julianday(a) - julianday(b) devient a - b sur des DATE ; CTE récursives sans RECURSIVE."
+ },
+ "41.1": {
+  "solution": "SELECT LISTAGG(UPPER(SUBSTR(texte, ligne, 1))) WITHIN GROUP (ORDER BY page, ligne) AS message FROM carnet_delorme;",
+  "hints": [
+   "LISTAGG(expression) WITHIN GROUP (ORDER BY page, ligne) concatène dans l'ordre voulu ; sans second argument, il n'y a pas de séparateur.",
+   "Structure : SELECT LISTAGG(UPPER(SUBSTR(texte, ligne, 1))) WITHIN GROUP (ORDER BY page, ligne) AS message FROM carnet_delorme;"
+  ],
+  "note": "group_concat(..., '' ORDER BY ...) devient LISTAGG(...) WITHIN GROUP (ORDER BY ...)."
+ },
+ "41.2": {
+  "solution": "WITH b AS (SELECT sous_station, AVG(kwh) AS m, STDDEV_POP(kwh) AS sd FROM releves_electriques WHERE horodatage < TIMESTAMP '2028-03-01 00:00:00' GROUP BY sous_station), r AS (SELECT sous_station, AVG(kwh) AS m FROM releves_electriques WHERE horodatage >= TIMESTAMP '2028-03-01 00:00:00' GROUP BY sous_station), z AS (SELECT b.sous_station, b.m AS avant, r.m AS apres, (r.m - b.m) / b.sd AS z FROM b JOIN r ON r.sous_station = b.sous_station) SELECT sous_station, ROUND(avant, 1) AS avant, ROUND(apres, 1) AS apres, ROUND(z, 1) AS z FROM z ORDER BY z DESC;",
+  "hints": [
+   "STDDEV_POP(kwh) donne l'écart-type de population (la formule sqrt(AVG(x * x) - AVG(x) * AVG(x))). La date de coupure s'écrit TIMESTAMP '2028-03-01 00:00:00'.",
+   "Structure : WITH b AS (SELECT sous_station, AVG(kwh) AS m, STDDEV_POP(kwh) AS sd FROM releves_electriques WHERE horodatage < TIMESTAMP '...' GROUP BY sous_station), r AS (...), z AS (SELECT b.sous_station, b.m AS avant, r.m AS apres, (r.m - b.m) / b.sd AS z FROM b JOIN r ON ...) SELECT sous_station, ROUND(avant, 1) AS avant, ROUND(apres, 1) AS apres, ROUND(z, 1) AS z FROM z ORDER BY z DESC;"
+  ],
+  "note": "STDDEV_POP remplace la formule à base de sqrt ; littéral TIMESTAMP pour la coupure."
+ },
+ "41.3": {
+  "solution": "WITH h AS (SELECT horodatage, ROUND((CAST(horodatage AS DATE) - DATE '2028-02-15') * 24) AS n FROM releves_electriques WHERE sous_station = 'SST Dédale' AND kwh > 20), g AS (SELECT horodatage, n - ROW_NUMBER() OVER (ORDER BY n) AS grp FROM h) SELECT MIN(horodatage) AS debut, MAX(horodatage) AS fin, COUNT(*) AS heures FROM g GROUP BY grp ORDER BY debut;",
+  "hints": [
+   "Le numéro d'heure : ROUND((CAST(horodatage AS DATE) - DATE '2028-02-15') * 24), puis la technique des îlots : n - ROW_NUMBER() OVER (ORDER BY n) est constant dans un îlot.",
+   "Structure : WITH h AS (SELECT horodatage, ROUND((CAST(horodatage AS DATE) - DATE '2028-02-15') * 24) AS n FROM releves_electriques WHERE ...), g AS (SELECT horodatage, n - ROW_NUMBER() OVER (ORDER BY n) AS grp FROM h) SELECT MIN(horodatage) AS debut, MAX(horodatage) AS fin, COUNT(*) AS heures FROM g GROUP BY grp ORDER BY debut;"
+  ],
+  "note": "La soustraction de DATE (en jours) x 24 remplace julianday ; ROW_NUMBER est identique."
+ },
+ "41.4": {
+  "solution": "WITH c AS (SELECT horodatage, JSON_VALUE(metriques, '$.acc' RETURNING NUMBER) AS y FROM minotaure_checkpoints ORDER BY epoch DESC FETCH FIRST 48 ROWS ONLY), x0 AS (SELECT CAST(MIN(horodatage) AS DATE) AS j FROM c), pts AS (SELECT (CAST(c.horodatage AS DATE) - x0.j) * 24 AS x, c.y FROM c, x0), s AS (SELECT COUNT(*) AS n, SUM(x) AS sx, SUM(y) AS sy, SUM(x * x) AS sxx, SUM(x * y) AS sxy FROM pts), reg AS (SELECT (n * sxy - sx * sy) / (n * sxx - sx * sx) AS a, (sy - (n * sxy - sx * sy) / (n * sxx - sx * sx) * sx) / n AS b FROM s) SELECT ROUND(a, 5) AS pente, TO_CHAR((SELECT j FROM x0) + (0.99 - b) / a / 24, 'YYYY-MM-DD HH24:MI') AS heure_limite FROM reg;",
+  "require": [
+   {
+    "re": "JSON_VALUE",
+    "msg": "Lis l'exactitude avec JSON_VALUE(metriques, '$.acc')."
+   }
+  ],
+  "hints": [
+   "json_extract devient JSON_VALUE(metriques, '$.acc' RETURNING NUMBER). Une DATE plus un nombre avance d'autant de jours : (SELECT j FROM x0) + heures / 24 donne l'heure limite, à formater avec TO_CHAR(..., 'YYYY-MM-DD HH24:MI').",
+   "Structure : WITH c AS (SELECT horodatage, JSON_VALUE(metriques, '$.acc' RETURNING NUMBER) AS y FROM minotaure_checkpoints ORDER BY epoch DESC FETCH FIRST 48 ROWS ONLY), x0 AS (SELECT CAST(MIN(horodatage) AS DATE) AS j FROM c), pts AS (SELECT (CAST(c.horodatage AS DATE) - x0.j) * 24 AS x, c.y FROM c, x0), s AS (...), reg AS (...) SELECT ROUND(a, 5) AS pente, TO_CHAR((SELECT j FROM x0) + (0.99 - b) / a / 24, 'YYYY-MM-DD HH24:MI') AS heure_limite FROM reg;"
+  ],
+  "note": "JSON_VALUE remplace json_extract ; une DATE sert d'origine (comme julianday) et DATE + nombre de jours remplace strftime sur un jour julien."
+ },
+ "41.5": {
+  "solution": "WITH f AS (SELECT DISTINCT numero FROM bornages WHERE antenne = 'Fleury-Mérogis'), lien AS (SELECT appelant AS x, appele AS y FROM communications UNION SELECT appele, appelant FROM communications), cible AS (SELECT DISTINCT b.numero FROM bornages b JOIN antennes a ON a.antenne = b.antenne WHERE a.station = 'Dédale') SELECT DISTINCT f.numero AS depart, l1.y AS relais, l2.y AS arrivee, ab.titulaire FROM f JOIN lien l1 ON l1.x = f.numero JOIN lien l2 ON l2.x = l1.y JOIN cible ON cible.numero = l2.y LEFT JOIN abonnes ab ON ab.numero = l2.y;",
+  "hints": [
+   "Rends les appels symétriques avec un UNION des deux sens, puis enchaîne deux jointures sur ce lien.",
+   "Structure : WITH f AS (...), lien AS (SELECT appelant AS x, appele AS y FROM communications UNION SELECT appele, appelant FROM communications), cible AS (...) SELECT DISTINCT f.numero AS depart, l1.y AS relais, l2.y AS arrivee, ab.titulaire FROM f JOIN lien l1 ON l1.x = f.numero JOIN lien l2 ON l2.x = l1.y JOIN cible ON ... LEFT JOIN abonnes ab ON ab.numero = l2.y;"
+  ],
+  "note": "Identique en Oracle."
+ },
+ "41.6": {
+  "solution": "WITH ch(siren, part) AS (SELECT payeur_siren, 100 FROM sous_stations WHERE nom = 'SST Dédale' UNION ALL SELECT p.detenteur, c.part * p.pct / 100 FROM participations p JOIN ch c ON p.detenue = c.siren) SELECT REPLACE(siren, 'PERSONNE:', '') AS beneficiaire, ROUND(SUM(part), 1) AS part FROM ch WHERE siren LIKE 'PERSONNE:%' GROUP BY siren ORDER BY part DESC;",
+  "require": [
+   {
+    "re": "\\w+\\s*\\([\\w\\s,\\\"]+\\)\\s*AS\\s*\\([\\s\\S]*UNION\\s+ALL",
+    "msg": "Il faut une CTE récursive : en Oracle, WITH ch(siren, part) AS (ancre UNION ALL étape), sans le mot RECURSIVE."
+   }
+  ],
+  "hints": [
+   "CTE récursive Oracle : WITH ch(siren, part) AS (ancre UNION ALL étape), puis SUM(part) par personne.",
+   "Structure : WITH ch(siren, part) AS (SELECT payeur_siren, 100 FROM sous_stations WHERE nom = 'SST Dédale' UNION ALL SELECT p.detenteur, c.part * p.pct / 100 FROM participations p JOIN ch c ON p.detenue = c.siren) SELECT REPLACE(siren, 'PERSONNE:', '') AS beneficiaire, ROUND(SUM(part), 1) AS part FROM ch WHERE siren LIKE 'PERSONNE:%' GROUP BY siren ORDER BY part DESC;"
+  ],
+  "note": "CTE récursive sans RECURSIVE."
+ },
+ "41.7": {
+  "solution": "WITH iv AS (SELECT host, domaine, ip_dest, (CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage) AS DATE)) * 86400 AS dt FROM proxy_logs WHERE domaine NOT IN (SELECT domaine FROM domaines_connus)), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDDEV_POP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50), c2 AS (SELECT DISTINCT ip_dest FROM st WHERE sd / m < 0.05) SELECT l.ip, l.station, so.nom AS abonne FROM c2 JOIN lignes_internet l ON l.ip = c2.ip_dest JOIN societes so ON so.siren = l.abonne_siren;",
+  "hints": [
+   "Intervalles avec LAG et la soustraction de DATE x 86400, écart-type avec STDDEV_POP, comme au chapitre 36.",
+   "Structure : WITH iv AS (SELECT host, domaine, ip_dest, (CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (...) AS DATE)) * 86400 AS dt FROM proxy_logs WHERE ...), st AS (... STDDEV_POP(dt) AS sd ... HAVING COUNT(dt) >= 50), c2 AS (SELECT DISTINCT ip_dest FROM st WHERE sd / m < 0.05) SELECT l.ip, l.station, so.nom AS abonne FROM c2 JOIN lignes_internet l ON ... JOIN societes so ON ...;"
+  ],
+  "note": "Même détection de balises en syntaxe Oracle."
+ },
+ "41.8": {
+  "solution": "WITH p(noeud, chemin, total) AS (SELECT CAST('Préfecture' AS VARCHAR2(100)), CAST('Préfecture' AS VARCHAR2(4000)), 0 FROM dual UNION ALL SELECT t.vers, p.chemin || ' > ' || t.vers, p.total + t.minutes FROM p JOIN troncons t ON t.de = p.noeud WHERE t.etat = 'ouvert' AND INSTR(p.chemin, t.vers) = 0 AND p.total + t.minutes <= 60 AND p.noeud <> 'Dédale') SELECT chemin, total AS minutes FROM p WHERE noeud = 'Dédale' ORDER BY total FETCH FIRST 1 ROW ONLY;",
+  "require": [
+   {
+    "re": "\\w+\\s*\\([\\w\\s,\\\"]+\\)\\s*AS\\s*\\([\\s\\S]*UNION\\s+ALL",
+    "msg": "Il faut une CTE récursive : en Oracle, WITH p(noeud, chemin, total) AS (SELECT ... FROM dual UNION ALL ...), sans le mot RECURSIVE."
+   }
+  ],
+  "hints": [
+   "L'ancre part de 'Préfecture' sans table : SELECT ... FROM dual. Caste les textes de départ en VARCHAR2 pour que le chemin puisse grandir, et termine par ORDER BY total FETCH FIRST 1 ROW ONLY.",
+   "Structure : WITH p(noeud, chemin, total) AS (SELECT CAST('Préfecture' AS VARCHAR2(100)), CAST('Préfecture' AS VARCHAR2(4000)), 0 FROM dual UNION ALL SELECT t.vers, p.chemin || ' > ' || t.vers, p.total + t.minutes FROM p JOIN troncons t ON t.de = p.noeud WHERE ... AND INSTR(p.chemin, t.vers) = 0 ...) SELECT chemin, total AS minutes FROM p WHERE noeud = 'Dédale' ORDER BY total FETCH FIRST 1 ROW ONLY;"
+  ],
+  "note": "CTE récursive sans RECURSIVE, ancre FROM dual avec des CAST en VARCHAR2, FETCH FIRST au lieu de LIMIT."
+ },
+ "41.9": {
+  "solution": "UPDATE file_minotaure SET statut = 'bloque' WHERE statut = 'en_attente' AND compte_dest IN (SELECT compte_dest FROM file_minotaure GROUP BY compte_dest HAVING COUNT(DISTINCT compte_source) >= 10); COMMIT;",
+  "verify": [
+   "SELECT statut, COUNT(*), ROUND(SUM(montant), 2) FROM file_minotaure GROUP BY statut ORDER BY statut",
+   "SELECT COUNT(DISTINCT compte_dest) FROM file_minotaure WHERE statut = 'bloque'"
+  ],
+  "require": [
+   {
+    "re": "COMMIT",
+    "msg": "Fais-le dans une transaction : en Oracle elle s'ouvre toute seule à la première modification, termine-la par COMMIT."
+   }
+  ],
+  "hints": [
+   "En Oracle, pas de BEGIN pour ouvrir une transaction : elle commence au premier UPDATE et se valide avec COMMIT (ou s'annule avec ROLLBACK).",
+   "Structure : UPDATE file_minotaure SET statut = 'bloque' WHERE statut = 'en_attente' AND compte_dest IN (SELECT compte_dest FROM file_minotaure GROUP BY compte_dest HAVING COUNT(DISTINCT compte_source) >= 10); COMMIT;"
+  ],
+  "note": "Oracle ouvre la transaction implicitement : BEGIN y désigne un bloc PL/SQL, pas une transaction. La règle demande donc le COMMIT."
+ },
+ "41.10": {
+  "solution": "WITH b AS (SELECT sous_station, AVG(kwh) AS m, STDDEV_POP(kwh) AS sd FROM releves_electriques WHERE horodatage < TIMESTAMP '2028-03-01 00:00:00' GROUP BY sous_station), r AS (SELECT sous_station, AVG(kwh) AS m FROM releves_electriques WHERE horodatage >= TIMESTAMP '2028-03-01 00:00:00' GROUP BY sous_station), z AS (SELECT b.sous_station, (r.m - b.m) / b.sd AS z FROM b JOIN r ON r.sous_station = b.sous_station), anomalie AS (SELECT ss.nom, ss.station, ss.payeur_siren FROM sous_stations ss JOIN z ON z.sous_station = ss.nom ORDER BY z.z DESC FETCH FIRST 1 ROW ONLY), p(noeud, chemin, total) AS (SELECT CAST('Préfecture' AS VARCHAR2(100)), CAST('Préfecture' AS VARCHAR2(4000)), 0 FROM dual UNION ALL SELECT t.vers, p.chemin || ' > ' || t.vers, p.total + t.minutes FROM p JOIN troncons t ON t.de = p.noeud WHERE t.etat = 'ouvert' AND INSTR(p.chemin, t.vers) = 0 AND p.total + t.minutes <= 60 AND p.noeud <> (SELECT station FROM anomalie)), trajet AS (SELECT MIN(total) AS minutes FROM p WHERE noeud = (SELECT station FROM anomalie)), c AS (SELECT horodatage, JSON_VALUE(metriques, '$.acc' RETURNING NUMBER) AS y FROM minotaure_checkpoints ORDER BY epoch DESC FETCH FIRST 48 ROWS ONLY), x0 AS (SELECT CAST(MIN(horodatage) AS DATE) AS j FROM c), pts AS (SELECT (CAST(c.horodatage AS DATE) - x0.j) * 24 AS x, c.y FROM c, x0), s AS (SELECT COUNT(*) AS n, SUM(x) AS sx, SUM(y) AS sy, SUM(x * x) AS sxx, SUM(x * y) AS sxy FROM pts), reg AS (SELECT (n * sxy - sx * sy) / (n * sxx - sx * sx) AS a, (sy - (n * sxy - sx * sy) / (n * sxx - sx * sx) * sx) / n AS b FROM s), limite AS (SELECT TO_CHAR((SELECT j FROM x0) + (0.99 - b) / a / 24, 'YYYY-MM-DD HH24:MI') AS h FROM reg), ch(siren, part) AS (SELECT payeur_siren, 100 FROM anomalie UNION ALL SELECT pa.detenteur, ch.part * pa.pct / 100 FROM participations pa JOIN ch ON pa.detenue = ch.siren), benef AS (SELECT REPLACE(siren, 'PERSONNE:', '') AS nom FROM ch WHERE siren LIKE 'PERSONNE:%' GROUP BY siren HAVING SUM(part) > 25), f AS (SELECT DISTINCT numero FROM bornages WHERE antenne = 'Fleury-Mérogis'), lien AS (SELECT appelant AS x, appele AS y FROM communications UNION SELECT appele, appelant FROM communications), cible AS (SELECT DISTINCT b.numero FROM bornages b JOIN antennes an ON an.antenne = b.antenne WHERE an.station = (SELECT station FROM anomalie)), tel AS (SELECT DISTINCT ab.titulaire FROM f JOIN lien l1 ON l1.x = f.numero JOIN lien l2 ON l2.x = l1.y JOIN cible ON cible.numero = l2.y JOIN abonnes ab ON ab.numero = l2.y), iv AS (SELECT host, domaine, ip_dest, (CAST(horodatage AS DATE) - CAST(LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage) AS DATE)) * 86400 AS dt FROM proxy_logs WHERE domaine NOT IN (SELECT domaine FROM domaines_connus)), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDDEV_POP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50), c2 AS (SELECT DISTINCT ip_dest FROM st WHERE sd / m < 0.05), serveur AS (SELECT l.ip FROM c2 JOIN lignes_internet l ON l.ip = c2.ip_dest WHERE l.station = (SELECT station FROM anomalie)) SELECT (SELECT station FROM anomalie) AS station, (SELECT minutes FROM trajet) AS minutes, (SELECT h FROM limite) AS heure_limite, (SELECT ip FROM serveur) AS serveur, nom AS complice FROM benef WHERE nom IN (SELECT titulaire FROM tel);",
+  "require": [
+   {
+    "re": "\\w+\\s*\\([\\w\\s,\\\"]+\\)\\s*AS\\s*\\([\\s\\S]*UNION\\s+ALL",
+    "msg": "Le chemin et la propriété exigent une CTE récursive : en Oracle, WITH nom(colonnes) AS (... UNION ALL ...), sans le mot RECURSIVE."
+   },
+   {
+    "re": "JSON_VALUE",
+    "msg": "La régression exige JSON_VALUE pour lire l'exactitude."
+   },
+   {
+    "re": "^(?![\\s\\S]*(D[ée]dale|Ricci|Paul|Ouali|Farid|SST\\s+D|192\\.0\\.2|update|Bercy|Gare de Lyon|Labyrinthe|Calanques|5120|0759|0612|LT60))",
+    "msg": "Ne recopie aucune valeur trouvée avant (station, sous-station, personne, antenne, société, numéro) : la requête doit tout retrouver seule."
+   }
+  ],
+  "hints": [
+   "Assemble les pistes du chapitre en syntaxe Oracle : STDDEV_POP, FETCH FIRST 1 ROW ONLY dans la CTE anomalie, CTE récursives avec liste de colonnes (ancre FROM dual), JSON_VALUE ... RETURNING NUMBER, DATE + nombre de jours pour l'heure limite, LAG avec CAST AS DATE pour les balises.",
+   "Structure : WITH b AS (...), r AS (...), z AS (...), anomalie AS (... ORDER BY z.z DESC FETCH FIRST 1 ROW ONLY), p(noeud, chemin, total) AS (... FROM dual UNION ALL ...), trajet AS (...), c AS (... JSON_VALUE ...), x0 AS (...), pts AS (...), s AS (...), reg AS (...), limite AS (SELECT TO_CHAR(... , 'YYYY-MM-DD HH24:MI') AS h FROM reg), ch(siren, part) AS (...), benef AS (...), f AS (...), lien AS (...), cible AS (...), tel AS (...), iv AS (...), st AS (...), c2 AS (...), serveur AS (...) SELECT (SELECT station FROM anomalie) AS station, (SELECT minutes FROM trajet) AS minutes, (SELECT h FROM limite) AS heure_limite, (SELECT ip FROM serveur) AS serveur, nom AS complice FROM benef WHERE nom IN (SELECT titulaire FROM tel);"
+  ],
+  "note": "La requête finale réunit tous les changements Oracle : CTE récursives sans RECURSIVE, FETCH FIRST, JSON_VALUE, STDDEV_POP et calculs sur des DATE au lieu de julianday."
+ },
+ "41.A": {
+  "solution": "WITH h AS (SELECT horodatage, ROUND((CAST(horodatage AS DATE) - DATE '2028-02-15') * 24) AS n FROM releves_electriques WHERE sous_station = 'SST Dédale' AND kwh > 20), g AS (SELECT horodatage, n - ROW_NUMBER() OVER (ORDER BY n) AS grp FROM h), i AS (SELECT MIN(horodatage) AS debut, MAX(horodatage) AS fin FROM g GROUP BY grp), t AS (SELECT LAG(fin) OVER (ORDER BY debut) AS arret, debut AS reprise FROM i) SELECT arret, reprise, ROUND((CAST(reprise AS DATE) - CAST(arret AS DATE)) * 24) AS heures FROM t WHERE arret IS NOT NULL ORDER BY arret;",
+  "hints": [
+   "Reprends les îlots de 41.3, puis LAG(fin) OVER (ORDER BY debut) donne la fin de l'îlot précédent ; l'écart en heures vaut (CAST(reprise AS DATE) - CAST(arret AS DATE)) * 24.",
+   "Structure : WITH h AS (...), g AS (...), i AS (SELECT MIN(horodatage) AS debut, MAX(horodatage) AS fin FROM g GROUP BY grp), t AS (SELECT LAG(fin) OVER (ORDER BY debut) AS arret, debut AS reprise FROM i) SELECT arret, reprise, ROUND((CAST(reprise AS DATE) - CAST(arret AS DATE)) * 24) AS heures FROM t WHERE arret IS NOT NULL ORDER BY arret;"
+  ],
+  "note": "Soustraction de DATE x 24 au lieu de julianday."
+ },
+ "41.S": {
+  "solution": "WITH nm AS (SELECT siren AS id, nom AS label FROM societes UNION SELECT detenteur, REPLACE(detenteur, 'PERSONNE:', '') FROM participations WHERE detenteur LIKE 'PERSONNE:%'), e AS (SELECT detenteur AS a, detenue AS b FROM participations UNION SELECT detenue, detenteur FROM participations), dep AS (SELECT 'PERSONNE:' || prenom || ' ' || nom AS id FROM employes WHERE poste = 'Directeur SI'), arr AS (SELECT 'PERSONNE:' || nom AS id FROM employes_neurocite WHERE poste = 'Directeur data science'), p(noeud, vus, chemin, sauts) AS (SELECT id, CAST('|' || id || '|' AS VARCHAR2(4000)), CAST(REPLACE(id, 'PERSONNE:', '') AS VARCHAR2(4000)), 0 FROM dep UNION ALL SELECT e.b, p.vus || e.b || '|', p.chemin || ' > ' || nm.label, p.sauts + 1 FROM p JOIN e ON e.a = p.noeud JOIN nm ON nm.id = e.b WHERE INSTR(p.vus, '|' || e.b || '|') = 0 AND p.sauts < 12) SELECT chemin, sauts FROM p WHERE noeud = (SELECT id FROM arr) ORDER BY sauts FETCH FIRST 1 ROW ONLY;",
+  "require": [
+   {
+    "re": "\\w+\\s*\\([\\w\\s,\\\"]+\\)\\s*AS\\s*\\([\\s\\S]*UNION\\s+ALL",
+    "msg": "Le fil se tire avec une CTE récursive : en Oracle, WITH p(noeud, vus, chemin, sauts) AS (... UNION ALL ...), sans le mot RECURSIVE."
+   },
+   {
+    "re": "^(?![\\s\\S]*(Ouali|Farid|Delorme|Maxime|Ricci|Paul|Ariane|Th[ée]s[ée]e|Labyrinthe|Calanques|5120))",
+    "msg": "Ne tape aucun nom ni SIREN : pars des postes, la requête doit retrouver tout le fil."
+   }
+  ],
+  "hints": [
+   "CTE récursive Oracle avec liste de colonnes p(noeud, vus, chemin, sauts) ; caste vus et chemin en VARCHAR2(4000) dans l'ancre. Pour le libellé, joins plutôt la table des noms dans la partie récursive. Termine par ORDER BY sauts FETCH FIRST 1 ROW ONLY.",
+   "Structure : WITH nm AS (...), e AS (... UNION ...), dep AS (...), arr AS (...), p(noeud, vus, chemin, sauts) AS (SELECT id, CAST('|' || id || '|' AS VARCHAR2(4000)), CAST(REPLACE(id, 'PERSONNE:', '') AS VARCHAR2(4000)), 0 FROM dep UNION ALL SELECT e.b, p.vus || e.b || '|', p.chemin || ' > ' || nm.label, p.sauts + 1 FROM p JOIN e ON e.a = p.noeud JOIN nm ON nm.id = e.b WHERE INSTR(p.vus, '|' || e.b || '|') = 0 AND p.sauts < 12) SELECT chemin, sauts FROM p WHERE noeud = (SELECT id FROM arr) ORDER BY sauts FETCH FIRST 1 ROW ONLY;"
+  ],
+  "note": "CTE récursive sans RECURSIVE, avec CAST en VARCHAR2(4000) dans l'ancre ; le libellé vient d'une jointure dans la partie récursive ; FETCH FIRST remplace LIMIT."
+ }
+}

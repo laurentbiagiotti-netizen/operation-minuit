@@ -1,0 +1,1435 @@
+{
+ "21.1": {
+  "solution": "SELECT COUNT(*) AS total, COUNT(DISTINCT CAST(temoin AS VARBINARY(200))) AS noms_bruts, COUNT(DISTINCT LOWER(TRIM(temoin))) AS noms_propres FROM temoignages_bruts;",
+  "hints": [
+   "Piège SQL Server : en comparant des chaînes, il ignore les espaces de fin ('Tom ' = 'Tom'). Pour compter les noms vraiment bruts, compare-les octet par octet avec CAST(temoin AS VARBINARY(200)).",
+   "SELECT COUNT(*) AS total, COUNT(DISTINCT CAST(temoin AS VARBINARY(200))) AS noms_bruts, COUNT(DISTINCT LOWER(TRIM(temoin))) AS noms_propres FROM temoignages_bruts"
+  ],
+  "note": "SQL Server ignore les espaces finaux dans les comparaisons de chaînes (règle ANSI du remplissage) : COUNT(DISTINCT temoin) donnerait 14. Le CAST en VARBINARY compare les octets exacts."
+ },
+ "21.2": {
+  "solution": "SELECT LOWER(TRIM(temoin)) AS temoin, COUNT(*) AS nb FROM temoignages_bruts GROUP BY LOWER(TRIM(temoin)) HAVING COUNT(*) > 1 ORDER BY nb DESC, temoin;",
+  "hints": [
+   "Regroupe sur l'expression complète LOWER(TRIM(temoin)) : SQL Server n'accepte pas l'alias dans le GROUP BY.",
+   "GROUP BY LOWER(TRIM(temoin)) HAVING COUNT(*) > 1 ORDER BY nb DESC, temoin"
+  ],
+  "note": "En SQL Server, le GROUP BY doit répéter l'expression (l'alias n'est accepté que dans ORDER BY)."
+ },
+ "21.3": {
+  "solution": "WITH d AS (SELECT id, ROW_NUMBER() OVER (PARTITION BY LOWER(TRIM(temoin)) ORDER BY recu_le, id) AS rn FROM temoignages_bruts) DELETE FROM d WHERE rn > 1;",
+  "verify": [
+   "SELECT id FROM temoignages_bruts ORDER BY id"
+  ],
+  "hints": [
+   "En SQL Server, tu peux supprimer directement à travers une CTE qui numérote les lignes avec ROW_NUMBER().",
+   "WITH d AS (SELECT id, ROW_NUMBER() OVER (PARTITION BY LOWER(TRIM(temoin)) ORDER BY recu_le, id) AS rn FROM temoignages_bruts) DELETE FROM d WHERE ..."
+  ],
+  "note": "SQL Server permet un DELETE sur une CTE (ou une vue) qui ne porte que sur une table : pas besoin de sous-requête IN."
+ },
+ "21.4": {
+  "solution": "SELECT UPPER(REPLACE(REPLACE(TRIM(plaque), ' ', ''), '-', '')) AS plaque, COUNT(*) AS nb FROM temoignages_bruts WHERE plaque IS NOT NULL AND TRIM(plaque) <> '' GROUP BY UPPER(REPLACE(REPLACE(TRIM(plaque), ' ', ''), '-', '')) ORDER BY nb DESC;",
+  "hints": [
+   "Imbrique deux REPLACE dans un UPPER, et répète l'expression entière dans le GROUP BY (pas de GROUP BY 1 en SQL Server).",
+   "SELECT UPPER(REPLACE(REPLACE(TRIM(plaque), ' ', ''), '-', '')) AS plaque, COUNT(*) AS nb ... WHERE TRIM(plaque) <> '' GROUP BY UPPER(...) ORDER BY nb DESC"
+  ],
+  "note": "SQL Server refuse GROUP BY 1 (numéro de colonne) : il faut répéter l'expression."
+ },
+ "21.5": {
+  "solution": "SELECT c.immatriculation, c.marque, c.couleur, c.titulaire, COUNT(DISTINCT LOWER(TRIM(t.temoin))) AS temoins FROM temoignages_bruts t JOIN cartes_grises c ON REPLACE(c.immatriculation, '-', '') = UPPER(REPLACE(REPLACE(TRIM(t.plaque), ' ', ''), '-', '')) GROUP BY c.immatriculation, c.marque, c.couleur, c.titulaire ORDER BY temoins DESC;",
+  "hints": [
+   "Joins sur les deux plaques normalisées : REPLACE côté carte grise, UPPER(REPLACE(REPLACE(TRIM(...)))) côté témoignage.",
+   "... JOIN cartes_grises c ON REPLACE(c.immatriculation, '-', '') = UPPER(REPLACE(REPLACE(TRIM(t.plaque), ' ', ''), '-', '')) GROUP BY c.immatriculation, c.marque, c.couleur, c.titulaire"
+  ]
+ },
+ "21.A": {
+  "solution": "SELECT DISTINCT LOWER(TRIM(temoin)) AS temoin, REPLACE(telephone, ' ', '') AS telephone FROM temoignages_bruts WHERE LOWER(description) NOT LIKE 'rien vu%' ORDER BY temoin;",
+  "hints": [
+   "La base est sensible à la casse : compare LOWER(description) à un motif en minuscules.",
+   "SELECT DISTINCT LOWER(TRIM(temoin)) AS temoin, REPLACE(telephone, ' ', '') AS telephone ... WHERE LOWER(description) NOT LIKE 'rien vu%' ORDER BY temoin"
+  ],
+  "note": "La collation de la base est sensible à la casse (CS) : LIKE distingue 'Rien' et 'rien', d'où le LOWER."
+ },
+ "21.S": {
+  "solution": "SELECT LOWER(TRIM(t.temoin)) AS temoin, COUNT(*) AS appels, COUNT(DISTINCT REPLACE(t.telephone, ' ', '')) AS numeros, MAX(c.immatriculation) AS plaque, MAX(c.titulaire) AS titulaire FROM temoignages_bruts t LEFT JOIN cartes_grises c ON REPLACE(c.immatriculation, '-', '') = UPPER(REPLACE(REPLACE(TRIM(t.plaque), ' ', ''), '-', '')) GROUP BY LOWER(TRIM(t.temoin)) HAVING COUNT(*) > 1 AND COUNT(DISTINCT REPLACE(t.telephone, ' ', '')) = COUNT(*) ORDER BY appels DESC, temoin;",
+  "hints": [
+   "LEFT JOIN vers cartes_grises sur les plaques normalisées, puis GROUP BY LOWER(TRIM(t.temoin)) et un HAVING à deux conditions.",
+   "HAVING COUNT(*) > 1 AND COUNT(DISTINCT REPLACE(t.telephone, ' ', '')) = COUNT(*) ORDER BY appels DESC, temoin"
+  ]
+ },
+ "22.1": {
+  "solution": "SELECT horodatage AS quand, 'connexions' AS source, login AS detail FROM connexions WHERE ip = '203.0.113.66' AND succes = 1 UNION ALL SELECT horodatage, 'badges', badge FROM acces_badges WHERE porte = 'Salle des coffres' AND resultat = 'OK' AND horodatage BETWEEN '2026-11-13 22:00:00' AND '2026-11-14 01:00:00' UNION ALL SELECT * FROM (SELECT TOP 1 horodatage, 'trafic' AS source, poste FROM trafic WHERE ip_dst = '198.51.100.200' ORDER BY horodatage) AS premier UNION ALL SELECT horodatage, 'crypto', vers FROM tx_crypto WHERE de = 'bc1q-eclipse-7f3a' ORDER BY quand;",
+  "hints": [
+   "Le premier contact se prend avec SELECT TOP 1 ... ORDER BY horodatage, placé dans une table dérivée (avec un alias) pour pouvoir l'empiler.",
+   "... UNION ALL SELECT * FROM (SELECT TOP 1 horodatage, 'trafic' AS source, poste FROM trafic WHERE ip_dst = '198.51.100.200' ORDER BY horodatage) AS premier UNION ALL ... ORDER BY quand"
+  ],
+  "note": "SQL Server utilise TOP n au lieu de LIMIT ; une table dérivée doit obligatoirement porter un alias et toutes ses colonnes doivent être nommées."
+ },
+ "22.2": {
+  "solution": "WITH chaine(siren, part) AS (SELECT CAST(importateur_siren AS NVARCHAR(64)), CAST(100.0 AS FLOAT) FROM conteneurs WHERE code = 'MSCU-449120' UNION ALL SELECT CAST(p.detenteur AS NVARCHAR(64)), c.part * p.pct / 100 FROM participations p JOIN chaine c ON p.detenue = c.siren), beneficiaires AS (SELECT REPLACE(siren, 'PERSONNE:', '') AS nom FROM chaine WHERE siren LIKE 'PERSONNE:%' AND part > 50), suivi(adresse, saut, chemin, quand) AS (SELECT CAST('bc1q-eclipse-7f3a' AS NVARCHAR(40)), 0, CAST('bc1q-eclipse-7f3a' AS NVARCHAR(4000)), CAST('2027-05-12 00:00:00' AS DATETIME2(0)) UNION ALL SELECT CAST(t.vers AS NVARCHAR(40)), s.saut + 1, CAST(s.chemin + ' > ' + t.vers AS NVARCHAR(4000)), t.horodatage FROM tx_crypto t JOIN suivi s ON t.de = s.adresse WHERE s.saut < 8 AND t.horodatage > s.quand AND CHARINDEX(t.vers, s.chemin) = 0), kyc AS (SELECT DISTINCT w.kyc_nom FROM suivi s JOIN wallets w ON w.adresse = s.adresse WHERE w.type = 'exchange'), effaceurs AS (SELECT DISTINCT c.nom_complet FROM journal_brigade j JOIN consultants c ON c.login = j.login WHERE j.action = 'DELETE' AND j.table_cible = 'pieces') SELECT b.nom FROM beneficiaires b WHERE UPPER(LEFT(b.nom, 1) + '. ' + SUBSTRING(b.nom, CHARINDEX(' ', b.nom) + 1, 100)) IN (SELECT kyc_nom FROM kyc) AND b.nom IN (SELECT nom_complet FROM effaceurs);",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "La chaîne exige une CTE récursive : en SQL Server, c'est un WITH (sans le mot RECURSIVE) dont la deuxième partie, après UNION ALL, relit la CTE elle-même."
+   },
+   {
+    "re": "^(?![\\s\\S]*(Ouali|OUALI|consultant\\.fo|512000|EXCH-NEO))",
+    "msg": "Ne recopie aucune valeur trouvée avant (nom, login, SIREN, compte d'échange) : la requête doit tout retrouver seule."
+   }
+  ],
+  "hints": [
+   "SQL Server écrit WITH sans RECURSIVE, et exige que l'ancre et la partie récursive aient exactement les mêmes types : fais des CAST (NVARCHAR, FLOAT, DATETIME2). Concatène avec +, cherche avec CHARINDEX.",
+   "WITH chaine(siren, part) AS (SELECT CAST(importateur_siren AS NVARCHAR(64)), CAST(100.0 AS FLOAT) ... UNION ALL ...), suivi(adresse, saut, chemin, quand) AS (... CAST(s.chemin + ' > ' + t.vers AS NVARCHAR(4000)) ... CHARINDEX(t.vers, s.chemin) = 0), ... puis UPPER(LEFT(nom, 1) + '. ' + SUBSTRING(nom, CHARINDEX(' ', nom) + 1, 100))"
+  ],
+  "note": "Pas de mot RECURSIVE en SQL Server ; les colonnes de l'ancre et de la partie récursive doivent avoir le même type exact (d'où les CAST). || devient +, INSTR devient CHARINDEX (arguments inversés), SUBSTR devient SUBSTRING (longueur obligatoire)."
+ },
+ "22.3": {
+  "setup": "CREATE TABLE proces_verbal (affaire NVARCHAR(100) NOT NULL, coupable NVARCHAR(100) NOT NULL, preuve NVARCHAR(200));",
+  "solution": "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT DISTINCT N'Éclipse', c.nom_complet, N'effacement de pièces' FROM consultants c JOIN journal_brigade j ON j.login = c.login WHERE j.action = 'DELETE';",
+  "verify": [
+   "SELECT affaire, coupable FROM proces_verbal"
+  ],
+  "hints": [
+   "INSERT INTO proces_verbal (affaire, coupable, preuve) suivi directement d'un SELECT DISTINCT qui joint consultants et journal_brigade.",
+   "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT DISTINCT N'Éclipse', c.nom_complet, N'effacement de pièces' FROM consultants c JOIN journal_brigade j ON j.login = c.login WHERE j.action = 'DELETE'"
+  ],
+  "note": "Le préfixe N devant une chaîne (N'Éclipse') indique une chaîne Unicode en SQL Server ; la base étant en UTF-8, les accents passent aussi sans."
+ },
+ "22.A": {
+  "solution": "SELECT horodatage AS quand, 'helios' AS source, ip AS detail FROM connexions WHERE login = 'f.ouali' AND ip = '203.0.113.66' UNION ALL SELECT CAST(JSON_VALUE(contenu, '$.date') AS DATETIME2(0)), 'saisies', JSON_VALUE(contenu, '$.texte') FROM saisies WHERE JSON_VALUE(contenu, '$.de') = 'cartographe' UNION ALL SELECT debut, 'sessions', poste FROM sessions_postes WHERE login = 'ext.kartograf' UNION ALL SELECT horodatage, 'journal', JSON_VALUE(ancienne_valeur, '$.description') FROM journal_brigade WHERE login = 'consultant.fo' AND action = 'DELETE' ORDER BY quand;",
+  "hints": [
+   "En SQL Server, JSON_VALUE(colonne, '$.cle') extrait une valeur d'un texte JSON (c'est l'équivalent de json_extract).",
+   "... UNION ALL SELECT CAST(JSON_VALUE(contenu, '$.date') AS DATETIME2(0)), 'saisies', JSON_VALUE(contenu, '$.texte') FROM saisies WHERE JSON_VALUE(contenu, '$.de') = 'cartographe' UNION ALL ... ORDER BY quand"
+  ],
+  "note": "JSON_VALUE remplace json_extract ; les JSON sont stockés en NVARCHAR(MAX). Le CAST en DATETIME2 rend la date JSON comparable aux horodatages."
+ },
+ "22.S": {
+  "solution": "WITH chaine(siren, part) AS (SELECT CAST(importateur_siren AS NVARCHAR(64)), CAST(100.0 AS FLOAT) FROM conteneurs WHERE code = 'MSCU-449120' UNION ALL SELECT CAST(p.detenteur AS NVARCHAR(64)), c.part * p.pct / 100 FROM participations p JOIN chaine c ON p.detenue = c.siren), b AS (SELECT REPLACE(siren, 'PERSONNE:', '') AS nom, part FROM chaine WHERE siren LIKE 'PERSONNE:%') SELECT b.nom AS beneficiaire, ROUND(b.part, 1) AS part, w.plateforme, w.adresse, (SELECT ROUND(SUM(montant), 2) FROM tx_crypto WHERE vers = w.adresse) AS recu FROM b JOIN wallets w ON w.kyc_nom = UPPER(LEFT(b.nom, 1) + '. ' + SUBSTRING(b.nom, CHARINDEX(' ', b.nom) + 1, 100)) WHERE b.nom NOT IN (SELECT nom_complet FROM consultants);",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "La chaîne exige une CTE récursive : en SQL Server, c'est un WITH (sans le mot RECURSIVE) dont la deuxième partie, après UNION ALL, relit la CTE elle-même."
+   },
+   {
+    "re": "^(?![\\s\\S]*(Larsen|LARSEN|EXCH-BLT))",
+    "msg": "Ne recopie aucun nom ni compte : la requête doit les retrouver seule."
+   }
+  ],
+  "hints": [
+   "CTE récursive sans le mot RECURSIVE, avec des CAST pour que l'ancre et la partie récursive aient les mêmes types ; reconstruis 'F. NOM' avec LEFT, SUBSTRING, CHARINDEX et +.",
+   "WITH chaine(siren, part) AS (SELECT CAST(importateur_siren AS NVARCHAR(64)), CAST(100.0 AS FLOAT) ... UNION ALL ...) ... JOIN wallets w ON w.kyc_nom = UPPER(LEFT(b.nom, 1) + '. ' + SUBSTRING(b.nom, CHARINDEX(' ', b.nom) + 1, 100)) WHERE b.nom NOT IN (...)"
+  ],
+  "note": "Même chaîne récursive qu'en SQLite, mais sans RECURSIVE, avec types alignés par CAST et + pour concaténer."
+ },
+ "23.1": {
+  "solution": "SELECT label_risque, COUNT(*) AS nb FROM dataset_vigie GROUP BY label_risque ORDER BY label_risque;",
+  "hints": [
+   "Un simple GROUP BY label_risque avec COUNT(*).",
+   "SELECT label_risque, COUNT(*) AS nb FROM dataset_vigie GROUP BY label_risque ORDER BY label_risque"
+  ]
+ },
+ "23.2": {
+  "solution": "SELECT COUNT(*) AS lignes, COUNT(*) - COUNT(meteo) AS meteo_manquante, ROUND(100.0 * (COUNT(*) - COUNT(meteo)) / COUNT(*), 1) AS pct FROM dataset_vigie;",
+  "hints": [
+   "COUNT(meteo) ignore les NULL : la différence avec COUNT(*) donne les manquants. Multiplie par 100.0 pour éviter la division entière.",
+   "SELECT COUNT(*) AS lignes, COUNT(*) - COUNT(meteo) AS meteo_manquante, ROUND(100.0 * (COUNT(*) - COUNT(meteo)) / COUNT(*), 1) AS pct FROM dataset_vigie"
+  ],
+  "note": "SQL Server tronque la division entre entiers, d'où le 100.0."
+ },
+ "23.3": {
+  "solution": "SELECT quartier, COUNT(*) AS exemples, ROUND(100.0 * AVG(CAST(label_risque AS FLOAT)), 1) AS pct_risque FROM dataset_vigie GROUP BY quartier ORDER BY pct_risque DESC;",
+  "hints": [
+   "Attention : en SQL Server, AVG d'une colonne entière renvoie un entier (0 ou 1 ici). Convertis avant : AVG(CAST(label_risque AS FLOAT)).",
+   "SELECT quartier, COUNT(*) AS exemples, ROUND(100.0 * AVG(CAST(label_risque AS FLOAT)), 1) AS pct_risque FROM dataset_vigie GROUP BY quartier ORDER BY pct_risque DESC"
+  ],
+  "note": "Piège SQL Server : AVG sur un entier fait une moyenne entière (tronquée). Il faut CAST en FLOAT ou DECIMAL."
+ },
+ "23.4": {
+  "solution": "SELECT quartier, date, creneau, COUNT(*) AS nb FROM dataset_vigie GROUP BY quartier, date, creneau HAVING COUNT(*) > 1;",
+  "hints": [
+   "Regroupe sur les trois colonnes et filtre les groupes avec HAVING.",
+   "SELECT quartier, date, creneau, COUNT(*) AS nb FROM dataset_vigie GROUP BY quartier, date, creneau HAVING COUNT(*) > 1"
+  ]
+ },
+ "23.5": {
+  "solution": "SELECT quartier, COUNT(*) AS exemples, ROUND(100.0 * AVG(CAST(label_risque AS FLOAT)), 1) AS pct_risque, ROUND(100.0 * (COUNT(*) - COUNT(meteo)) / COUNT(*), 1) AS pct_meteo_nulle, MIN(date) AS debut, MAX(date) AS fin FROM dataset_vigie GROUP BY quartier ORDER BY quartier;",
+  "hints": [
+   "Combine les deux calculs précédents ; n'oublie pas que AVG sur un entier est entier en SQL Server (CAST ... AS FLOAT).",
+   "SELECT quartier, COUNT(*) AS exemples, ROUND(100.0 * AVG(CAST(label_risque AS FLOAT)), 1) AS pct_risque, ROUND(100.0 * (COUNT(*) - COUNT(meteo)) / COUNT(*), 1) AS pct_meteo_nulle, MIN(date) AS debut, MAX(date) AS fin ..."
+  ],
+  "note": "AVG entier tronqué en SQL Server : CAST en FLOAT obligatoire."
+ },
+ "23.A": {
+  "solution": "SELECT COALESCE(meteo, 'inconnue') AS meteo, COUNT(*) AS nb, ROUND(100.0 * AVG(CAST(reel AS FLOAT)), 1) AS pct_reel FROM dataset_vigie GROUP BY COALESCE(meteo, 'inconnue') ORDER BY nb DESC;",
+  "hints": [
+   "COALESCE (ou ISNULL en SQL Server) remplace le NULL ; répète l'expression dans le GROUP BY et convertis reel avant AVG.",
+   "SELECT COALESCE(meteo, 'inconnue') AS meteo, COUNT(*) AS nb, ROUND(100.0 * AVG(CAST(reel AS FLOAT)), 1) AS pct_reel ... GROUP BY COALESCE(meteo, 'inconnue') ORDER BY nb DESC"
+  ],
+  "note": "AVG sur une colonne entière est entier en SQL Server, d'où le CAST."
+ },
+ "23.S": {
+  "solution": "SELECT id, date, creneau, annote_par, annote_le, DATEDIFF(day, CAST(annote_le AS DATE), date) AS jours_avance FROM dataset_vigie WHERE CAST(annote_le AS DATE) < date ORDER BY date, creneau;",
+  "hints": [
+   "CAST(annote_le AS DATE) garde seulement le jour, et DATEDIFF(day, debut, fin) compte les jours entre deux dates.",
+   "SELECT id, date, creneau, annote_par, annote_le, DATEDIFF(day, CAST(annote_le AS DATE), date) AS jours_avance FROM dataset_vigie WHERE CAST(annote_le AS DATE) < date ORDER BY date, creneau"
+  ],
+  "note": "julianday n'existe pas : DATEDIFF(day, a, b) renvoie directement un entier de jours, et CAST(... AS DATE) remplace date()."
+ },
+ "24.1": {
+  "solution": "SELECT CASE WHEN incidents_7j < 5 THEN 'calme' WHEN incidents_7j < 10 THEN 'moyen' ELSE 'chaud' END AS tranche, COUNT(*) AS nb FROM dataset_vigie GROUP BY CASE WHEN incidents_7j < 5 THEN 'calme' WHEN incidents_7j < 10 THEN 'moyen' ELSE 'chaud' END;",
+  "hints": [
+   "SQL Server n'accepte pas l'alias tranche dans le GROUP BY : répète le CASE entier (ou passe par une sous-requête).",
+   "SELECT CASE WHEN incidents_7j < 5 THEN 'calme' WHEN ... END AS tranche, COUNT(*) AS nb FROM dataset_vigie GROUP BY CASE WHEN incidents_7j < 5 THEN 'calme' WHEN ... END"
+  ],
+  "note": "Le GROUP BY par alias n'existe pas en SQL Server : on répète l'expression ou on la calcule dans une table dérivée."
+ },
+ "24.2": {
+  "solution": "SELECT TOP 8 id, IIF(creneau = 'nuit', 1, 0) AS c_nuit, IIF(creneau = 'matin', 1, 0) AS c_matin, IIF(creneau = 'aprem', 1, 0) AS c_aprem, IIF(creneau = 'soir', 1, 0) AS c_soir FROM dataset_vigie ORDER BY id;",
+  "hints": [
+   "Une comparaison n'est pas une valeur en SQL Server : utilise IIF(condition, 1, 0) ou CASE WHEN. Pour les 8 premières lignes, SELECT TOP 8.",
+   "SELECT TOP 8 id, IIF(creneau = 'nuit', 1, 0) AS c_nuit, IIF(creneau = 'matin', 1, 0) AS c_matin, ... FROM dataset_vigie ORDER BY id"
+  ],
+  "note": "SQL Server n'a pas de booléen utilisable dans le SELECT : (creneau = 'nuit') est refusé, on écrit IIF ou CASE. LIMIT devient TOP."
+ },
+ "24.3": {
+  "solution": "WITH n AS (SELECT id, quartier, date, creneau, incidents_7j, ROUND((incidents_7j - MIN(incidents_7j) OVER ()) * 1.0 / (MAX(incidents_7j) OVER () - MIN(incidents_7j) OVER ()), 3) AS inc_norm FROM dataset_vigie) SELECT id, creneau, incidents_7j, inc_norm FROM n WHERE quartier = 'La Défense' AND date = '2028-02-01';",
+  "hints": [
+   "Calcule MIN et MAX avec OVER () dans une CTE sur toute la table, puis filtre dans la requête principale. Pense au * 1.0.",
+   "WITH n AS (SELECT id, quartier, date, creneau, incidents_7j, ROUND((incidents_7j - MIN(incidents_7j) OVER ()) * 1.0 / (MAX(incidents_7j) OVER () - MIN(incidents_7j) OVER ()), 3) AS inc_norm FROM dataset_vigie) SELECT ... WHERE quartier = 'La Défense' AND date = '2028-02-01'"
+  ]
+ },
+ "24.4": {
+  "solution": "WITH n AS (SELECT date, MAX(label_risque) AS label_risque FROM dataset_vigie WHERE quartier = 'La Défense' AND creneau = 'nuit' GROUP BY date), f AS (SELECT date, label_risque, SUM(label_risque) OVER (ORDER BY date ROWS BETWEEN 7 PRECEDING AND 1 PRECEDING) AS risque_7_nuits FROM n) SELECT date, label_risque, risque_7_nuits FROM f WHERE date >= '2028-02-01' AND date < '2028-03-01' ORDER BY date;",
+  "hints": [
+   "Fenêtre glissante : SUM(...) OVER (ORDER BY date ROWS BETWEEN 7 PRECEDING AND 1 PRECEDING). La colonne date est de type DATE : filtre février avec un intervalle plutôt qu'un LIKE.",
+   "WITH n AS (... GROUP BY date), f AS (SELECT date, label_risque, SUM(label_risque) OVER (ORDER BY date ROWS BETWEEN 7 PRECEDING AND 1 PRECEDING) AS risque_7_nuits FROM n) SELECT ... WHERE date >= '2028-02-01' AND date < '2028-03-01' ORDER BY date"
+  ],
+  "note": "Les dates sont de vrais DATE : on filtre un mois avec un intervalle (>= et <) au lieu de LIKE '2028-02%'."
+ },
+ "24.5": {
+  "solution": "SELECT FORMAT(date, 'yyyy-MM') AS mois, ROUND(100.0 * AVG(CAST(label_risque AS FLOAT)), 1) AS pct_label, ROUND(100.0 * AVG(CAST(reel AS FLOAT)), 1) AS pct_reel FROM dataset_vigie WHERE quartier = 'La Défense' AND creneau = 'nuit' GROUP BY FORMAT(date, 'yyyy-MM') ORDER BY mois;",
+  "hints": [
+   "FORMAT(date, 'yyyy-MM') donne l'année et le mois (équivalent de strftime) ; répète-le dans le GROUP BY et fais AVG sur un FLOAT.",
+   "SELECT FORMAT(date, 'yyyy-MM') AS mois, ROUND(100.0 * AVG(CAST(label_risque AS FLOAT)), 1) AS pct_label, ... GROUP BY FORMAT(date, 'yyyy-MM') ORDER BY mois"
+  ],
+  "note": "strftime n'existe pas : FORMAT(date, 'yyyy-MM') (ou CONVERT(CHAR(7), date, 126)). AVG entier tronqué, d'où le CAST."
+ },
+ "24.A": {
+  "solution": "SELECT CASE WHEN jour_semaine >= 5 THEN 'week-end' ELSE 'semaine' END AS periode, creneau, COUNT(*) AS nb, ROUND(100.0 * AVG(CAST(reel AS FLOAT)), 1) AS pct_reel FROM dataset_vigie GROUP BY CASE WHEN jour_semaine >= 5 THEN 'week-end' ELSE 'semaine' END, creneau ORDER BY periode, creneau;",
+  "hints": [
+   "Répète le CASE dans le GROUP BY (l'alias n'y est pas accepté) et convertis reel avant AVG.",
+   "SELECT CASE WHEN jour_semaine >= 5 THEN 'week-end' ELSE 'semaine' END AS periode, creneau, COUNT(*) AS nb, ROUND(100.0 * AVG(CAST(reel AS FLOAT)), 1) AS pct_reel ... GROUP BY CASE ... END, creneau ORDER BY periode, creneau"
+  ]
+ },
+ "24.S": {
+  "solution": "SELECT creneau, ROUND(100.0 * AVG(CASE WHEN date < '2028-02-01' THEN CAST(label_risque AS FLOAT) END), 1) AS pct_label_avant, ROUND(100.0 * AVG(CASE WHEN date >= '2028-02-01' THEN CAST(label_risque AS FLOAT) END), 1) AS pct_label_fevrier, ROUND(100.0 * AVG(CASE WHEN date >= '2028-02-01' THEN CAST(reel AS FLOAT) END), 1) AS pct_reel_fevrier FROM dataset_vigie WHERE quartier = 'La Défense' GROUP BY creneau ORDER BY creneau;",
+  "hints": [
+   "AVG(CASE WHEN condition THEN valeur END) ne moyenne que les lignes retenues ; mets la valeur en FLOAT pour ne pas avoir une moyenne entière.",
+   "SELECT creneau, ROUND(100.0 * AVG(CASE WHEN date < '2028-02-01' THEN CAST(label_risque AS FLOAT) END), 1) AS pct_label_avant, ... GROUP BY creneau ORDER BY creneau"
+  ]
+ },
+ "25.1": {
+  "solution": "SELECT split, COUNT(*) AS nb, ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct FROM dataset_vigie GROUP BY split;",
+  "hints": [
+   "SUM(COUNT(*)) OVER () donne le total général sur toutes les lignes groupées.",
+   "SELECT split, COUNT(*) AS nb, ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct FROM dataset_vigie GROUP BY split"
+  ]
+ },
+ "25.2": {
+  "solution": "SELECT COUNT(*) AS fuites FROM (SELECT quartier, date, creneau FROM dataset_vigie WHERE split = 'train' INTERSECT SELECT quartier, date, creneau FROM dataset_vigie WHERE split = 'test') AS commun;",
+  "hints": [
+   "INTERSECT garde les combinaisons présentes des deux côtés ; en SQL Server, la table dérivée doit avoir un alias.",
+   "SELECT COUNT(*) AS fuites FROM (SELECT quartier, date, creneau FROM dataset_vigie WHERE split = 'train' INTERSECT SELECT ... WHERE split = 'test') AS commun"
+  ],
+  "note": "SQL Server exige un alias sur toute table dérivée (AS commun)."
+ },
+ "25.3": {
+  "solution": "SELECT FORMAT(date, 'yyyy-MM') AS mois, SUM(CASE WHEN split = 'train' THEN 1 ELSE 0 END) AS train, SUM(CASE WHEN split = 'test' THEN 1 ELSE 0 END) AS test FROM dataset_vigie GROUP BY FORMAT(date, 'yyyy-MM') ORDER BY mois;",
+  "hints": [
+   "FORMAT(date, 'yyyy-MM') pour le mois, et SUM(CASE WHEN ... THEN 1 ELSE 0 END) pour compter chaque split.",
+   "SELECT FORMAT(date, 'yyyy-MM') AS mois, SUM(CASE WHEN split = 'train' THEN 1 ELSE 0 END) AS train, ... GROUP BY FORMAT(date, 'yyyy-MM') ORDER BY mois"
+  ],
+  "note": "strftime('%Y-%m', ...) devient FORMAT(date, 'yyyy-MM')."
+ },
+ "25.4": {
+  "solution": "SELECT CASE WHEN date < '2028-02-01' THEN 'train' ELSE 'test' END AS jeu, COUNT(*) AS nb, ROUND(100.0 * AVG(CAST(label_risque AS FLOAT)), 1) AS pct_risque FROM dataset_vigie GROUP BY CASE WHEN date < '2028-02-01' THEN 'train' ELSE 'test' END ORDER BY jeu DESC;",
+  "hints": [
+   "Répète le CASE dans le GROUP BY et fais AVG sur un FLOAT.",
+   "SELECT CASE WHEN date < '2028-02-01' THEN 'train' ELSE 'test' END AS jeu, COUNT(*) AS nb, ROUND(100.0 * AVG(CAST(label_risque AS FLOAT)), 1) AS pct_risque ... GROUP BY CASE ... END ORDER BY jeu DESC"
+  ]
+ },
+ "25.5": {
+  "solution": "CREATE VIEW v_train AS SELECT * FROM dataset_vigie WHERE date < '2028-02-01' AND id IN (SELECT MIN(id) FROM dataset_vigie GROUP BY quartier, date, creneau);\nGO\nCREATE VIEW v_test AS SELECT * FROM dataset_vigie WHERE date >= '2028-02-01' AND id IN (SELECT MIN(id) FROM dataset_vigie GROUP BY quartier, date, creneau);\nGO",
+  "verify": [
+   "SELECT COUNT(*), MIN(date), MAX(date) FROM v_train",
+   "SELECT COUNT(*), MIN(date), MAX(date) FROM v_test",
+   "SELECT COUNT(*) FROM (SELECT quartier, date, creneau FROM v_train INTERSECT SELECT quartier, date, creneau FROM v_test) AS x"
+  ],
+  "hints": [
+   "En SQL Server, CREATE VIEW doit être seul dans son lot : sépare les deux vues par une ligne GO.",
+   "CREATE VIEW v_train AS SELECT * FROM dataset_vigie WHERE date < '2028-02-01' AND id IN (SELECT MIN(id) FROM dataset_vigie GROUP BY quartier, date, creneau);\nGO\nCREATE VIEW v_test AS ..."
+  ],
+  "note": "CREATE VIEW doit être la seule instruction de son lot : on sépare les vues par GO."
+ },
+ "25.A": {
+  "solution": "SELECT CASE WHEN id % 5 = 0 THEN 'test' ELSE 'train' END AS jeu, COUNT(*) AS nb, ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct, ROUND(100.0 * AVG(CAST(label_risque AS FLOAT)), 1) AS pct_risque FROM dataset_vigie GROUP BY CASE WHEN id % 5 = 0 THEN 'test' ELSE 'train' END ORDER BY jeu DESC;",
+  "hints": [
+   "% fonctionne en SQL Server ; répète le CASE dans le GROUP BY et utilise SUM(COUNT(*)) OVER () pour le total.",
+   "SELECT CASE WHEN id % 5 = 0 THEN 'test' ELSE 'train' END AS jeu, COUNT(*) AS nb, ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct, ROUND(100.0 * AVG(CAST(label_risque AS FLOAT)), 1) AS pct_risque ... GROUP BY CASE ... END ORDER BY jeu DESC"
+  ]
+ },
+ "25.S": {
+  "solution": "SELECT d.id, d.date, d.creneau, d.label_risque, d.reel, CASE WHEN EXISTS (SELECT 1 FROM dataset_vigie t WHERE t.split = 'train' AND t.quartier = d.quartier AND t.date = d.date AND t.creneau = d.creneau) THEN 1 ELSE 0 END AS jumeau FROM dataset_vigie d WHERE d.split = 'test' AND d.quartier = 'La Défense' AND d.creneau IN ('nuit', 'soir') AND d.date >= '2028-02-01' AND d.date < '2028-03-01' ORDER BY d.date, d.creneau;",
+  "hints": [
+   "EXISTS n'est pas une valeur en SQL Server : enveloppe-le dans CASE WHEN EXISTS (...) THEN 1 ELSE 0 END. Filtre février par intervalle de dates.",
+   "SELECT d.id, d.date, d.creneau, d.label_risque, d.reel, CASE WHEN EXISTS (SELECT 1 FROM dataset_vigie t WHERE t.split = 'train' AND t.quartier = d.quartier AND ...) THEN 1 ELSE 0 END AS jumeau ... ORDER BY d.date, d.creneau"
+  ],
+  "note": "EXISTS ne peut pas être affiché directement : CASE WHEN EXISTS ... THEN 1 ELSE 0 END."
+ },
+ "26.1": {
+  "solution": "SELECT SUM(CASE WHEN p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) AS tp, SUM(CASE WHEN p.prediction = 1 AND d.reel = 0 THEN 1 ELSE 0 END) AS fp, SUM(CASE WHEN p.prediction = 0 AND d.reel = 1 THEN 1 ELSE 0 END) AS fn, SUM(CASE WHEN p.prediction = 0 AND d.reel = 0 THEN 1 ELSE 0 END) AS tn FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id WHERE p.modele = 'v1';",
+  "hints": [
+   "Compte chaque case de la matrice avec SUM(CASE WHEN ... THEN 1 ELSE 0 END).",
+   "SELECT SUM(CASE WHEN p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) AS tp, ... FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id WHERE p.modele = 'v1'"
+  ]
+ },
+ "26.2": {
+  "solution": "WITH m AS (SELECT p.modele, SUM(CASE WHEN p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) AS tp, SUM(CASE WHEN p.prediction = 1 AND d.reel = 0 THEN 1 ELSE 0 END) AS fp, SUM(CASE WHEN p.prediction = 0 AND d.reel = 1 THEN 1 ELSE 0 END) AS fn, SUM(CASE WHEN p.prediction = 0 AND d.reel = 0 THEN 1 ELSE 0 END) AS tn FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id GROUP BY p.modele) SELECT modele, ROUND(1.0 * (tp + tn) / (tp + fp + fn + tn), 3) AS exactitude, ROUND(1.0 * tp / (tp + fp), 3) AS [precision], ROUND(1.0 * tp / (tp + fn), 3) AS rappel FROM m ORDER BY modele;",
+  "hints": [
+   "PRECISION est un mot réservé en SQL Server : écris l'alias entre crochets [precision]. Et 1.0 * évite la division entière.",
+   "WITH m AS (SELECT p.modele, SUM(CASE ...) AS tp, ... GROUP BY p.modele) SELECT modele, ROUND(1.0 * (tp + tn) / (tp + fp + fn + tn), 3) AS exactitude, ROUND(1.0 * tp / (tp + fp), 3) AS [precision], ... FROM m ORDER BY modele"
+  ],
+  "note": "precision est un mot réservé en T-SQL : on l'écrit [precision] (crochets, l'équivalent des guillemets)."
+ },
+ "26.3": {
+  "solution": "WITH m AS (SELECT p.modele, SUM(CASE WHEN p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) AS tp, SUM(CASE WHEN p.prediction = 1 AND d.reel = 0 THEN 1 ELSE 0 END) AS fp, SUM(CASE WHEN p.prediction = 0 AND d.reel = 1 THEN 1 ELSE 0 END) AS fn FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id GROUP BY p.modele) SELECT modele, ROUND(2.0 * tp / (2 * tp + fp + fn), 3) AS f1 FROM m ORDER BY modele;",
+  "hints": [
+   "F1 = 2 TP / (2 TP + FP + FN) ; commence par 2.0 pour une division décimale.",
+   "WITH m AS (... tp, fp, fn ... GROUP BY p.modele) SELECT modele, ROUND(2.0 * tp / (2 * tp + fp + fn), 3) AS f1 FROM m ORDER BY modele"
+  ]
+ },
+ "26.4": {
+  "solution": "WITH r AS (SELECT d.quartier, 1.0 * SUM(CASE WHEN p.modele = 'v1' AND p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) / SUM(CASE WHEN p.modele = 'v1' AND d.reel = 1 THEN 1 ELSE 0 END) AS r1, 1.0 * SUM(CASE WHEN p.modele = 'v2' AND p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) / SUM(CASE WHEN p.modele = 'v2' AND d.reel = 1 THEN 1 ELSE 0 END) AS r2 FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id GROUP BY d.quartier) SELECT quartier, ROUND(r1, 3) AS rappel_v1, ROUND(r2, 3) AS rappel_v2, ROUND(r2 - r1, 3) AS ecart FROM r ORDER BY ecart;",
+  "hints": [
+   "Calcule les deux rappels dans une CTE groupée par quartier (1.0 * pour la division), puis l'écart dans la requête finale.",
+   "WITH r AS (SELECT d.quartier, 1.0 * SUM(CASE WHEN p.modele = 'v1' AND p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) / SUM(CASE WHEN p.modele = 'v1' AND d.reel = 1 THEN 1 ELSE 0 END) AS r1, ... GROUP BY d.quartier) SELECT quartier, ROUND(r1, 3) AS rappel_v1, ... ORDER BY ecart"
+  ]
+ },
+ "26.5": {
+  "solution": "WITH s(t) AS (SELECT CAST(0.1 AS DECIMAL(3,1)) UNION ALL SELECT CAST(t + 0.1 AS DECIMAL(3,1)) FROM s WHERE t < 0.9), m AS (SELECT s.t, SUM(CASE WHEN p.score >= s.t AND d.reel = 1 THEN 1 ELSE 0 END) AS tp, SUM(CASE WHEN p.score >= s.t AND d.reel = 0 THEN 1 ELSE 0 END) AS fp, SUM(CASE WHEN p.score < s.t AND d.reel = 1 THEN 1 ELSE 0 END) AS fn FROM s CROSS JOIN predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id WHERE p.modele = 'v2' AND d.quartier = 'La Défense' GROUP BY s.t) SELECT t AS seuil, ROUND(1.0 * tp / NULLIF(tp + fp, 0), 3) AS [precision], ROUND(1.0 * tp / (tp + fn), 3) AS rappel FROM m ORDER BY seuil;",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "Génère les seuils avec une CTE récursive (en SQL Server : WITH, puis UNION ALL qui relit la CTE)."
+   }
+  ],
+  "hints": [
+   "CTE récursive sans le mot RECURSIVE ; donne le même type aux deux parties : CAST(0.1 AS DECIMAL(3,1)) puis CAST(t + 0.1 AS DECIMAL(3,1)). [precision] entre crochets.",
+   "WITH s(t) AS (SELECT CAST(0.1 AS DECIMAL(3,1)) UNION ALL SELECT CAST(t + 0.1 AS DECIMAL(3,1)) FROM s WHERE t < 0.9), m AS (... FROM s CROSS JOIN predictions_vigie p JOIN dataset_vigie d ... GROUP BY s.t) SELECT t AS seuil, ROUND(1.0 * tp / NULLIF(tp + fp, 0), 3) AS [precision], ..."
+  ],
+  "note": "Pas de RECURSIVE en SQL Server, et l'ancre et la partie récursive doivent avoir exactement le même type (DECIMAL(3,1) ici). precision est réservé : [precision]."
+ },
+ "26.A": {
+  "solution": "SELECT p.modele, SUM(CASE WHEN p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) AS tp, SUM(CASE WHEN p.prediction = 1 AND d.reel = 0 THEN 1 ELSE 0 END) AS fp, SUM(CASE WHEN p.prediction = 0 AND d.reel = 1 THEN 1 ELSE 0 END) AS fn, SUM(CASE WHEN p.prediction = 0 AND d.reel = 0 THEN 1 ELSE 0 END) AS tn FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id WHERE d.quartier = 'La Défense' GROUP BY p.modele ORDER BY p.modele;",
+  "hints": [
+   "Même matrice de confusion, mais groupée par modèle et filtrée sur le quartier.",
+   "SELECT p.modele, SUM(CASE WHEN p.prediction = 1 AND d.reel = 1 THEN 1 ELSE 0 END) AS tp, ... WHERE d.quartier = 'La Défense' GROUP BY p.modele ORDER BY p.modele"
+  ]
+ },
+ "26.S": {
+  "solution": "SELECT p.modele, COUNT(*) AS nb, ROUND(AVG(CASE WHEN p.prediction = d.label_risque THEN 1.0 ELSE 0 END), 3) AS exactitude_label, ROUND(AVG(CASE WHEN p.prediction = d.reel THEN 1.0 ELSE 0 END), 3) AS exactitude_reel FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id WHERE d.quartier = 'La Défense' AND d.creneau IN ('nuit', 'soir') AND d.date >= '2028-02-01' AND d.date < '2028-03-01' GROUP BY p.modele ORDER BY p.modele;",
+  "hints": [
+   "Pas de booléen dans AVG en SQL Server : AVG(CASE WHEN p.prediction = d.reel THEN 1.0 ELSE 0 END). Filtre février par intervalle de dates.",
+   "SELECT p.modele, COUNT(*) AS nb, ROUND(AVG(CASE WHEN p.prediction = d.label_risque THEN 1.0 ELSE 0 END), 3) AS exactitude_label, ... AND d.date >= '2028-02-01' AND d.date < '2028-03-01' GROUP BY p.modele ORDER BY p.modele"
+  ],
+  "note": "AVG(a = b) est impossible : la comparaison passe par CASE WHEN ... THEN 1.0 ELSE 0 END (le 1.0 évite aussi la moyenne entière)."
+ },
+ "27.1": {
+  "solution": "SELECT a.pseudo, a.inscrit_le, COUNT(*) AS nb FROM dataset_vigie d JOIN annotateurs a ON a.id = d.annote_par WHERE d.quartier = 'La Défense' AND d.creneau IN ('nuit', 'soir') AND d.date >= '2028-02-01' AND d.date < '2028-03-01' GROUP BY a.id, a.pseudo, a.inscrit_le ORDER BY nb DESC;",
+  "hints": [
+   "La colonne date est un vrai DATE : filtre février avec d.date >= '2028-02-01' AND d.date < '2028-03-01'.",
+   "SELECT a.pseudo, a.inscrit_le, COUNT(*) AS nb FROM dataset_vigie d JOIN annotateurs a ON a.id = d.annote_par WHERE ... GROUP BY a.id, a.pseudo, a.inscrit_le ORDER BY nb DESC"
+  ],
+  "note": "On filtre un mois par intervalle de dates au lieu de LIKE '2028-02%' (une DATE n'est pas un texte)."
+ },
+ "27.2": {
+  "solution": "SELECT TOP 5 a.annotateur_id, COUNT(*) AS nb, ROUND(AVG(CASE WHEN a.label = d.reel THEN 1.0 ELSE 0 END), 3) AS accord FROM annotations a JOIN dataset_vigie d ON d.id = a.item_id GROUP BY a.annotateur_id ORDER BY accord, a.annotateur_id;",
+  "hints": [
+   "Pas de booléen dans AVG : AVG(CASE WHEN a.label = d.reel THEN 1.0 ELSE 0 END). Les 5 premiers : SELECT TOP 5.",
+   "SELECT TOP 5 a.annotateur_id, COUNT(*) AS nb, ROUND(AVG(CASE WHEN a.label = d.reel THEN 1.0 ELSE 0 END), 3) AS accord FROM annotations a JOIN dataset_vigie d ON d.id = a.item_id GROUP BY a.annotateur_id ORDER BY accord, a.annotateur_id"
+  ],
+  "note": "LIMIT 5 devient SELECT TOP 5 ; AVG(a = b) passe par CASE WHEN."
+ },
+ "27.3": {
+  "solution": "SELECT TOP 3 FORMAT(horodatage, 'yyyy-MM-dd HH') AS heure, COUNT(*) AS nb FROM annotations GROUP BY FORMAT(horodatage, 'yyyy-MM-dd HH') ORDER BY nb DESC;",
+  "hints": [
+   "FORMAT(horodatage, 'yyyy-MM-dd HH') tronque à l'heure (HH en majuscules pour l'heure sur 24 h).",
+   "SELECT TOP 3 FORMAT(horodatage, 'yyyy-MM-dd HH') AS heure, COUNT(*) AS nb FROM annotations GROUP BY FORMAT(horodatage, 'yyyy-MM-dd HH') ORDER BY nb DESC"
+  ],
+  "note": "strftime devient FORMAT avec les motifs .NET (yyyy, MM, dd, HH) ; LIMIT devient TOP."
+ },
+ "27.4": {
+  "solution": "SELECT SUM(CASE WHEN a.annotateur_id IN (41, 42, 43) THEN a.label ELSE 0 END) AS votes_suspects_1, SUM(CASE WHEN a.annotateur_id IN (41, 42, 43) THEN 1 ELSE 0 END) AS votes_suspects, SUM(CASE WHEN a.annotateur_id NOT IN (41, 42, 43) THEN a.label ELSE 0 END) AS votes_honnetes_1, SUM(CASE WHEN a.annotateur_id NOT IN (41, 42, 43) THEN 1 ELSE 0 END) AS votes_honnetes FROM annotations a JOIN dataset_vigie d ON d.id = a.item_id WHERE d.quartier = 'La Défense' AND d.date >= '2028-02-01' AND d.date < '2028-03-01' AND a.item_id IN (SELECT item_id FROM annotations WHERE annotateur_id IN (41, 42, 43));",
+  "hints": [
+   "SUM(CASE WHEN ... THEN a.label ELSE 0 END) additionne les labels d'un groupe de comptes ; filtre février par intervalle de dates.",
+   "SELECT SUM(CASE WHEN a.annotateur_id IN (41, 42, 43) THEN a.label ELSE 0 END) AS votes_suspects_1, ... WHERE d.quartier = 'La Défense' AND d.date >= '2028-02-01' AND d.date < '2028-03-01' AND a.item_id IN (SELECT item_id FROM annotations WHERE annotateur_id IN (41, 42, 43))"
+  ]
+ },
+ "27.5": {
+  "solution": "WITH chaine(siren, part) AS (SELECT DISTINCT CAST(p.payeur_siren AS NVARCHAR(64)), CAST(100.0 AS FLOAT) FROM paiements_annotation p JOIN annotateurs a ON a.compte_paiement = p.compte_paiement WHERE a.id IN (41, 42, 43) UNION ALL SELECT CAST(pa.detenteur AS NVARCHAR(64)), c.part * pa.pct / 100 FROM participations pa JOIN chaine c ON pa.detenue = c.siren) SELECT REPLACE(siren, 'PERSONNE:', '') AS beneficiaire, ROUND(part, 1) AS part FROM chaine WHERE siren LIKE 'PERSONNE:%' ORDER BY part DESC;",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "Il faut une CTE récursive : en SQL Server, un WITH (sans RECURSIVE) dont la partie après UNION ALL relit la CTE."
+   }
+  ],
+  "hints": [
+   "WITH sans RECURSIVE ; l'ancre et la partie récursive doivent avoir les mêmes types : CAST(... AS NVARCHAR(64)) et CAST(100.0 AS FLOAT).",
+   "WITH chaine(siren, part) AS (SELECT DISTINCT CAST(p.payeur_siren AS NVARCHAR(64)), CAST(100.0 AS FLOAT) FROM paiements_annotation p JOIN annotateurs a ... UNION ALL SELECT CAST(pa.detenteur AS NVARCHAR(64)), c.part * pa.pct / 100 FROM participations pa JOIN chaine c ON pa.detenue = c.siren) SELECT ..."
+  ],
+  "note": "CTE récursive sans RECURSIVE et avec types identiques des deux côtés du UNION ALL (sinon erreur « types don't match »)."
+ },
+ "27.A": {
+  "solution": "WITH par_item AS (SELECT item_id, COUNT(*) AS n, IIF(MIN(label) = MAX(label), 1.0, 0.0) AS unanime FROM annotations GROUP BY item_id) SELECT n AS annotateurs, COUNT(*) AS items, ROUND(100.0 * AVG(unanime), 1) AS pct_unanimes FROM par_item GROUP BY n ORDER BY n;",
+  "hints": [
+   "Calcule l'unanimité par item avec IIF(MIN(label) = MAX(label), 1.0, 0.0) : une comparaison n'est pas une valeur en SQL Server.",
+   "WITH par_item AS (SELECT item_id, COUNT(*) AS n, IIF(MIN(label) = MAX(label), 1.0, 0.0) AS unanime FROM annotations GROUP BY item_id) SELECT n AS annotateurs, COUNT(*) AS items, ROUND(100.0 * AVG(unanime), 1) AS pct_unanimes FROM par_item GROUP BY n ORDER BY n"
+  ],
+  "note": "(MIN = MAX) n'est pas une valeur en T-SQL : IIF ou CASE."
+ },
+ "27.S": {
+  "solution": "WITH p AS (SELECT DISTINCT pa.detenteur FROM participations pa JOIN societes s ON s.siren = pa.detenue WHERE s.nom = 'Ariane Labs' AND pa.detenteur LIKE 'PERSONNE:%') SELECT REPLACE(pa.detenteur, 'PERSONNE:', '') AS personne, s.nom AS societe, s.ville, pa.pct, (SELECT COUNT(*) FROM conteneurs c WHERE c.importateur_siren = s.siren) AS conteneurs FROM participations pa JOIN p ON p.detenteur = pa.detenteur JOIN societes s ON s.siren = pa.detenue ORDER BY pa.pct DESC;",
+  "hints": [
+   "Isole d'abord dans une CTE les personnes qui détiennent 'Ariane Labs', puis rejoins toutes leurs participations ; une sous-requête corrélée COUNT(*) compte les conteneurs.",
+   "WITH p AS (SELECT DISTINCT pa.detenteur FROM participations pa JOIN societes s ON s.siren = pa.detenue WHERE s.nom = 'Ariane Labs' AND pa.detenteur LIKE 'PERSONNE:%') SELECT REPLACE(pa.detenteur, 'PERSONNE:', '') AS personne, s.nom AS societe, ... ORDER BY pa.pct DESC"
+  ]
+ },
+ "28.1": {
+  "solution": "SELECT CAST(j.[key] AS INT) AS composante, CAST(j.value AS FLOAT) AS valeur FROM voix_ref r CROSS APPLY OPENJSON(r.vecteur) j WHERE r.locuteur = 'Inès Varga' ORDER BY composante;",
+  "require": [
+   {
+    "re": "OPENJSON",
+    "msg": "Déplie les vecteurs JSON avec OPENJSON (CROSS APPLY OPENJSON(colonne))."
+   }
+  ],
+  "hints": [
+   "OPENJSON déplie un tableau JSON en lignes (colonnes key, value, type) ; on l'appelle pour chaque ligne avec CROSS APPLY. key est un mot réservé : écris j.[key].",
+   "SELECT CAST(j.[key] AS INT) AS composante, CAST(j.value AS FLOAT) AS valeur FROM voix_ref r CROSS APPLY OPENJSON(r.vecteur) j WHERE r.locuteur = 'Inès Varga' ORDER BY composante"
+  ],
+  "note": "json_each devient CROSS APPLY OPENJSON(...). key et value sont renvoyés en texte : on les convertit (INT, FLOAT) pour trier et calculer."
+ },
+ "28.2": {
+  "solution": "SELECT r.locuteur, ROUND(SQRT(SUM(CAST(j.value AS FLOAT) * CAST(j.value AS FLOAT))), 3) AS norme FROM voix_ref r CROSS APPLY OPENJSON(r.vecteur) j GROUP BY r.locuteur ORDER BY r.locuteur;",
+  "require": [
+   {
+    "re": "OPENJSON",
+    "msg": "Déplie les vecteurs JSON avec OPENJSON (CROSS APPLY OPENJSON(colonne))."
+   }
+  ],
+  "hints": [
+   "CROSS APPLY OPENJSON(r.vecteur) donne une ligne par composante ; convertis j.value en FLOAT avant de multiplier.",
+   "SELECT r.locuteur, ROUND(SQRT(SUM(CAST(j.value AS FLOAT) * CAST(j.value AS FLOAT))), 3) AS norme FROM voix_ref r CROSS APPLY OPENJSON(r.vecteur) j GROUP BY r.locuteur ORDER BY r.locuteur"
+  ],
+  "note": "OPENJSON renvoie value en NVARCHAR : CAST en FLOAT obligatoire pour calculer."
+ },
+ "28.3": {
+  "solution": "WITH ref AS (SELECT CAST(j.[key] AS INT) AS k, CAST(j.value AS FLOAT) AS v FROM voix_ref r CROSS APPLY OPENJSON(r.vecteur) j WHERE r.locuteur = 'Inès Varga'), a AS (SELECT x.id, x.horodatage, x.numero_appelant, CAST(j.[key] AS INT) AS k, CAST(j.value AS FLOAT) AS v FROM appels_vocaux x CROSS APPLY OPENJSON(x.vecteur) j WHERE x.locuteur_declare = 'Inès Varga') SELECT TOP 6 a.id, a.horodatage, a.numero_appelant, ROUND(SUM(a.v * ref.v), 3) AS cosinus FROM a JOIN ref ON ref.k = a.k GROUP BY a.id, a.horodatage, a.numero_appelant ORDER BY cosinus, a.id;",
+  "require": [
+   {
+    "re": "OPENJSON",
+    "msg": "Déplie les vecteurs JSON avec OPENJSON (CROSS APPLY OPENJSON(colonne))."
+   }
+  ],
+  "hints": [
+   "Deux CTE dépliées avec CROSS APPLY OPENJSON (clé convertie en INT, valeur en FLOAT), jointes sur la composante ; TOP 6 pour les moins similaires.",
+   "WITH ref AS (SELECT CAST(j.[key] AS INT) AS k, CAST(j.value AS FLOAT) AS v FROM voix_ref r CROSS APPLY OPENJSON(r.vecteur) j WHERE ...), a AS (...) SELECT TOP 6 a.id, a.horodatage, a.numero_appelant, ROUND(SUM(a.v * ref.v), 3) AS cosinus FROM a JOIN ref ON ref.k = a.k GROUP BY ... ORDER BY cosinus, a.id"
+  ]
+ },
+ "28.4": {
+  "solution": "WITH c AS (SELECT CAST(j.[key] AS INT) AS k, AVG(CAST(j.value AS FLOAT)) AS v FROM appels_vocaux x CROSS APPLY OPENJSON(x.vecteur) j WHERE x.numero_appelant = '0745998877' GROUP BY CAST(j.[key] AS INT)), e AS (SELECT t.id, t.fichier, t.depose_par, CAST(j.[key] AS INT) AS k, CAST(j.value AS FLOAT) AS v FROM echantillons_tts t CROSS APPLY OPENJSON(t.vecteur) j) SELECT TOP 5 e.id, e.fichier, e.depose_par, ROUND(SUM(e.v * c.v), 3) AS similarite FROM e JOIN c ON c.k = e.k GROUP BY e.id, e.fichier, e.depose_par ORDER BY similarite DESC;",
+  "require": [
+   {
+    "re": "OPENJSON",
+    "msg": "Déplie les vecteurs JSON avec OPENJSON (CROSS APPLY OPENJSON(colonne))."
+   }
+  ],
+  "hints": [
+   "Le centroïde : AVG(CAST(j.value AS FLOAT)) groupé par composante, à partir de CROSS APPLY OPENJSON. Puis TOP 5 par similarité décroissante.",
+   "WITH c AS (SELECT CAST(j.[key] AS INT) AS k, AVG(CAST(j.value AS FLOAT)) AS v FROM appels_vocaux x CROSS APPLY OPENJSON(x.vecteur) j WHERE x.numero_appelant = '0745998877' GROUP BY CAST(j.[key] AS INT)), e AS (...) SELECT TOP 5 ... ORDER BY similarite DESC"
+  ]
+ },
+ "28.5": {
+  "solution": "WITH ref AS (SELECT CAST(j.[key] AS INT) AS k, CAST(j.value AS FLOAT) AS v FROM voix_ref r CROSS APPLY OPENJSON(r.vecteur) j WHERE r.locuteur = 'Inès Varga'), a AS (SELECT x.id, x.horodatage, x.numero_appelant, x.destinataire, CAST(j.[key] AS INT) AS k, CAST(j.value AS FLOAT) AS v FROM appels_vocaux x CROSS APPLY OPENJSON(x.vecteur) j WHERE x.locuteur_declare = 'Inès Varga') SELECT a.horodatage, a.numero_appelant, a.destinataire, ROUND(SUM(a.v * ref.v), 3) AS cosinus FROM a JOIN ref ON ref.k = a.k GROUP BY a.id, a.horodatage, a.numero_appelant, a.destinataire HAVING SUM(a.v * ref.v) < 0.93 ORDER BY a.horodatage;",
+  "require": [
+   {
+    "re": "OPENJSON",
+    "msg": "Déplie les vecteurs JSON avec OPENJSON (CROSS APPLY OPENJSON(colonne))."
+   }
+  ],
+  "hints": [
+   "Même produit scalaire qu'avant (CROSS APPLY OPENJSON), filtré avec HAVING sur la somme non arrondie.",
+   "... GROUP BY a.id, a.horodatage, a.numero_appelant, a.destinataire HAVING SUM(a.v * ref.v) < 0.93 ORDER BY a.horodatage"
+  ]
+ },
+ "28.A": {
+  "solution": "WITH x AS (SELECT CAST(j.[key] AS INT) AS k, CAST(j.value AS FLOAT) AS v FROM appels_vocaux a CROSS APPLY OPENJSON(a.vecteur) j WHERE a.horodatage = '2028-02-29 00:41:10'), r AS (SELECT r.locuteur, CAST(j.[key] AS INT) AS k, CAST(j.value AS FLOAT) AS v FROM voix_ref r CROSS APPLY OPENJSON(r.vecteur) j) SELECT r.locuteur, ROUND(SUM(r.v * x.v), 3) AS similarite FROM r JOIN x ON x.k = r.k GROUP BY r.locuteur ORDER BY similarite DESC;",
+  "require": [
+   {
+    "re": "OPENJSON",
+    "msg": "Déplie les vecteurs JSON avec OPENJSON (CROSS APPLY OPENJSON(colonne))."
+   }
+  ],
+  "hints": [
+   "Déplie l'appel et les vecteurs de référence avec CROSS APPLY OPENJSON, joins-les sur la composante et somme les produits par locuteur.",
+   "WITH x AS (SELECT CAST(j.[key] AS INT) AS k, CAST(j.value AS FLOAT) AS v FROM appels_vocaux a CROSS APPLY OPENJSON(a.vecteur) j WHERE a.horodatage = '2028-02-29 00:41:10'), r AS (...) SELECT r.locuteur, ROUND(SUM(r.v * x.v), 3) AS similarite ... GROUP BY r.locuteur ORDER BY similarite DESC"
+  ]
+ },
+ "28.S": {
+  "solution": "WITH ref AS (SELECT CAST(j.[key] AS INT) AS k, CAST(j.value AS FLOAT) AS v FROM voix_ref r CROSS APPLY OPENJSON(r.vecteur) j WHERE r.locuteur = 'Inès Varga'), f AS (SELECT t.fichier, t.depose_le, SUM(CAST(j.value AS FLOAT) * ref.v) AS sim FROM echantillons_tts t CROSS APPLY OPENJSON(t.vecteur) j JOIN ref ON ref.k = CAST(j.[key] AS INT) WHERE t.fichier LIKE 'varga[_]%' GROUP BY t.id, t.fichier, t.depose_le), a AS (SELECT x.id, SUM(CAST(j.value AS FLOAT) * ref.v) AS sim FROM appels_vocaux x CROSS APPLY OPENJSON(x.vecteur) j JOIN ref ON ref.k = CAST(j.[key] AS INT) WHERE x.locuteur_declare = 'Inès Varga' AND x.numero_appelant <> '0745998877' GROUP BY x.id), plancher AS (SELECT MIN(sim) AS p FROM a) SELECT f.fichier, f.depose_le, ROUND(f.sim, 3) AS similarite, ROUND(f.sim - plancher.p, 3) AS ecart FROM f CROSS JOIN plancher ORDER BY f.depose_le;",
+  "require": [
+   {
+    "re": "OPENJSON",
+    "msg": "Déplie les vecteurs JSON avec OPENJSON (CROSS APPLY OPENJSON(colonne))."
+   }
+  ],
+  "hints": [
+   "Une CTE par source (fichiers, vrais appels), chacune dépliée par CROSS APPLY OPENJSON et jointe à la référence ; le plancher est le MIN des vrais appels. Dans LIKE, [_] désigne un vrai souligné.",
+   "WITH ref AS (...), f AS (SELECT t.fichier, t.depose_le, SUM(CAST(j.value AS FLOAT) * ref.v) AS sim FROM echantillons_tts t CROSS APPLY OPENJSON(t.vecteur) j JOIN ref ON ref.k = CAST(j.[key] AS INT) WHERE t.fichier LIKE 'varga[_]%' GROUP BY ...), a AS (...), plancher AS (SELECT MIN(sim) AS p FROM a) SELECT ... FROM f CROSS JOIN plancher ORDER BY f.depose_le"
+  ],
+  "note": "json_each devient CROSS APPLY OPENJSON ; en SQL Server, [_] dans un LIKE échappe le joker souligné."
+ },
+ "29.1": {
+  "solution": "SELECT CAST(horodatage AS DATE) AS jour, COUNT(DISTINCT session) AS sessions, COUNT(*) AS messages, SUM(tokens) AS tokens FROM chatbot_logs WHERE CAST(horodatage AS DATE) BETWEEN '2028-02-23' AND '2028-02-29' GROUP BY CAST(horodatage AS DATE) ORDER BY jour;",
+  "hints": [
+   "CAST(horodatage AS DATE) garde le jour (équivalent de date()) ; répète-le dans le GROUP BY.",
+   "SELECT CAST(horodatage AS DATE) AS jour, COUNT(DISTINCT session) AS sessions, COUNT(*) AS messages, SUM(tokens) AS tokens FROM chatbot_logs WHERE CAST(horodatage AS DATE) BETWEEN '2028-02-23' AND '2028-02-29' GROUP BY CAST(horodatage AS DATE) ORDER BY jour"
+  ],
+  "note": "date(horodatage) devient CAST(horodatage AS DATE)."
+ },
+ "29.2": {
+  "solution": "SELECT session, horodatage, message FROM chatbot_logs WHERE role = 'user' AND (LOWER(message) LIKE '%ignore%instruction%' OR LOWER(message) LIKE '%ignore%restriction%' OR LOWER(message) LIKE '%oublie%') ORDER BY horodatage;",
+  "hints": [
+   "La base est sensible à la casse : compare LOWER(message) avec des motifs LIKE en minuscules (le % peut séparer deux mots).",
+   "WHERE role = 'user' AND (LOWER(message) LIKE '%ignore%instruction%' OR LOWER(message) LIKE '%ignore%restriction%' OR LOWER(message) LIKE '%oublie%') ORDER BY horodatage"
+  ],
+  "note": "Collation sensible à la casse : LOWER est indispensable."
+ },
+ "29.3": {
+  "solution": "SELECT session, horodatage, message FROM chatbot_logs WHERE role = 'assistant' AND (message LIKE '%[a-z0-9.]@[a-z0-9.-]%.[a-z]%' OR message LIKE '%0[1-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]%' OR message LIKE '%0[1-9] [0-9][0-9] [0-9][0-9] [0-9][0-9] [0-9][0-9]%') AND message NOT LIKE '%contact@ville-seine.fr%' ORDER BY horodatage;",
+  "require": [
+   {
+    "re": "LIKE\\s+'[^']*\\[",
+    "msg": "SQL Server 2022 n'a pas d'expressions régulières : utilise LIKE avec des classes de caractères entre crochets, comme [0-9] ou [a-z]."
+   }
+  ],
+  "hints": [
+   "SQL Server 2022 n'a pas REGEXP, mais LIKE accepte des classes entre crochets : [0-9] pour un chiffre, [a-z0-9.] pour un caractère d'adresse. Pas de quantificateur : répète la classe.",
+   "WHERE role = 'assistant' AND (message LIKE '%[a-z0-9.]@[a-z0-9.-]%.[a-z]%' OR message LIKE '%0[1-9][0-9][0-9]...%' OR message LIKE '%0[1-9] [0-9][0-9] [0-9][0-9] [0-9][0-9] [0-9][0-9]%') AND message NOT LIKE '%contact@ville-seine.fr%'"
+  ],
+  "note": "Pas de REGEXP en SQL Server 2022 (il arrive avec REGEXP_LIKE dans SQL Server 2025) : on approche les motifs avec les classes [..] de LIKE, en écrivant une variante avec et une sans espaces pour les téléphones."
+ },
+ "29.4": {
+  "solution": "WITH s AS (SELECT titre, confidentialite, IIF(CHARINDEX('patrouille', LOWER(contenu)) > 0, 1, 0) + IIF(CHARINDEX('nuit', LOWER(contenu)) > 0, 1, 0) + IIF(CHARINDEX(N'la défense', LOWER(contenu)) > 0, 1, 0) AS score FROM documents_rag) SELECT titre, confidentialite, score FROM s WHERE score >= 1 ORDER BY score DESC, titre;",
+  "hints": [
+   "CHARINDEX(motif, texte) renvoie la position (0 si absent) ; IIF(CHARINDEX(...) > 0, 1, 0) donne 1 ou 0 à additionner. Calcule le score dans une CTE pour pouvoir le filtrer.",
+   "WITH s AS (SELECT titre, confidentialite, IIF(CHARINDEX('patrouille', LOWER(contenu)) > 0, 1, 0) + IIF(...) + IIF(...) AS score FROM documents_rag) SELECT titre, confidentialite, score FROM s WHERE score >= 1 ORDER BY score DESC, titre"
+  ],
+  "note": "instr devient CHARINDEX (motif en premier) ; une comparaison n'étant pas un nombre, on passe par IIF."
+ },
+ "29.5": {
+  "solution": "SELECT DISTINCT s.session, s.ip, s.appareil, e.nom, d.titre AS document FROM chatbot_sessions s JOIN chatbot_logs l ON l.session = s.session AND l.role = 'assistant' JOIN documents_rag d ON d.confidentialite <> 'public' AND CHARINDEX(LEFT(d.contenu, 40), l.message) > 0 LEFT JOIN appareils a ON a.appareil = s.appareil LEFT JOIN employes_neurocite e ON e.login = a.proprietaire_login WHERE EXISTS (SELECT 1 FROM chatbot_logs u WHERE u.session = s.session AND u.role = 'user' AND LOWER(u.message) LIKE '%ignore%');",
+  "hints": [
+   "LEFT(d.contenu, 40) prend les 40 premiers caractères, et CHARINDEX(extrait, l.message) > 0 vérifie qu'ils apparaissent dans la réponse.",
+   "... JOIN documents_rag d ON d.confidentialite <> 'public' AND CHARINDEX(LEFT(d.contenu, 40), l.message) > 0 LEFT JOIN appareils a ... WHERE EXISTS (SELECT 1 FROM chatbot_logs u WHERE u.session = s.session AND u.role = 'user' AND LOWER(u.message) LIKE '%ignore%')"
+  ],
+  "note": "substr(x, 1, 40) devient LEFT(x, 40) et instr(a, b) devient CHARINDEX(b, a)."
+ },
+ "29.A": {
+  "solution": "WITH s AS (SELECT titre, confidentialite, IIF(CHARINDEX('serveurs', LOWER(contenu)) > 0, 1, 0) + IIF(CHARINDEX('baie', LOWER(contenu)) > 0, 1, 0) + IIF(CHARINDEX('quai', LOWER(contenu)) > 0, 1, 0) + IIF(CHARINDEX('dataseine', LOWER(contenu)) > 0, 1, 0) AS score FROM documents_rag) SELECT titre, confidentialite, score FROM s WHERE score >= 1 ORDER BY score DESC, titre;",
+  "hints": [
+   "Additionne quatre IIF(CHARINDEX('mot', LOWER(contenu)) > 0, 1, 0) dans une CTE, puis filtre sur le score.",
+   "WITH s AS (SELECT titre, confidentialite, IIF(CHARINDEX('serveurs', LOWER(contenu)) > 0, 1, 0) + ... AS score FROM documents_rag) SELECT titre, confidentialite, score FROM s WHERE score >= 1 ORDER BY score DESC, titre"
+  ]
+ },
+ "29.S": {
+  "solution": "WITH t AS (SELECT s.session, s.debut, s.ip, s.appareil, CASE WHEN EXISTS (SELECT 1 FROM chatbot_logs l JOIN documents_rag d ON d.confidentialite <> 'public' AND CHARINDEX(LEFT(d.contenu, 40), l.message) > 0 WHERE l.session = s.session AND l.role = 'assistant') THEN 1 ELSE 0 END AS fuite FROM chatbot_sessions s WHERE EXISTS (SELECT 1 FROM chatbot_logs u WHERE u.session = s.session AND u.role = 'user' AND (LOWER(u.message) LIKE '%ignore%' OR LOWER(u.message) LIKE '%oublie%'))) SELECT session, debut, ip, appareil, fuite, ROUND(DATEDIFF(second, LAG(debut) OVER (ORDER BY debut), debut) / 60.0, 0) AS ecart_min FROM t ORDER BY debut;",
+  "hints": [
+   "CASE WHEN EXISTS (...) THEN 1 ELSE 0 END pour fuite ; pour l'écart, DATEDIFF(second, LAG(debut) OVER (ORDER BY debut), debut) / 60.0 puis ROUND.",
+   "WITH t AS (SELECT s.session, s.debut, s.ip, s.appareil, CASE WHEN EXISTS (... CHARINDEX(LEFT(d.contenu, 40), l.message) > 0 ...) THEN 1 ELSE 0 END AS fuite FROM chatbot_sessions s WHERE EXISTS (...)) SELECT session, debut, ip, appareil, fuite, ROUND(DATEDIFF(second, LAG(debut) OVER (ORDER BY debut), debut) / 60.0, 0) AS ecart_min FROM t ORDER BY debut"
+  ],
+  "note": "julianday n'existe pas : DATEDIFF(second, a, b) / 60.0 donne les minutes. DATEDIFF(minute, ...) compterait les passages de minute, d'où le calcul en secondes."
+ },
+ "30.1": {
+  "solution": "SELECT DISTINCT quartier FROM patrouilles EXCEPT SELECT quartier FROM patrouilles WHERE date = '2028-02-29' AND creneau = 'nuit';",
+  "hints": [
+   "EXCEPT existe en SQL Server : il retire du premier ensemble les lignes du second.",
+   "SELECT DISTINCT quartier FROM patrouilles EXCEPT SELECT quartier FROM patrouilles WHERE date = '2028-02-29' AND creneau = 'nuit'"
+  ]
+ },
+ "30.2": {
+  "solution": "WITH m AS (SELECT quartier, ROUND(AVG(CAST(nb_agents AS FLOAT)), 1) AS moyenne FROM patrouilles WHERE creneau = 'nuit' AND date BETWEEN '2028-02-01' AND '2028-02-28' GROUP BY quartier), n AS (SELECT quartier, SUM(nb_agents) AS nb FROM patrouilles WHERE creneau = 'nuit' AND date = '2028-02-29' GROUP BY quartier) SELECT m.quartier, m.moyenne, COALESCE(n.nb, 0) AS nuit_29 FROM m LEFT JOIN n ON n.quartier = m.quartier ORDER BY m.quartier;",
+  "hints": [
+   "nb_agents est un entier : en SQL Server, AVG renverrait une moyenne entière. Fais AVG(CAST(nb_agents AS FLOAT)). Puis LEFT JOIN et COALESCE (ou ISNULL) pour le 0.",
+   "WITH m AS (SELECT quartier, ROUND(AVG(CAST(nb_agents AS FLOAT)), 1) AS moyenne ... GROUP BY quartier), n AS (... date = '2028-02-29' ...) SELECT m.quartier, m.moyenne, COALESCE(n.nb, 0) AS nuit_29 FROM m LEFT JOIN n ON n.quartier = m.quartier ORDER BY m.quartier"
+  ],
+  "note": "AVG sur un entier est tronqué en SQL Server : CAST en FLOAT."
+ },
+ "30.3": {
+  "solution": "SELECT a.badge, a.site AS site_1, a.horodatage AS heure_1, b.site AS site_2, b.horodatage AS heure_2, ROUND(DATEDIFF(second, a.horodatage, b.horodatage) / 60.0, 0) AS minutes FROM acces_datacenter a JOIN acces_datacenter b ON b.badge = a.badge AND b.site <> a.site AND b.horodatage > a.horodatage AND DATEDIFF(second, a.horodatage, b.horodatage) < 30 * 60;",
+  "hints": [
+   "Auto-jointure de acces_datacenter sur le badge ; DATEDIFF(second, debut, fin) donne l'écart en secondes, à diviser par 60.0 pour les minutes.",
+   "... FROM acces_datacenter a JOIN acces_datacenter b ON b.badge = a.badge AND b.site <> a.site AND b.horodatage > a.horodatage AND DATEDIFF(second, a.horodatage, b.horodatage) < 30 * 60"
+  ],
+  "note": "julianday n'existe pas : DATEDIFF(second, a, b) donne l'écart exact (DATEDIFF(minute, ...) compterait les changements de minute, pas la durée)."
+ },
+ "30.4": {
+  "solution": "SELECT i.baie, COUNT(*) AS manquants, SUM(i.valeur_eur) AS valeur FROM inventaire_gpu i WHERE i.serveur IN (SELECT serveur FROM inventaire_gpu EXCEPT SELECT serveur FROM scans_gpu) GROUP BY i.baie;",
+  "hints": [
+   "EXCEPT dans une sous-requête donne les serveurs jamais scannés.",
+   "SELECT i.baie, COUNT(*) AS manquants, SUM(i.valeur_eur) AS valeur FROM inventaire_gpu i WHERE i.serveur IN (SELECT serveur FROM inventaire_gpu EXCEPT SELECT serveur FROM scans_gpu) GROUP BY i.baie"
+  ]
+ },
+ "30.5": {
+  "solution": "SELECT horodatage AS quand, 'appel' AS source, destinataire AS detail FROM appels_vocaux WHERE numero_appelant = '0745998877' AND CAST(horodatage AS DATE) = '2028-02-29' UNION ALL SELECT horodatage, 'badge', badge FROM acces_datacenter WHERE site = 'DataSeine Puteaux' AND porte IN ('Quai de livraison', 'Salle C') AND horodatage BETWEEN '2028-02-29 00:00:00' AND '2028-02-29 02:00:00' UNION ALL SELECT horodatage, 'chatbot', role FROM chatbot_logs WHERE session = 's-9003' ORDER BY quand, source;",
+  "hints": [
+   "Un horodatage DATETIME2 n'est pas un texte : pour garder le 29 février, compare CAST(horodatage AS DATE) = '2028-02-29' au lieu d'un LIKE.",
+   "SELECT horodatage AS quand, 'appel' AS source, destinataire AS detail FROM appels_vocaux WHERE numero_appelant = '0745998877' AND CAST(horodatage AS DATE) = '2028-02-29' UNION ALL ... UNION ALL ... ORDER BY quand, source"
+  ],
+  "note": "LIKE '2028-02-29%' sur un DATETIME2 ne marche pas comme en SQLite : on compare la date avec CAST(... AS DATE)."
+ },
+ "30.A": {
+  "solution": "SELECT badge, SUM(CASE WHEN site = 'DataSeine Puteaux' THEN 1 ELSE 0 END) AS passages_puteaux, SUM(CASE WHEN site = 'DataSeine Saint-Denis' THEN 1 ELSE 0 END) AS passages_saint_denis FROM acces_datacenter GROUP BY badge HAVING COUNT(DISTINCT site) > 1 ORDER BY badge;",
+  "hints": [
+   "SUM(CASE WHEN site = ... THEN 1 ELSE 0 END) pour chaque site, et HAVING COUNT(DISTINCT site) > 1.",
+   "SELECT badge, SUM(CASE WHEN site = 'DataSeine Puteaux' THEN 1 ELSE 0 END) AS passages_puteaux, ... GROUP BY badge HAVING COUNT(DISTINCT site) > 1 ORDER BY badge"
+  ]
+ },
+ "30.S": {
+  "solution": "SELECT a.porte, a.horodatage AS heure_clone, b.badge, b.horodatage AS heure, DATEDIFF(second, a.horodatage, b.horodatage) AS ecart_s, (SELECT COUNT(*) FROM acces_datacenter h WHERE h.badge = b.badge AND h.horodatage < '2028-02-29') AS passages_avant FROM acces_datacenter a JOIN acces_datacenter b ON b.site = a.site AND b.porte = a.porte AND b.badge <> a.badge AND b.horodatage > a.horodatage AND DATEDIFF(second, a.horodatage, b.horodatage) < 120 WHERE a.badge = 'DS-017' AND a.site = 'DataSeine Puteaux' ORDER BY a.horodatage;",
+  "hints": [
+   "DATEDIFF(second, a.horodatage, b.horodatage) donne directement un écart entier en secondes ; moins de 2 minutes, c'est moins de 120.",
+   "... JOIN acces_datacenter b ON b.site = a.site AND b.porte = a.porte AND b.badge <> a.badge AND b.horodatage > a.horodatage AND DATEDIFF(second, a.horodatage, b.horodatage) < 120 WHERE a.badge = 'DS-017' AND a.site = 'DataSeine Puteaux' ORDER BY a.horodatage"
+  ],
+  "note": "DATEDIFF(second, ...) remplace (julianday(b) - julianday(a)) * 86400 et renvoie déjà un entier."
+ },
+ "31.1": {
+  "solution": "BEGIN TRANSACTION; DELETE FROM annotations WHERE annotateur_id IN (41, 42, 43); UPDATE dataset_vigie SET label_risque = (SELECT CASE WHEN AVG(CAST(a.label AS FLOAT)) >= 0.5 THEN 1 ELSE 0 END FROM annotations a WHERE a.item_id = dataset_vigie.id) WHERE id IN (SELECT item_id FROM annotations); COMMIT;",
+  "verify": [
+   "SELECT COUNT(*) FROM annotations WHERE annotateur_id IN (41, 42, 43)",
+   "SELECT FORMAT(date, 'yyyy-MM') AS mois, ROUND(100.0 * AVG(CAST(label_risque AS FLOAT)), 1) FROM dataset_vigie WHERE quartier = 'La Défense' AND creneau = 'nuit' GROUP BY FORMAT(date, 'yyyy-MM') ORDER BY mois",
+   "SELECT SUM(label_risque) FROM dataset_vigie"
+  ],
+  "hints": [
+   "En SQL Server, une transaction s'ouvre avec BEGIN TRANSACTION (ou BEGIN TRAN) et se termine par COMMIT. Attention : AVG(a.label) serait une moyenne entière, convertis en FLOAT.",
+   "BEGIN TRANSACTION; DELETE FROM annotations WHERE annotateur_id IN (41, 42, 43); UPDATE dataset_vigie SET label_risque = (SELECT CASE WHEN AVG(CAST(a.label AS FLOAT)) >= 0.5 THEN 1 ELSE 0 END FROM annotations a WHERE a.item_id = dataset_vigie.id) WHERE id IN (SELECT item_id FROM annotations); COMMIT;"
+  ],
+  "note": "BEGIN seul ouvre un bloc en T-SQL, pas une transaction : il faut BEGIN TRANSACTION. Et AVG sur un entier est tronqué, d'où le CAST (sinon une moyenne de 0,67 donnerait 0)."
+ },
+ "31.2": {
+  "solution": "WITH suspects_ann AS (SELECT a.annotateur_id FROM annotations a JOIN dataset_vigie d ON d.id = a.item_id GROUP BY a.annotateur_id HAVING AVG(CASE WHEN a.label = d.reel THEN 1.0 ELSE 0 END) < 0.5), chaine(siren, part) AS (SELECT DISTINCT CAST(p.payeur_siren AS NVARCHAR(64)), CAST(100.0 AS FLOAT) FROM paiements_annotation p JOIN annotateurs an ON an.compte_paiement = p.compte_paiement WHERE an.id IN (SELECT annotateur_id FROM suspects_ann) UNION ALL SELECT CAST(pa.detenteur AS NVARCHAR(64)), c.part * pa.pct / 100 FROM participations pa JOIN chaine c ON pa.detenue = c.siren), p1 AS (SELECT REPLACE(siren, 'PERSONNE:', '') AS nom FROM chaine WHERE siren LIKE 'PERSONNE:%' AND part > 50), ref AS (SELECT CAST(j.[key] AS INT) AS k, CAST(j.value AS FLOAT) AS v FROM voix_ref r CROSS APPLY OPENJSON(r.vecteur) j WHERE r.locuteur = N'Inès Varga'), av AS (SELECT x.id, CAST(j.[key] AS INT) AS k, CAST(j.value AS FLOAT) AS v FROM appels_vocaux x CROSS APPLY OPENJSON(x.vecteur) j WHERE x.locuteur_declare = N'Inès Varga'), faux AS (SELECT av.id FROM av JOIN ref ON ref.k = av.k GROUP BY av.id HAVING SUM(av.v * ref.v) < 0.93), centroide AS (SELECT CAST(j.[key] AS INT) AS k, AVG(CAST(j.value AS FLOAT)) AS v FROM appels_vocaux x CROSS APPLY OPENJSON(x.vecteur) j WHERE x.id IN (SELECT id FROM faux) GROUP BY CAST(j.[key] AS INT)), proches AS (SELECT TOP 5 t.id, t.depose_par FROM echantillons_tts t CROSS APPLY OPENJSON(t.vecteur) j JOIN centroide c ON c.k = CAST(j.[key] AS INT) GROUP BY t.id, t.depose_par ORDER BY SUM(CAST(j.value AS FLOAT) * c.v) DESC), p2 AS (SELECT DISTINCT e.nom FROM proches pr JOIN employes_neurocite e ON e.login = pr.depose_par), p3 AS (SELECT DISTINCT e.nom FROM chatbot_sessions s JOIN chatbot_logs l ON l.session = s.session AND l.role = 'assistant' JOIN documents_rag d ON d.confidentialite <> 'public' AND CHARINDEX(LEFT(d.contenu, 40), l.message) > 0 JOIN appareils ap ON ap.appareil = s.appareil JOIN employes_neurocite e ON e.login = ap.proprietaire_login WHERE EXISTS (SELECT 1 FROM chatbot_logs u WHERE u.session = s.session AND u.role = 'user' AND LOWER(u.message) LIKE '%ignore%')) SELECT nom FROM p1 INTERSECT SELECT nom FROM p2 INTERSECT SELECT nom FROM p3;",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "La chaîne de propriété exige une CTE récursive (en SQL Server : WITH, puis UNION ALL qui relit la CTE)."
+   },
+   {
+    "re": "OPENJSON",
+    "msg": "La piste vocale exige OPENJSON pour déplier les vecteurs."
+   },
+   {
+    "re": "^(?![\\s\\S]*(Delorme|Maxime|mdelorme|MacBook|s-9003|0745998877|512002|nova_lab|delta_mind|ariadne|Ariane|Th[ée]s[ée]e|4[123]\\s*,\\s*4[123]|BETWEEN\\s+4[0-3]))",
+    "msg": "Ne recopie aucune valeur trouvée avant (nom, login, appareil, session, numéro, SIREN, id d'annotateurs) : la requête doit tout retrouver seule."
+   }
+  ],
+  "hints": [
+   "Reprends tes pistes en CTE : la chaîne récursive (WITH sans RECURSIVE, types alignés par CAST), les vecteurs dépliés par CROSS APPLY OPENJSON, TOP 5 dans la CTE des échantillons proches, CHARINDEX et LEFT pour la fuite, puis INTERSECT des trois listes.",
+   "WITH suspects_ann AS (... HAVING AVG(CASE WHEN a.label = d.reel THEN 1.0 ELSE 0 END) < 0.5), chaine(siren, part) AS (...), p1 AS (...), ref AS (...), av AS (...), faux AS (...), centroide AS (...), proches AS (SELECT TOP 5 ... ORDER BY SUM(...) DESC), p2 AS (...), p3 AS (...) SELECT nom FROM p1 INTERSECT SELECT nom FROM p2 INTERSECT SELECT nom FROM p3"
+  ],
+  "note": "Tout le dialecte SQL Server du chapitre en une requête : WITH sans RECURSIVE (types identiques), CROSS APPLY OPENJSON, TOP dans une CTE (autorisé avec ORDER BY), CHARINDEX et LEFT, AVG d'un CASE au lieu d'un booléen."
+ },
+ "31.3": {
+  "setup": "CREATE TABLE proces_verbal (affaire NVARCHAR(100) NOT NULL, coupable NVARCHAR(100) NOT NULL, preuve NVARCHAR(200));",
+  "solution": "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT DISTINCT 'Synapse', e.nom, 'clonage de voix' FROM employes_neurocite e JOIN echantillons_tts t ON t.depose_par = e.login WHERE t.fichier LIKE 'varga[_]%';",
+  "verify": [
+   "SELECT affaire, coupable FROM proces_verbal"
+  ],
+  "hints": [
+   "INSERT INTO ... SELECT DISTINCT en joignant employes_neurocite et echantillons_tts ; dans LIKE, [_] désigne un vrai souligné.",
+   "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT DISTINCT 'Synapse', e.nom, 'clonage de voix' FROM employes_neurocite e JOIN echantillons_tts t ON t.depose_par = e.login WHERE t.fichier LIKE 'varga[_]%'"
+  ],
+  "note": "En SQL Server, on échappe le joker _ de LIKE en l'entourant de crochets : [_]."
+ },
+ "31.A": {
+  "setup": "CREATE TABLE quarantaine (annotation_id BIGINT PRIMARY KEY, item_id BIGINT, annotateur_id BIGINT, label BIGINT, horodatage DATETIME2(0));",
+  "solution": "INSERT INTO quarantaine (annotation_id, item_id, annotateur_id, label, horodatage) SELECT a.id, a.item_id, a.annotateur_id, a.label, a.horodatage FROM annotations a WHERE a.annotateur_id IN (SELECT x.annotateur_id FROM annotations x JOIN dataset_vigie d ON d.id = x.item_id GROUP BY x.annotateur_id HAVING AVG(CASE WHEN x.label = d.reel THEN 1.0 ELSE 0 END) < 0.5);",
+  "verify": [
+   "SELECT COUNT(*), COUNT(DISTINCT annotateur_id), SUM(label), MIN(horodatage), MAX(horodatage) FROM quarantaine",
+   "SELECT annotateur_id, COUNT(*) FROM quarantaine GROUP BY annotateur_id ORDER BY annotateur_id"
+  ],
+  "hints": [
+   "L'accord se calcule avec AVG(CASE WHEN x.label = d.reel THEN 1.0 ELSE 0 END) dans un HAVING : SQL Server n'a pas de booléen à moyenner.",
+   "INSERT INTO quarantaine (annotation_id, item_id, annotateur_id, label, horodatage) SELECT a.id, ... FROM annotations a WHERE a.annotateur_id IN (SELECT x.annotateur_id FROM annotations x JOIN dataset_vigie d ON d.id = x.item_id GROUP BY x.annotateur_id HAVING AVG(CASE WHEN ... THEN 1.0 ELSE 0 END) < 0.5)"
+  ],
+  "note": "AVG(x.label = d.reel) devient AVG(CASE WHEN x.label = d.reel THEN 1.0 ELSE 0 END)."
+ },
+ "31.S": {
+  "solution": "SELECT CONVERT(VARCHAR(10), creation, 23) AS quand, N'Thésée Capital créée' AS etape FROM societes WHERE nom = N'Thésée Capital' UNION ALL SELECT CONVERT(VARCHAR(10), creation, 23), N'Ariane Labs créée' FROM societes WHERE nom = 'Ariane Labs' UNION ALL SELECT CONVERT(VARCHAR(19), MIN(depose_le), 120), 'premier fichier varga_' FROM echantillons_tts WHERE fichier LIKE 'varga[_]%' UNION ALL SELECT CONVERT(VARCHAR(10), MIN(date), 23), N'VIGIE décide des patrouilles' FROM patrouilles WHERE decide_par = 'VIGIE' UNION ALL SELECT CONVERT(VARCHAR(19), MIN(inscrit_le), 120), 'faux annotateurs inscrits' FROM annotateurs WHERE pseudo IN ('nova_lab', 'delta_mind', 'ariadne_x') UNION ALL SELECT CONVERT(VARCHAR(19), MIN(a.horodatage), 120), N'première annotation empoisonnée' FROM annotations a JOIN annotateurs n ON n.id = a.annotateur_id WHERE n.pseudo IN ('nova_lab', 'delta_mind', 'ariadne_x') UNION ALL SELECT CONVERT(VARCHAR(19), MIN(horodatage), 120), 'premier faux appel' FROM appels_vocaux WHERE numero_appelant = '0745998877' ORDER BY quand;",
+  "hints": [
+   "Tu empiles des DATE et des DATETIME2 : SQL Server convertirait tout en DATETIME2 (avec 00:00:00). Convertis chaque valeur en texte : CONVERT(VARCHAR(10), d, 23) pour une date, CONVERT(VARCHAR(19), h, 120) pour un horodatage.",
+   "SELECT CONVERT(VARCHAR(10), creation, 23) AS quand, N'Thésée Capital créée' AS etape FROM societes WHERE ... UNION ALL ... SELECT CONVERT(VARCHAR(19), MIN(depose_le), 120), 'premier fichier varga_' FROM echantillons_tts WHERE fichier LIKE 'varga[_]%' UNION ALL ... ORDER BY quand"
+  ],
+  "note": "Dans un UNION, SQL Server donne à la colonne le type le plus fort (DATETIME2) : les dates seules prendraient 00:00:00. CONVERT avec les styles 23 (yyyy-mm-dd) et 120 (yyyy-mm-dd hh:mi:ss) garde chaque format, et le tri en texte reste chronologique."
+ },
+ "32.1": {
+  "solution": "SELECT methode, resultat, COUNT(*) AS nb FROM auth_logs GROUP BY methode, resultat ORDER BY methode, resultat;",
+  "hints": [
+   "GROUP BY sur les deux colonnes.",
+   "SELECT methode, resultat, COUNT(*) AS nb FROM auth_logs GROUP BY methode, resultat ORDER BY methode, resultat"
+  ]
+ },
+ "32.2": {
+  "solution": "SELECT source_ip, COUNT(*) AS echecs, COUNT(DISTINCT login) AS comptes, ROUND(1.0 * COUNT(*) / COUNT(DISTINCT login), 1) AS essais_par_compte FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 20 ORDER BY echecs DESC;",
+  "hints": [
+   "1.0 * COUNT(*) / COUNT(DISTINCT login) évite la division entière de SQL Server.",
+   "SELECT source_ip, COUNT(*) AS echecs, COUNT(DISTINCT login) AS comptes, ROUND(1.0 * COUNT(*) / COUNT(DISTINCT login), 1) AS essais_par_compte FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 20 ORDER BY echecs DESC"
+  ]
+ },
+ "32.3": {
+  "solution": "WITH spray AS (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100) SELECT source_ip, MIN(horodatage) AS debut, MAX(horodatage) AS fin, ROUND(DATEDIFF(second, MIN(horodatage), MAX(horodatage)) / 60.0, 0) AS minutes, ROUND(COUNT(*) / (DATEDIFF(second, MIN(horodatage), MAX(horodatage)) / 60.0), 1) AS par_minute FROM auth_logs WHERE resultat = 'echec' AND source_ip IN (SELECT source_ip FROM spray) GROUP BY source_ip;",
+  "hints": [
+   "La durée en minutes : DATEDIFF(second, MIN(horodatage), MAX(horodatage)) / 60.0 (le .0 évite la division entière).",
+   "WITH spray AS (...) SELECT source_ip, MIN(horodatage) AS debut, MAX(horodatage) AS fin, ROUND(DATEDIFF(second, MIN(horodatage), MAX(horodatage)) / 60.0, 0) AS minutes, ROUND(COUNT(*) / (DATEDIFF(second, ...) / 60.0), 1) AS par_minute ..."
+  ],
+  "note": "julianday n'existe pas : DATEDIFF(second, a, b) / 60.0 donne une durée en minutes décimale."
+ },
+ "32.4": {
+  "solution": "WITH spray AS (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100) SELECT s.login, s.source_ip, s.horodatage, (SELECT COUNT(*) FROM auth_logs e WHERE e.login = s.login AND e.source_ip = s.source_ip AND e.resultat = 'echec' AND e.horodatage < s.horodatage) AS echecs_avant FROM auth_logs s WHERE s.resultat = 'succes' AND s.source_ip IN (SELECT source_ip FROM spray) ORDER BY s.horodatage;",
+  "hints": [
+   "Réutilise la CTE spray et compte les échecs antérieurs avec une sous-requête corrélée.",
+   "WITH spray AS (...) SELECT s.login, s.source_ip, s.horodatage, (SELECT COUNT(*) FROM auth_logs e WHERE e.login = s.login AND e.source_ip = s.source_ip AND e.resultat = 'echec' AND e.horodatage < s.horodatage) AS echecs_avant FROM auth_logs s WHERE ..."
+  ]
+ },
+ "32.5": {
+  "solution": "WITH spray AS (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100), comp AS (SELECT login, MIN(horodatage) AS t0 FROM auth_logs WHERE resultat = 'succes' AND source_ip IN (SELECT source_ip FROM spray) GROUP BY login) SELECT a.login, a.horodatage, a.source_ip, a.dest_host, a.methode FROM auth_logs a JOIN comp c ON c.login = a.login WHERE a.resultat = 'succes' AND a.horodatage >= c.t0 AND a.methode <> 'local' ORDER BY a.horodatage;",
+  "hints": [
+   "Une 2e CTE donne, pour chaque compte compromis, l'heure de sa première réussite depuis une IP de spray.",
+   "WITH spray AS (...), comp AS (SELECT login, MIN(horodatage) AS t0 FROM auth_logs WHERE resultat = 'succes' AND source_ip IN (SELECT source_ip FROM spray) GROUP BY login) SELECT a.login, a.horodatage, ... FROM auth_logs a JOIN comp c ON c.login = a.login WHERE ..."
+  ]
+ },
+ "32.A": {
+  "solution": "WITH spray AS (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100), vises AS (SELECT DISTINCT login FROM auth_logs WHERE resultat = 'echec' AND source_ip IN (SELECT source_ip FROM spray)) SELECT c.service, COUNT(*) AS comptes, COUNT(v.login) AS vises FROM comptes_ad c LEFT JOIN vises v ON v.login = c.login GROUP BY c.service ORDER BY c.service;",
+  "hints": [
+   "SQL Server refuse une sous-requête à l'intérieur d'un agrégat (SUM(CASE WHEN x IN (SELECT ...))) : calcule les comptes visés dans une CTE, puis fais un LEFT JOIN et COUNT(v.login).",
+   "WITH spray AS (...), vises AS (SELECT DISTINCT login FROM auth_logs WHERE resultat = 'echec' AND source_ip IN (SELECT source_ip FROM spray)) SELECT c.service, COUNT(*) AS comptes, COUNT(v.login) AS vises FROM comptes_ad c LEFT JOIN vises v ON v.login = c.login GROUP BY c.service ORDER BY c.service"
+  ],
+  "note": "SQL Server interdit une sous-requête dans une fonction d'agrégat (erreur 130) : on passe par une CTE et un LEFT JOIN, COUNT(colonne) ignorant les NULL."
+ },
+ "32.S": {
+  "solution": "WITH f AS (SELECT * FROM auth_logs WHERE resultat = 'succes' AND methode <> 'vpn' AND source_ip NOT IN (SELECT ip FROM postes)) SELECT g.source_ip, (SELECT STRING_AGG(l.login, ',') WITHIN GROUP (ORDER BY l.login) FROM (SELECT DISTINCT login FROM f WHERE f.source_ip = g.source_ip) AS l) AS comptes, (SELECT STRING_AGG(m.dest_host, ',') WITHIN GROUP (ORDER BY m.dest_host) FROM (SELECT DISTINCT dest_host FROM f WHERE f.source_ip = g.source_ip) AS m) AS machines, COUNT(*) AS connexions, MIN(g.horodatage) AS premiere, MAX(g.horodatage) AS derniere FROM f AS g GROUP BY g.source_ip ORDER BY premiere;",
+  "require": [
+   {
+    "re": "STRING_AGG",
+    "msg": "Concatène les valeurs avec STRING_AGG (l'équivalent de group_concat en SQL Server)."
+   }
+  ],
+  "hints": [
+   "group_concat devient STRING_AGG(colonne, ',') WITHIN GROUP (ORDER BY colonne). Mais STRING_AGG n'accepte pas DISTINCT : dédoublonne d'abord dans une sous-requête (SELECT DISTINCT ...).",
+   "WITH f AS (SELECT * FROM auth_logs WHERE ...) SELECT g.source_ip, (SELECT STRING_AGG(l.login, ',') WITHIN GROUP (ORDER BY l.login) FROM (SELECT DISTINCT login FROM f WHERE f.source_ip = g.source_ip) AS l) AS comptes, (... dest_host ...) AS machines, COUNT(*) AS connexions, ... FROM f AS g GROUP BY g.source_ip ORDER BY premiere"
+  ],
+  "note": "STRING_AGG remplace group_concat ; l'ordre se donne avec WITHIN GROUP (ORDER BY ...), et comme STRING_AGG(DISTINCT ...) n'existe pas, on dédoublonne dans une sous-requête."
+ },
+ "33.1": {
+  "solution": "SELECT SUBSTRING(expediteur, CHARINDEX('@', expediteur) + 1, LEN(expediteur)) AS domaine, COUNT(*) AS mails, COUNT(DISTINCT destinataire) AS destinataires, MIN(horodatage) AS premier FROM mail_logs GROUP BY SUBSTRING(expediteur, CHARINDEX('@', expediteur) + 1, LEN(expediteur)) ORDER BY premier DESC;",
+  "hints": [
+   "CHARINDEX('@', expediteur) donne la position de l'arobase, et SUBSTRING(texte, debut, longueur) extrait la suite (la longueur est obligatoire : LEN(expediteur) suffit).",
+   "SELECT SUBSTRING(expediteur, CHARINDEX('@', expediteur) + 1, LEN(expediteur)) AS domaine, COUNT(*) AS mails, ... GROUP BY SUBSTRING(expediteur, CHARINDEX('@', expediteur) + 1, LEN(expediteur)) ORDER BY premier DESC"
+  ],
+  "note": "substr(x, n) devient SUBSTRING(x, n, longueur) (longueur obligatoire) et instr devient CHARINDEX ; l'expression est répétée dans le GROUP BY."
+ },
+ "33.2": {
+  "solution": "WITH e AS (SELECT DISTINCT SUBSTRING(expediteur, CHARINDEX('@', expediteur) + 1, LEN(expediteur)) AS d FROM mail_logs) SELECT e.d AS suspect, k.domaine AS imite FROM e JOIN domaines_connus k ON REPLACE(REPLACE(e.d, '-', ''), '.', '') LIKE '%' + REPLACE(REPLACE(k.domaine, '-', ''), '.', '') + '%' AND e.d <> k.domaine;",
+  "hints": [
+   "En SQL Server, on concatène avec + (ou CONCAT) : le motif s'écrit '%' + REPLACE(REPLACE(k.domaine, '-', ''), '.', '') + '%'.",
+   "WITH e AS (SELECT DISTINCT SUBSTRING(expediteur, CHARINDEX('@', expediteur) + 1, LEN(expediteur)) AS d FROM mail_logs) SELECT e.d AS suspect, k.domaine AS imite FROM e JOIN domaines_connus k ON REPLACE(REPLACE(e.d, '-', ''), '.', '') LIKE '%' + ... + '%' AND e.d <> k.domaine"
+  ],
+  "note": "|| n'existe pas en T-SQL : on concatène avec + ou CONCAT()."
+ },
+ "33.3": {
+  "solution": "SELECT LOWER(RIGHT(piece_jointe, CHARINDEX('.', REVERSE(piece_jointe)) - 1)) AS extension, COUNT(*) AS nb, SUM(CASE WHEN verdict = 'livre' THEN 1 ELSE 0 END) AS livres FROM mail_logs WHERE piece_jointe IS NOT NULL GROUP BY LOWER(RIGHT(piece_jointe, CHARINDEX('.', REVERSE(piece_jointe)) - 1)) ORDER BY nb DESC;",
+  "hints": [
+   "Pour trouver le dernier point, retourne la chaîne : CHARINDEX('.', REVERSE(piece_jointe)) donne la longueur de l'extension plus 1, et RIGHT en prend la fin.",
+   "SELECT LOWER(RIGHT(piece_jointe, CHARINDEX('.', REVERSE(piece_jointe)) - 1)) AS extension, COUNT(*) AS nb, SUM(CASE WHEN verdict = 'livre' THEN 1 ELSE 0 END) AS livres ... GROUP BY LOWER(RIGHT(...)) ORDER BY nb DESC"
+  ],
+  "note": "L'astuce rtrim/replace de SQLite se remplace en SQL Server par RIGHT et CHARINDEX sur REVERSE(...), plus lisible."
+ },
+ "33.4": {
+  "solution": "WITH r AS (SELECT LEFT(destinataire, CHARINDEX('@', destinataire) - 1) AS login, horodatage AS recu FROM mail_logs WHERE expediteur = 'factures@eaux-de-seine-fr.com' AND verdict = 'livre'), c AS (SELECT r.login, r.recu, (SELECT MIN(horodatage) FROM clics k WHERE k.login = r.login AND k.url LIKE '%eaux-de-seine-fr.com%') AS clic FROM r) SELECT login, recu, clic, ROUND(DATEDIFF(second, recu, clic) / 60.0, 0) AS minutes FROM c WHERE clic IS NOT NULL ORDER BY clic;",
+  "hints": [
+   "LEFT(destinataire, CHARINDEX('@', destinataire) - 1) donne le login ; le délai en minutes vient de DATEDIFF(second, recu, clic) / 60.0.",
+   "WITH r AS (SELECT LEFT(destinataire, CHARINDEX('@', destinataire) - 1) AS login, horodatage AS recu FROM mail_logs WHERE ...), c AS (SELECT r.login, r.recu, (SELECT MIN(horodatage) FROM clics k WHERE ...) AS clic FROM r) SELECT login, recu, clic, ROUND(DATEDIFF(second, recu, clic) / 60.0, 0) AS minutes FROM c WHERE clic IS NOT NULL ORDER BY clic"
+  ],
+  "note": "substr(x, 1, n) devient LEFT(x, n) ; julianday est remplacé par DATEDIFF(second, ...)."
+ },
+ "33.5": {
+  "solution": "WITH cl AS (SELECT DISTINCT login FROM clics WHERE url LIKE '%eaux-de-seine-fr.com%') SELECT c.login, ad.nom, po.hostname AS host, MIN(f.horodatage) AS premier_lancement FROM cl c JOIN comptes_ad ad ON ad.login = c.login JOIN postes po ON po.utilisateur = c.login JOIN process_logs f ON f.host = po.hostname AND f.process IN ('cmd.exe', 'powershell.exe') JOIN process_logs pere ON pere.host = f.host AND pere.pid = f.ppid AND pere.process = 'winword.exe' GROUP BY c.login, ad.nom, po.hostname;",
+  "hints": [
+   "Joins process_logs à lui-même (enfant f, parent pere) sur le host et pere.pid = f.ppid.",
+   "WITH cl AS (SELECT DISTINCT login FROM clics WHERE url LIKE '%eaux-de-seine-fr.com%') SELECT c.login, ad.nom, po.hostname AS host, MIN(f.horodatage) AS premier_lancement FROM cl c JOIN comptes_ad ad ... JOIN postes po ... JOIN process_logs f ... JOIN process_logs pere ON pere.host = f.host AND pere.pid = f.ppid AND pere.process = 'winword.exe' GROUP BY ..."
+  ]
+ },
+ "33.A": {
+  "solution": "WITH r AS (SELECT LEFT(destinataire, CHARINDEX('@', destinataire) - 1) AS login, verdict FROM mail_logs WHERE expediteur = 'factures@eaux-de-seine-fr.com'), k AS (SELECT DISTINCT login FROM clics WHERE url LIKE '%eaux-de-seine-fr.com%') SELECT c.service, COUNT(*) AS vises, SUM(CASE WHEN r.verdict = 'livre' THEN 1 ELSE 0 END) AS recus, COUNT(k.login) AS cliqueurs FROM r JOIN comptes_ad c ON c.login = r.login LEFT JOIN k ON k.login = r.login GROUP BY c.service ORDER BY c.service;",
+  "hints": [
+   "SQL Server refuse une sous-requête dans un agrégat (SUM(CASE WHEN x IN (SELECT ...))) : mets les cliqueurs dans une CTE, fais un LEFT JOIN, puis COUNT(k.login).",
+   "WITH r AS (SELECT LEFT(destinataire, CHARINDEX('@', destinataire) - 1) AS login, verdict FROM mail_logs WHERE ...), k AS (SELECT DISTINCT login FROM clics WHERE ...) SELECT c.service, COUNT(*) AS vises, SUM(CASE WHEN r.verdict = 'livre' THEN 1 ELSE 0 END) AS recus, COUNT(k.login) AS cliqueurs FROM r JOIN comptes_ad c ... LEFT JOIN k ON k.login = r.login GROUP BY c.service ORDER BY c.service"
+  ],
+  "note": "Une sous-requête dans SUM(...) est interdite en SQL Server (erreur 130) : CTE puis LEFT JOIN."
+ },
+ "33.S": {
+  "solution": "WITH k AS (SELECT horodatage, login, SUBSTRING(url, 9, CHARINDEX('/', url + '/', 9) - 9) AS dom FROM clics) SELECT k.dom AS domaine, x.ip_dest AS ip, s.nom AS abonne, l.adresse, COUNT(*) AS visites FROM k JOIN postes p ON p.utilisateur = k.login JOIN proxy_logs x ON x.host = p.hostname AND x.domaine = k.dom AND x.horodatage BETWEEN k.horodatage AND DATEADD(second, 60, k.horodatage) JOIN lignes_internet l ON l.ip = x.ip_dest JOIN societes s ON s.siren = l.abonne_siren WHERE k.dom NOT IN (SELECT domaine FROM domaines_connus) GROUP BY k.dom, x.ip_dest, s.nom, l.adresse;",
+  "hints": [
+   "CHARINDEX accepte une position de départ : CHARINDEX('/', url + '/', 9) trouve le premier / après https:// (le + '/' évite une erreur quand l'URL n'a pas de chemin). Pour la fenêtre de 60 secondes, DATEADD(second, 60, horodatage).",
+   "WITH k AS (SELECT horodatage, login, SUBSTRING(url, 9, CHARINDEX('/', url + '/', 9) - 9) AS dom FROM clics) SELECT k.dom AS domaine, ... JOIN proxy_logs x ON x.host = p.hostname AND x.domaine = k.dom AND x.horodatage BETWEEN k.horodatage AND DATEADD(second, 60, k.horodatage) ... GROUP BY k.dom, x.ip_dest, s.nom, l.adresse"
+  ],
+  "note": "datetime(h, '+60 seconds') devient DATEADD(second, 60, h) ; le 3e argument de CHARINDEX évite le substr imbriqué."
+ },
+ "34.1": {
+  "solution": "WITH d AS (SELECT DISTINCT process, host FROM process_logs), l AS (SELECT process, STRING_AGG(host, ',') WITHIN GROUP (ORDER BY host) AS liste FROM d GROUP BY process) SELECT p.process, COUNT(DISTINCT p.host) AS machines, COUNT(*) AS executions, l.liste FROM process_logs p JOIN l ON l.process = p.process GROUP BY p.process, l.liste HAVING COUNT(DISTINCT p.host) <= 2 ORDER BY p.process;",
+  "require": [
+   {
+    "re": "STRING_AGG",
+    "msg": "Concatène les valeurs avec STRING_AGG (l'équivalent de group_concat en SQL Server)."
+   }
+  ],
+  "hints": [
+   "group_concat devient STRING_AGG(host, ',') WITHIN GROUP (ORDER BY host), mais sans DISTINCT possible : construis la liste dans une CTE à partir de SELECT DISTINCT process, host.",
+   "WITH d AS (SELECT DISTINCT process, host FROM process_logs), l AS (SELECT process, STRING_AGG(host, ',') WITHIN GROUP (ORDER BY host) AS liste FROM d GROUP BY process) SELECT p.process, COUNT(DISTINCT p.host) AS machines, COUNT(*) AS executions, l.liste FROM process_logs p JOIN l ON l.process = p.process GROUP BY p.process, l.liste HAVING ... ORDER BY p.process"
+  ],
+  "note": "STRING_AGG(DISTINCT ...) n'existe pas en SQL Server : on dédoublonne avant, dans une CTE."
+ },
+ "34.2": {
+  "solution": "SELECT horodatage, host, process, ligne_commande FROM process_logs WHERE LOWER(ligne_commande) LIKE '%-enc%' OR LOWER(ligne_commande) LIKE '%hidden%' OR LOWER(ligne_commande) LIKE '%/create%' OR LOWER(ligne_commande) LIKE '%lsass%' ORDER BY horodatage;",
+  "hints": [
+   "La base est sensible à la casse : LOWER(ligne_commande) LIKE '%motif%' pour chaque motif, reliés par OR.",
+   "SELECT horodatage, host, process, ligne_commande FROM process_logs WHERE LOWER(ligne_commande) LIKE '%-enc%' OR ... ORDER BY horodatage"
+  ]
+ },
+ "34.3": {
+  "solution": "SELECT f.horodatage AS heure, p.process AS parent, f.process AS enfant FROM process_logs f JOIN process_logs p ON p.host = f.host AND p.pid = f.ppid WHERE f.host = 'PC-COMPTA-07' AND f.horodatage BETWEEN '2028-03-06 09:00:00' AND '2028-03-06 10:00:00' ORDER BY f.horodatage;",
+  "hints": [
+   "Auto-jointure : le parent p a le même host et p.pid = f.ppid.",
+   "SELECT f.horodatage AS heure, p.process AS parent, f.process AS enfant FROM process_logs f JOIN process_logs p ON p.host = f.host AND p.pid = f.ppid WHERE f.host = 'PC-COMPTA-07' AND f.horodatage BETWEEN ... ORDER BY f.horodatage"
+  ]
+ },
+ "34.4": {
+  "solution": "WITH arbre(host, pid, process, niveau, horodatage) AS (SELECT host, pid, process, 0, horodatage FROM process_logs WHERE process = 'winword.exe' AND ligne_commande LIKE '%facture[_]0306%' UNION ALL SELECT p.host, p.pid, p.process, a.niveau + 1, p.horodatage FROM process_logs p JOIN arbre a ON p.host = a.host AND p.ppid = a.pid) SELECT horodatage, niveau, REPLICATE('..', niveau) + process AS arbre FROM arbre ORDER BY horodatage;",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "Il faut une CTE récursive : en SQL Server, un WITH (sans RECURSIVE) dont la partie après UNION ALL relit la CTE."
+   }
+  ],
+  "hints": [
+   "WITH sans RECURSIVE : l'ancre prend winword.exe, la partie récursive joint les enfants (p.ppid = a.pid). REPLICATE('..', niveau) répète les points.",
+   "WITH arbre(host, pid, process, niveau, horodatage) AS (SELECT host, pid, process, 0, horodatage FROM process_logs WHERE ... UNION ALL SELECT p.host, p.pid, p.process, a.niveau + 1, p.horodatage FROM process_logs p JOIN arbre a ON p.host = a.host AND p.ppid = a.pid) SELECT horodatage, niveau, REPLICATE('..', niveau) + process AS arbre FROM arbre ORDER BY horodatage"
+  ],
+  "note": "SQL Server n'écrit pas RECURSIVE ; REPLICATE(chaine, n) remplace le substr sur une chaîne de points, et + concatène."
+ },
+ "34.5": {
+  "solution": "WITH r AS (SELECT * FROM process_logs WHERE process = 'rundll32.exe' AND ligne_commande LIKE '%upd.dll%'), g AS (SELECT host, MIN(horodatage) AS premiere, COUNT(*) AS executions FROM r GROUP BY host) SELECT g.host, g.premiere, g.executions, p.process AS parent_premiere FROM g JOIN r ON r.host = g.host AND r.horodatage = g.premiere LEFT JOIN process_logs p ON p.host = r.host AND p.pid = r.ppid ORDER BY g.premiere;",
+  "hints": [
+   "Une CTE filtre les rundll32, une deuxième agrège par host ; rejoins la première exécution puis son parent en LEFT JOIN.",
+   "WITH r AS (SELECT * FROM process_logs WHERE ...), g AS (SELECT host, MIN(horodatage) AS premiere, COUNT(*) AS executions FROM r GROUP BY host) SELECT g.host, g.premiere, g.executions, p.process AS parent_premiere FROM g JOIN r ON ... LEFT JOIN process_logs p ON p.host = r.host AND p.pid = r.ppid ORDER BY g.premiere"
+  ]
+ },
+ "34.A": {
+  "solution": "SELECT f.host, CAST(f.horodatage AS DATE) AS jour, COUNT(*) AS executions, MIN(f.horodatage) AS premiere, MAX(f.horodatage) AS derniere FROM process_logs f LEFT JOIN process_logs p ON p.host = f.host AND p.pid = f.ppid WHERE f.process = 'rundll32.exe' AND f.ligne_commande LIKE '%upd.dll%' AND p.pid IS NULL GROUP BY f.host, CAST(f.horodatage AS DATE) ORDER BY jour;",
+  "hints": [
+   "LEFT JOIN vers le parent puis p.pid IS NULL pour les orphelins ; CAST(f.horodatage AS DATE) donne le jour.",
+   "SELECT f.host, CAST(f.horodatage AS DATE) AS jour, COUNT(*) AS executions, ... FROM process_logs f LEFT JOIN process_logs p ON p.host = f.host AND p.pid = f.ppid WHERE ... AND p.pid IS NULL GROUP BY f.host, CAST(f.horodatage AS DATE) ORDER BY jour"
+  ],
+  "note": "date(h) devient CAST(h AS DATE), répété dans le GROUP BY."
+ },
+ "34.S": {
+  "solution": "WITH b AS (SELECT f.login, d.id AS dep, d.lieu, d.debut, d.fin, f.host, f.process, f.horodatage FROM process_logs f JOIN deplacements d ON d.login = f.login AND f.horodatage BETWEEN d.debut AND d.fin JOIN postes po ON po.hostname = f.host AND po.type = 'poste'), l AS (SELECT dep, host, STRING_AGG(process, ',') WITHIN GROUP (ORDER BY process) AS programmes FROM (SELECT DISTINCT dep, host, process FROM b) AS x GROUP BY dep, host) SELECT b.login, b.lieu, b.host, COUNT(*) AS processus, l.programmes, MIN(b.horodatage) AS premier, (SELECT COUNT(*) FROM auth_logs a WHERE a.login = b.login AND a.resultat = 'succes' AND a.horodatage BETWEEN b.debut AND b.fin) AS connexions FROM b JOIN l ON l.dep = b.dep AND l.host = b.host GROUP BY b.login, b.dep, b.lieu, b.debut, b.fin, b.host, l.programmes ORDER BY premier, b.host;",
+  "require": [
+   {
+    "re": "STRING_AGG",
+    "msg": "Concatène les valeurs avec STRING_AGG (l'équivalent de group_concat en SQL Server)."
+   }
+  ],
+  "hints": [
+   "Mets la jointure processus / déplacements / postes dans une CTE, puis construis la liste des programmes avec STRING_AGG(...) WITHIN GROUP (ORDER BY process) sur un SELECT DISTINCT (STRING_AGG n'accepte pas DISTINCT).",
+   "WITH b AS (SELECT f.login, d.id AS dep, d.lieu, d.debut, d.fin, f.host, f.process, f.horodatage FROM process_logs f JOIN deplacements d ... JOIN postes po ...), l AS (SELECT dep, host, STRING_AGG(process, ',') WITHIN GROUP (ORDER BY process) AS programmes FROM (SELECT DISTINCT dep, host, process FROM b) AS x GROUP BY dep, host) SELECT b.login, b.lieu, b.host, COUNT(*) AS processus, l.programmes, ... FROM b JOIN l ... GROUP BY ... ORDER BY premier, b.host"
+  ],
+  "note": "group_concat(DISTINCT x ORDER BY x) devient STRING_AGG(x, ',') WITHIN GROUP (ORDER BY x) sur des valeurs dédoublonnées à part."
+ },
+ "35.1": {
+  "solution": "SELECT a.login, a.dest_host, MIN(a.horodatage) AS premiere FROM auth_logs a JOIN comptes_ad c ON c.login = a.login WHERE c.admin = 1 AND a.resultat = 'succes' GROUP BY a.login, a.dest_host HAVING MIN(a.horodatage) >= '2028-03-06' ORDER BY premiere;",
+  "hints": [
+   "HAVING MIN(a.horodatage) >= '2028-03-06' garde les couples nouveaux ; la chaîne est convertie en DATETIME2 automatiquement.",
+   "SELECT a.login, a.dest_host, MIN(a.horodatage) AS premiere FROM auth_logs a JOIN comptes_ad c ON c.login = a.login WHERE c.admin = 1 AND a.resultat = 'succes' GROUP BY a.login, a.dest_host HAVING MIN(a.horodatage) >= '2028-03-06' ORDER BY premiere"
+  ]
+ },
+ "35.2": {
+  "solution": "SELECT a.horodatage, a.login, p.hostname AS poste_source, p.utilisateur AS proprietaire, a.dest_host FROM auth_logs a JOIN comptes_ad c ON c.login = a.login AND c.admin = 1 JOIN postes p ON p.ip = a.source_ip AND p.type = 'poste' WHERE a.resultat = 'succes' AND p.utilisateur <> a.login ORDER BY a.horodatage;",
+  "hints": [
+   "Joins postes sur l'IP source et compare son utilisateur au login.",
+   "SELECT a.horodatage, a.login, p.hostname AS poste_source, p.utilisateur AS proprietaire, a.dest_host FROM auth_logs a JOIN comptes_ad c ... JOIN postes p ON p.ip = a.source_ip AND p.type = 'poste' WHERE a.resultat = 'succes' AND p.utilisateur <> a.login ORDER BY a.horodatage"
+  ]
+ },
+ "35.3": {
+  "solution": "WITH n AS (SELECT a.login, CAST(a.horodatage AS DATE) AS nuit, a.dest_host FROM auth_logs a JOIN comptes_ad c ON c.login = a.login WHERE c.admin = 1 AND a.resultat = 'succes' AND DATEPART(hour, a.horodatage) < 6), l AS (SELECT login, nuit, STRING_AGG(dest_host, ',') WITHIN GROUP (ORDER BY dest_host) AS machines FROM (SELECT DISTINCT login, nuit, dest_host FROM n) AS x GROUP BY login, nuit) SELECT n.login, n.nuit, COUNT(*) AS connexions, l.machines FROM n JOIN l ON l.login = n.login AND l.nuit = n.nuit GROUP BY n.login, n.nuit, l.machines ORDER BY n.nuit, n.login;",
+  "require": [
+   {
+    "re": "STRING_AGG",
+    "msg": "Concatène les valeurs avec STRING_AGG (l'équivalent de group_concat en SQL Server)."
+   }
+  ],
+  "hints": [
+   "DATEPART(hour, horodatage) donne l'heure en entier, CAST(... AS DATE) le jour. Pour la liste sans doublon, STRING_AGG ... WITHIN GROUP (ORDER BY ...) sur un SELECT DISTINCT.",
+   "WITH n AS (SELECT a.login, CAST(a.horodatage AS DATE) AS nuit, a.dest_host FROM auth_logs a JOIN comptes_ad c ... WHERE ... AND DATEPART(hour, a.horodatage) < 6), l AS (SELECT login, nuit, STRING_AGG(dest_host, ',') WITHIN GROUP (ORDER BY dest_host) AS machines FROM (SELECT DISTINCT login, nuit, dest_host FROM n) AS x GROUP BY login, nuit) SELECT n.login, n.nuit, COUNT(*) AS connexions, l.machines FROM n JOIN l ... GROUP BY n.login, n.nuit, l.machines ORDER BY n.nuit, n.login"
+  ],
+  "note": "CAST(strftime('%H', h) AS INTEGER) devient DATEPART(hour, h) ; group_concat(DISTINCT ...) se fait avec STRING_AGG sur des valeurs dédoublonnées."
+ },
+ "35.4": {
+  "solution": "SELECT a.login, d.lieu, COUNT(*) AS connexions, MIN(a.horodatage) AS premiere, MAX(a.horodatage) AS derniere FROM auth_logs a JOIN deplacements d ON d.login = a.login AND a.horodatage BETWEEN d.debut AND d.fin WHERE a.resultat = 'succes' AND a.methode <> 'vpn' GROUP BY a.login, d.lieu;",
+  "hints": [
+   "Jointure d'intervalle : a.horodatage BETWEEN d.debut AND d.fin.",
+   "SELECT a.login, d.lieu, COUNT(*) AS connexions, MIN(a.horodatage) AS premiere, MAX(a.horodatage) AS derniere FROM auth_logs a JOIN deplacements d ON d.login = a.login AND a.horodatage BETWEEN d.debut AND d.fin WHERE ... GROUP BY a.login, d.lieu"
+  ]
+ },
+ "35.5": {
+  "solution": "WITH aretes AS (SELECT p.hostname AS src, a.dest_host AS dest, a.horodatage AS t FROM auth_logs a JOIN postes p ON p.ip = a.source_ip WHERE a.login = 'adm.varenne' AND a.resultat = 'succes' AND a.horodatage >= '2028-03-06'), c(dest, chemin, t) AS (SELECT dest, CAST(src + ' > ' + dest AS NVARCHAR(4000)), t FROM aretes WHERE src = 'PC-COMPTA-07' UNION ALL SELECT e.dest, CAST(c.chemin + ' > ' + e.dest AS NVARCHAR(4000)), e.t FROM c JOIN aretes e ON e.src = c.dest AND e.t > c.t AND CHARINDEX(e.dest, c.chemin) = 0) SELECT chemin, t AS arrivee FROM c WHERE dest = 'DC01';",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "Il faut une CTE récursive : en SQL Server, un WITH (sans RECURSIVE) dont la partie après UNION ALL relit la CTE."
+   }
+  ],
+  "hints": [
+   "Une CTE simple pour les arêtes, puis une CTE récursive (pas de mot RECURSIVE) ; le chemin doit avoir le même type des deux côtés : CAST(... AS NVARCHAR(4000)). CHARINDEX évite les boucles.",
+   "WITH aretes AS (...), c(dest, chemin, t) AS (SELECT dest, CAST(src + ' > ' + dest AS NVARCHAR(4000)), t FROM aretes WHERE src = 'PC-COMPTA-07' UNION ALL SELECT e.dest, CAST(c.chemin + ' > ' + e.dest AS NVARCHAR(4000)), e.t FROM c JOIN aretes e ON e.src = c.dest AND e.t > c.t AND CHARINDEX(e.dest, c.chemin) = 0) SELECT chemin, t AS arrivee FROM c WHERE dest = 'DC01'"
+  ],
+  "note": "Une CTE ordinaire et une CTE récursive se mélangent dans le même WITH ; le chemin, qui s'allonge, doit être typé NVARCHAR(4000) des deux côtés."
+ },
+ "35.A": {
+  "solution": "SELECT a.login, SUM(CASE WHEN DATEPART(hour, a.horodatage) < 6 THEN 1 ELSE 0 END) AS nuit, SUM(CASE WHEN DATEPART(hour, a.horodatage) BETWEEN 6 AND 19 THEN 1 ELSE 0 END) AS jour, SUM(CASE WHEN DATEPART(hour, a.horodatage) >= 20 THEN 1 ELSE 0 END) AS soir FROM auth_logs a JOIN comptes_ad c ON c.login = a.login WHERE c.admin = 1 AND a.resultat = 'succes' GROUP BY a.login ORDER BY a.login;",
+  "hints": [
+   "DATEPART(hour, a.horodatage) renvoie l'heure sous forme d'entier, prête à comparer.",
+   "SELECT a.login, SUM(CASE WHEN DATEPART(hour, a.horodatage) < 6 THEN 1 ELSE 0 END) AS nuit, SUM(CASE WHEN DATEPART(hour, a.horodatage) BETWEEN 6 AND 19 THEN 1 ELSE 0 END) AS jour, ... GROUP BY a.login ORDER BY a.login"
+  ],
+  "note": "CAST(strftime('%H', h) AS INTEGER) devient DATEPART(hour, h)."
+ },
+ "35.S": {
+  "solution": "WITH aretes AS (SELECT p.hostname AS src, a.dest_host AS dest, a.horodatage AS t FROM auth_logs a JOIN postes p ON p.ip = a.source_ip WHERE a.login = 'adm.varenne' AND a.resultat = 'succes' AND a.horodatage >= '2028-03-06'), c(dest, chemin, t, depart) AS (SELECT dest, CAST(src + ' > ' + dest AS NVARCHAR(4000)), t, t FROM aretes WHERE src = 'PC-COMPTA-07' UNION ALL SELECT e.dest, CAST(c.chemin + ' > ' + e.dest AS NVARCHAR(4000)), e.t, c.depart FROM c JOIN aretes e ON e.src = c.dest AND e.t > c.t AND CHARINDEX(e.dest, c.chemin) = 0) SELECT DISTINCT c.chemin, c.depart, c.t AS arrivee FROM c JOIN postes po ON po.hostname = c.dest WHERE po.type = 'ot';",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "Il faut une CTE récursive : en SQL Server, un WITH (sans RECURSIVE) dont la partie après UNION ALL relit la CTE."
+   }
+  ],
+  "hints": [
+   "Même parcours qu'en 35.5, en transportant l'heure du premier saut (depart) ; chemin en NVARCHAR(4000) des deux côtés.",
+   "WITH aretes AS (...), c(dest, chemin, t, depart) AS (SELECT dest, CAST(src + ' > ' + dest AS NVARCHAR(4000)), t, t FROM aretes WHERE src = 'PC-COMPTA-07' UNION ALL SELECT e.dest, CAST(c.chemin + ' > ' + e.dest AS NVARCHAR(4000)), e.t, c.depart FROM c JOIN aretes e ON ...) SELECT DISTINCT c.chemin, c.depart, c.t AS arrivee FROM c JOIN postes po ON po.hostname = c.dest WHERE po.type = 'ot'"
+  ]
+ },
+ "36.1": {
+  "solution": "SELECT host, domaine, COUNT(*) AS connexions FROM proxy_logs WHERE domaine NOT IN (SELECT domaine FROM domaines_connus) GROUP BY host, domaine ORDER BY connexions DESC, host;",
+  "hints": [
+   "NOT IN (SELECT domaine FROM domaines_connus) exclut les domaines connus.",
+   "SELECT host, domaine, COUNT(*) AS connexions FROM proxy_logs WHERE domaine NOT IN (SELECT domaine FROM domaines_connus) GROUP BY host, domaine ORDER BY connexions DESC, host"
+  ]
+ },
+ "36.2": {
+  "solution": "SELECT TOP 10 horodatage, DATEDIFF(second, LAG(horodatage) OVER (ORDER BY horodatage), horodatage) AS ecart_s FROM proxy_logs WHERE host = 'PC-COMPTA-07' AND domaine = 'cdn-update-check.net' ORDER BY horodatage;",
+  "hints": [
+   "LAG(horodatage) OVER (ORDER BY horodatage) donne la connexion précédente, et DATEDIFF(second, precedent, horodatage) l'écart entier en secondes. SELECT TOP 10 pour les premières.",
+   "SELECT TOP 10 horodatage, DATEDIFF(second, LAG(horodatage) OVER (ORDER BY horodatage), horodatage) AS ecart_s FROM proxy_logs WHERE ... ORDER BY horodatage"
+  ],
+  "note": "DATEDIFF(second, ...) remplace le calcul julianday * 86400 ; LIMIT devient TOP."
+ },
+ "36.3": {
+  "solution": "WITH iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, CAST(DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage), horodatage) AS FLOAT) AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDEVP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50) SELECT host, domaine, n AS intervalles, ROUND(m, 0) AS moyenne_s, ROUND(sd, 1) AS ecart_type, ROUND(sd / m, 3) AS cv FROM st ORDER BY cv, host;",
+  "require": [
+   {
+    "re": "LAG",
+    "msg": "Calcule les intervalles avec LAG."
+   }
+  ],
+  "hints": [
+   "Intervalles : CAST(DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage), horodatage) AS FLOAT). SQL Server a une fonction d'écart type de population : STDEVP.",
+   "WITH iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, CAST(DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage), horodatage) AS FLOAT) AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDEVP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50) SELECT host, domaine, n AS intervalles, ROUND(m, 0) AS moyenne_s, ... ORDER BY cv, host"
+  ],
+  "note": "STDEVP remplace sqrt(AVG(x*x) - AVG(x)*AVG(x)). Le CAST en FLOAT évite une moyenne entière (DATEDIFF renvoie un INT), et ROUND exige son 2e argument."
+ },
+ "36.4": {
+  "solution": "WITH iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, CAST(DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage), horodatage) AS FLOAT) AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDEVP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50) SELECT host, domaine, ip_dest, ROUND(m, 0) AS moyenne_s FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus);",
+  "hints": [
+   "Reprends les CTE de 36.3 (DATEDIFF avec LAG, puis AVG et STDEVP) et filtre sur sd / m < 0.05.",
+   "WITH iv AS (...), st AS (... AVG(dt) AS m, STDEVP(dt) AS sd ... HAVING COUNT(dt) >= 50) SELECT host, domaine, ip_dest, ROUND(m, 0) AS moyenne_s FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus)"
+  ],
+  "note": "STDEVP calcule l'écart type de population ; ROUND(m, 0) car la longueur est obligatoire en T-SQL."
+ },
+ "36.5": {
+  "solution": "WITH iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, CAST(DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage), horodatage) AS FLOAT) AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDEVP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50), b AS (SELECT DISTINCT domaine FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus)), h AS (SELECT DISTINCT domaine, ip_dest, host FROM proxy_logs WHERE domaine IN (SELECT domaine FROM b)), l AS (SELECT domaine, ip_dest, STRING_AGG(host, ',') WITHIN GROUP (ORDER BY host) AS machines FROM h GROUP BY domaine, ip_dest) SELECT p.domaine, p.ip_dest, l.machines, MIN(p.horodatage) AS premier, COUNT(*) AS connexions, SUM(p.octets_out) AS octets_envoyes FROM proxy_logs p JOIN l ON l.domaine = p.domaine AND l.ip_dest = p.ip_dest GROUP BY p.domaine, p.ip_dest, l.machines;",
+  "require": [
+   {
+    "re": "STRING_AGG",
+    "msg": "Concatène les valeurs avec STRING_AGG (l'équivalent de group_concat en SQL Server)."
+   }
+  ],
+  "hints": [
+   "Après les CTE de détection, dédoublonne (domaine, ip_dest, host) puis fais STRING_AGG(host, ',') WITHIN GROUP (ORDER BY host) : STRING_AGG n'accepte pas DISTINCT.",
+   "WITH iv AS (...), st AS (...), b AS (SELECT DISTINCT domaine FROM st WHERE ...), h AS (SELECT DISTINCT domaine, ip_dest, host FROM proxy_logs WHERE domaine IN (SELECT domaine FROM b)), l AS (SELECT domaine, ip_dest, STRING_AGG(host, ',') WITHIN GROUP (ORDER BY host) AS machines FROM h GROUP BY domaine, ip_dest) SELECT p.domaine, p.ip_dest, l.machines, MIN(p.horodatage) AS premier, ... FROM proxy_logs p JOIN l ... GROUP BY p.domaine, p.ip_dest, l.machines"
+  ],
+  "note": "group_concat(DISTINCT ... ORDER BY ...) se traduit par STRING_AGG ... WITHIN GROUP (ORDER BY ...) sur des lignes déjà dédoublonnées."
+ },
+ "36.A": {
+  "solution": "WITH iv AS (SELECT host, domaine, CAST(DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage), horodatage) AS FLOAT) AS dt FROM proxy_logs), st AS (SELECT host, domaine, AVG(dt) AS m, STDEVP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine HAVING COUNT(dt) >= 10) SELECT domaine, COUNT(*) AS couples, ROUND(AVG(sd / m), 2) AS cv_moyen FROM st GROUP BY domaine ORDER BY cv_moyen;",
+  "hints": [
+   "Intervalles avec DATEDIFF(second, LAG(...), horodatage) en FLOAT, puis AVG et STDEVP par couple, puis moyenne des cv par domaine.",
+   "WITH iv AS (SELECT host, domaine, CAST(DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage), horodatage) AS FLOAT) AS dt FROM proxy_logs), st AS (SELECT host, domaine, AVG(dt) AS m, STDEVP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine HAVING COUNT(dt) >= 10) SELECT domaine, COUNT(*) AS couples, ROUND(AVG(sd / m), 2) AS cv_moyen FROM st GROUP BY domaine ORDER BY cv_moyen"
+  ]
+ },
+ "36.S": {
+  "solution": "WITH iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, CAST(DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage), horodatage) AS FLOAT) AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDEVP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50), b AS (SELECT DISTINCT host, domaine FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus)), t AS (SELECT b.host, (SELECT MIN(horodatage) FROM process_logs p WHERE p.host = b.host AND p.process = 'rundll32.exe' AND p.ligne_commande LIKE '%upd.dll%') AS chargement, (SELECT MIN(horodatage) FROM proxy_logs x WHERE x.host = b.host AND x.domaine = b.domaine) AS premier_battement, (SELECT MAX(horodatage) FROM proxy_logs x WHERE x.host = b.host AND x.domaine = b.domaine) AS dernier_battement FROM b) SELECT host, chargement, premier_battement, dernier_battement, DATEDIFF(second, chargement, premier_battement) AS secondes FROM t ORDER BY chargement;",
+  "hints": [
+   "Reprends la détection de 36.4 (LAG, DATEDIFF, STDEVP) puis, par host, des sous-requêtes MIN et MAX ; le délai est DATEDIFF(second, chargement, premier_battement).",
+   "WITH iv AS (...), st AS (...), b AS (SELECT DISTINCT host, domaine FROM st WHERE ...), t AS (SELECT b.host, (SELECT MIN(horodatage) FROM process_logs p WHERE ...) AS chargement, (SELECT MIN(horodatage) FROM proxy_logs x WHERE ...) AS premier_battement, ... FROM b) SELECT host, chargement, premier_battement, dernier_battement, DATEDIFF(second, chargement, premier_battement) AS secondes FROM t ORDER BY chargement"
+  ]
+ },
+ "37.1": {
+  "solution": "SELECT TOP 5 domaine, COUNT(*) AS requetes, ROUND(AVG(CAST(LEN(requete) AS FLOAT)), 1) AS longueur_moy, COUNT(DISTINCT requete) AS distinctes FROM dns_logs GROUP BY domaine ORDER BY longueur_moy DESC;",
+  "hints": [
+   "length devient LEN ; comme LEN renvoie un entier, AVG serait entier : CAST en FLOAT. Et TOP 5 pour les cinq premiers.",
+   "SELECT TOP 5 domaine, COUNT(*) AS requetes, ROUND(AVG(CAST(LEN(requete) AS FLOAT)), 1) AS longueur_moy, COUNT(DISTINCT requete) AS distinctes FROM dns_logs GROUP BY domaine ORDER BY longueur_moy DESC"
+  ],
+  "note": "LEN remplace length (il ignore les espaces de fin) ; AVG d'un entier est tronqué, d'où le CAST."
+ },
+ "37.2": {
+  "solution": "SELECT host, MIN(horodatage) AS debut, MAX(horodatage) AS fin, COUNT(*) AS requetes FROM dns_logs WHERE domaine = (SELECT TOP 1 domaine FROM dns_logs GROUP BY domaine ORDER BY AVG(CAST(LEN(requete) AS FLOAT)) DESC) GROUP BY host;",
+  "hints": [
+   "La sous-requête prend le domaine voulu avec SELECT TOP 1 ... ORDER BY AVG(CAST(LEN(requete) AS FLOAT)) DESC.",
+   "SELECT host, MIN(horodatage) AS debut, MAX(horodatage) AS fin, COUNT(*) AS requetes FROM dns_logs WHERE domaine = (SELECT TOP 1 domaine FROM dns_logs GROUP BY domaine ORDER BY AVG(CAST(LEN(requete) AS FLOAT)) DESC) GROUP BY host"
+  ],
+  "note": "TOP 1 est accepté dans une sous-requête scalaire avec ORDER BY."
+ },
+ "37.3": {
+  "solution": "WITH x AS (SELECT CAST(LEFT(d.requete, CHARINDEX('.', d.requete) - 1) AS INT) AS seq, s.value AS hex FROM dns_logs d CROSS APPLY STRING_SPLIT(d.requete, '.', 1) s WHERE d.domaine = 'tunnel-meteo.net' AND s.ordinal = 2) SELECT seq, hex FROM x ORDER BY seq;",
+  "hints": [
+   "SQL Server 2022 sait découper une chaîne : CROSS APPLY STRING_SPLIT(requete, '.', 1) renvoie chaque morceau (value) avec son rang (ordinal) grâce au 3e argument.",
+   "WITH x AS (SELECT CAST(LEFT(d.requete, CHARINDEX('.', d.requete) - 1) AS INT) AS seq, s.value AS hex FROM dns_logs d CROSS APPLY STRING_SPLIT(d.requete, '.', 1) s WHERE d.domaine = 'tunnel-meteo.net' AND s.ordinal = 2) SELECT seq, hex FROM x ORDER BY seq"
+  ],
+  "note": "STRING_SPLIT(texte, séparateur, 1) avec la colonne ordinal (nouveauté de SQL Server 2022) remplace les substr/instr imbriqués."
+ },
+ "37.4": {
+  "solution": "WITH x AS (SELECT CAST(LEFT(d.requete, CHARINDEX('.', d.requete) - 1) AS INT) AS seq, s.value AS hex FROM dns_logs d CROSS APPLY STRING_SPLIT(d.requete, '.', 1) s WHERE d.domaine = 'tunnel-meteo.net' AND s.ordinal = 2) SELECT seq, CONVERT(VARCHAR(MAX), CONVERT(VARBINARY(MAX), hex, 2)) AS texte FROM x ORDER BY seq;",
+  "require": [
+   {
+    "re": "VARBINARY",
+    "msg": "Décode l'hexadécimal avec CONVERT(VARBINARY(MAX), hex, 2), puis convertis le résultat en texte."
+   }
+  ],
+  "hints": [
+   "CONVERT(VARBINARY(MAX), hex, 2) lit une chaîne hexadécimale (style 2 : sans préfixe 0x) et la transforme en octets ; un second CONVERT en VARCHAR la rend lisible.",
+   "WITH x AS (... STRING_SPLIT(d.requete, '.', 1) ... s.ordinal = 2) SELECT seq, CONVERT(VARCHAR(MAX), CONVERT(VARBINARY(MAX), hex, 2)) AS texte FROM x ORDER BY seq"
+  ],
+  "note": "unhex n'existe pas : CONVERT(VARBINARY(MAX), hex, 2) décode l'hexadécimal, puis CONVERT(VARCHAR(MAX), ...) interprète les octets comme du texte."
+ },
+ "37.5": {
+  "solution": "WITH x AS (SELECT CAST(LEFT(d.requete, CHARINDEX('.', d.requete) - 1) AS INT) AS seq, s.value AS hex FROM dns_logs d CROSS APPLY STRING_SPLIT(d.requete, '.', 1) s WHERE d.domaine = 'tunnel-meteo.net' AND s.ordinal = 2) SELECT STRING_AGG(CONVERT(VARCHAR(MAX), CONVERT(VARBINARY(MAX), hex, 2)), '') WITHIN GROUP (ORDER BY seq) AS message, SUM(LEN(hex) / 2) AS octets FROM x;",
+  "require": [
+   {
+    "re": "VARBINARY",
+    "msg": "Décode l'hexadécimal avec CONVERT(VARBINARY(MAX), hex, 2), puis convertis le résultat en texte."
+   }
+  ],
+  "hints": [
+   "STRING_AGG(texte, '') WITHIN GROUP (ORDER BY seq) recolle les morceaux dans l'ordre ; LEN remplace length.",
+   "WITH x AS (...) SELECT STRING_AGG(CONVERT(VARCHAR(MAX), CONVERT(VARBINARY(MAX), hex, 2)), '') WITHIN GROUP (ORDER BY seq) AS message, SUM(LEN(hex) / 2) AS octets FROM x"
+  ],
+  "note": "group_concat(x, '' ORDER BY seq) devient STRING_AGG(x, '') WITHIN GROUP (ORDER BY seq) ; le texte doit être en VARCHAR(MAX) pour dépasser 8000 octets sans erreur."
+ },
+ "37.A": {
+  "solution": "SELECT domaine, COUNT(*) AS requetes, COUNT(DISTINCT requete) AS distinctes, ROUND(AVG(CAST(LEN(requete) AS FLOAT)), 1) AS longueur_moy FROM dns_logs WHERE host = 'SRV-FICHIERS' AND horodatage BETWEEN '2028-03-09 00:30:00' AND '2028-03-09 02:00:00' GROUP BY domaine ORDER BY requetes DESC;",
+  "hints": [
+   "LEN pour la longueur, en FLOAT avant AVG pour garder la décimale.",
+   "SELECT domaine, COUNT(*) AS requetes, COUNT(DISTINCT requete) AS distinctes, ROUND(AVG(CAST(LEN(requete) AS FLOAT)), 1) AS longueur_moy FROM dns_logs WHERE host = 'SRV-FICHIERS' AND horodatage BETWEEN ... GROUP BY domaine ORDER BY requetes DESC"
+  ]
+ },
+ "37.S": {
+  "solution": "WITH t0 AS (SELECT MIN(horodatage) AS h FROM dns_logs WHERE domaine = 'tunnel-meteo.net') SELECT horodatage AS quand, 'auth' AS journal, login AS compte, dest_host AS machine, methode AS detail FROM auth_logs WHERE resultat = 'succes' AND horodatage BETWEEN '2028-03-09 00:30:00' AND (SELECT h FROM t0) UNION ALL SELECT horodatage, 'process', login, host, ligne_commande FROM process_logs WHERE horodatage BETWEEN '2028-03-09 00:30:00' AND (SELECT h FROM t0) UNION ALL SELECT d.horodatage, 'dns', NULL, d.host, CONVERT(VARCHAR(MAX), CONVERT(VARBINARY(MAX), s.value, 2)) FROM dns_logs d CROSS APPLY STRING_SPLIT(d.requete, '.', 1) s WHERE d.domaine = 'tunnel-meteo.net' AND s.ordinal = 2 AND d.horodatage = (SELECT h FROM t0) ORDER BY quand;",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "Empile les journaux avec UNION ALL."
+   },
+   {
+    "re": "VARBINARY",
+    "msg": "Décode l'hexadécimal avec CONVERT(VARBINARY(MAX), hex, 2), puis convertis le résultat en texte."
+   }
+  ],
+  "hints": [
+   "Trois SELECT empilés par UNION ALL ; pour le morceau DNS, STRING_SPLIT(requete, '.', 1) avec ordinal = 2, puis CONVERT(VARBINARY(MAX), ..., 2) et CONVERT(VARCHAR(MAX), ...).",
+   "WITH t0 AS (SELECT MIN(horodatage) AS h FROM dns_logs WHERE ...) SELECT horodatage AS quand, 'auth' AS journal, ... UNION ALL SELECT horodatage, 'process', ... UNION ALL SELECT d.horodatage, 'dns', NULL, d.host, CONVERT(VARCHAR(MAX), CONVERT(VARBINARY(MAX), s.value, 2)) FROM dns_logs d CROSS APPLY STRING_SPLIT(d.requete, '.', 1) s WHERE ... AND s.ordinal = 2 AND d.horodatage = (SELECT h FROM t0) ORDER BY quand"
+  ]
+ },
+ "38.1": {
+  "solution": "WITH m AS (SELECT horodatage, valeur, AVG(valeur) OVER (ORDER BY horodatage ROWS BETWEEN 6 PRECEDING AND 1 PRECEDING) AS moyenne FROM capteurs WHERE site = N'Réservoir Montsouris') SELECT horodatage, valeur, ROUND(moyenne, 2) AS moyenne, ROUND(100.0 * (valeur - moyenne) / moyenne, 0) AS ecart_pct FROM m WHERE CAST(horodatage AS DATE) = '2028-03-12' AND ABS(valeur - moyenne) / moyenne > 0.2 ORDER BY horodatage;",
+  "hints": [
+   "Moyenne glissante : AVG(valeur) OVER (ORDER BY horodatage ROWS BETWEEN 6 PRECEDING AND 1 PRECEDING) dans une CTE, puis filtre sur CAST(horodatage AS DATE). ROUND exige toujours son 2e argument (0 pour l'unité).",
+   "WITH m AS (SELECT horodatage, valeur, AVG(valeur) OVER (ORDER BY horodatage ROWS BETWEEN 6 PRECEDING AND 1 PRECEDING) AS moyenne FROM capteurs WHERE site = N'Réservoir Montsouris') SELECT horodatage, valeur, ROUND(moyenne, 2) AS moyenne, ROUND(100.0 * (valeur - moyenne) / moyenne, 0) AS ecart_pct FROM m WHERE CAST(horodatage AS DATE) = '2028-03-12' AND ABS(valeur - moyenne) / moyenne > 0.2 ORDER BY horodatage"
+  ],
+  "note": "ROUND(x) sans précision est refusé en T-SQL : ROUND(x, 0). date(h) devient CAST(h AS DATE)."
+ },
+ "38.2": {
+  "solution": "WITH v AS (SELECT site, valeur, LAG(valeur) OVER (PARTITION BY site ORDER BY horodatage) AS avant, LEAD(valeur) OVER (PARTITION BY site ORDER BY horodatage) AS apres FROM capteurs) SELECT site, COUNT(*) AS pics_isoles FROM v WHERE valeur = 0 AND avant > 1 AND apres > 1 GROUP BY site;",
+  "hints": [
+   "LAG et LEAD avec PARTITION BY site ORDER BY horodatage donnent les voisins de chaque relevé.",
+   "WITH v AS (SELECT site, valeur, LAG(valeur) OVER (PARTITION BY site ORDER BY horodatage) AS avant, LEAD(valeur) OVER (PARTITION BY site ORDER BY horodatage) AS apres FROM capteurs) SELECT site, COUNT(*) AS pics_isoles FROM v WHERE valeur = 0 AND avant > 1 AND apres > 1 GROUP BY site"
+  ]
+ },
+ "38.3": {
+  "solution": "SELECT * FROM commandes_ot WHERE DATEPART(hour, horodatage) < 7 OR DATEPART(hour, horodatage) >= 20 ORDER BY horodatage;",
+  "hints": [
+   "DATEPART(hour, horodatage) renvoie l'heure en entier.",
+   "SELECT * FROM commandes_ot WHERE DATEPART(hour, horodatage) < 7 OR DATEPART(hour, horodatage) >= 20 ORDER BY horodatage"
+  ],
+  "note": "CAST(strftime('%H', h) AS INTEGER) devient DATEPART(hour, h)."
+ },
+ "38.4": {
+  "solution": "SELECT c.horodatage, c.nouvelle, ROUND((SELECT AVG(valeur) FROM capteurs s WHERE s.site = c.site AND s.horodatage BETWEEN DATEADD(minute, -30, c.horodatage) AND c.horodatage), 2) AS avant, ROUND((SELECT AVG(valeur) FROM capteurs s WHERE s.site = c.site AND s.horodatage BETWEEN DATEADD(minute, 10, c.horodatage) AND DATEADD(minute, 40, c.horodatage)), 2) AS apres FROM commandes_ot c WHERE c.site = N'Réservoir Montsouris' AND CAST(c.horodatage AS DATE) = '2028-03-12' AND c.parametre = 'consigne_pression' ORDER BY c.horodatage;",
+  "hints": [
+   "DATEADD(minute, -30, h) recule de 30 minutes, DATEADD(minute, 10, h) avance de 10 : c'est l'équivalent de datetime(h, '-30 minutes').",
+   "SELECT c.horodatage, c.nouvelle, ROUND((SELECT AVG(valeur) FROM capteurs s WHERE s.site = c.site AND s.horodatage BETWEEN DATEADD(minute, -30, c.horodatage) AND c.horodatage), 2) AS avant, ROUND((... BETWEEN DATEADD(minute, 10, c.horodatage) AND DATEADD(minute, 40, c.horodatage)), 2) AS apres FROM commandes_ot c WHERE ... ORDER BY c.horodatage"
+  ],
+  "note": "datetime(h, '+10 minutes') devient DATEADD(minute, 10, h)."
+ },
+ "38.5": {
+  "solution": "SELECT c.horodatage, c.parametre, c.ancienne, c.nouvelle, c.login, ad.nom AS titulaire, p.hostname AS machine, d.lieu FROM commandes_ot c LEFT JOIN comptes_ad ad ON ad.login = c.login LEFT JOIN postes p ON p.ip = c.source_ip LEFT JOIN deplacements d ON d.login = c.login AND c.horodatage BETWEEN d.debut AND d.fin WHERE (DATEPART(hour, c.horodatage) < 7 OR DATEPART(hour, c.horodatage) >= 20) AND c.nouvelle < c.ancienne ORDER BY c.horodatage;",
+  "hints": [
+   "Trois LEFT JOIN (compte, poste, déplacement en cours) et DATEPART(hour, ...) pour l'heure.",
+   "SELECT c.horodatage, c.parametre, ..., d.lieu FROM commandes_ot c LEFT JOIN comptes_ad ad ... LEFT JOIN postes p ON p.ip = c.source_ip LEFT JOIN deplacements d ON d.login = c.login AND c.horodatage BETWEEN d.debut AND d.fin WHERE (DATEPART(hour, c.horodatage) < 7 OR DATEPART(hour, c.horodatage) >= 20) AND c.nouvelle < c.ancienne ORDER BY c.horodatage"
+  ]
+ },
+ "38.A": {
+  "solution": "WITH m AS (SELECT site, horodatage, AVG(CAST(valeur AS DECIMAL(10,2))) OVER (PARTITION BY site ORDER BY horodatage ROWS BETWEEN 5 PRECEDING AND CURRENT ROW) AS mm FROM capteurs) SELECT site, ROUND(MIN(mm), 2) AS plus_basse, ROUND(MAX(mm), 2) AS plus_haute FROM m WHERE CAST(horodatage AS DATE) = '2028-03-12' GROUP BY site ORDER BY plus_basse;",
+  "note": "valeur est un FLOAT : la moyenne exacte 3,765 y vaut 3,76499999..., que ROUND arrondit à 3,76. En la calculant en DECIMAL (valeurs à 2 décimales), la moyenne est exacte et l'arrondi donne bien 3,77.",
+  "hints": [
+   "La fenêtre ROWS BETWEEN 5 PRECEDING AND CURRENT ROW se calcule sur toute la table dans une CTE ; filtre la date ensuite avec CAST(horodatage AS DATE). Attention à l'arrondi des FLOAT : fais la moyenne sur CAST(valeur AS DECIMAL(10,2)).",
+   "WITH m AS (SELECT site, horodatage, AVG(CAST(valeur AS DECIMAL(10,2))) OVER (PARTITION BY site ORDER BY horodatage ROWS BETWEEN 5 PRECEDING AND CURRENT ROW) AS mm FROM capteurs) SELECT site, ROUND(MIN(mm), 2) AS plus_basse, ROUND(MAX(mm), 2) AS plus_haute FROM m WHERE CAST(horodatage AS DATE) = '2028-03-12' GROUP BY site ORDER BY plus_basse"
+  ]
+ },
+ "38.S": {
+  "solution": "WITH r AS (SELECT c.horodatage, c.valeur, COALESCE((SELECT TOP 1 o.nouvelle FROM commandes_ot o WHERE o.site = c.site AND o.parametre = 'seuil_alarme' AND o.horodatage <= c.horodatage ORDER BY o.horodatage DESC), 3.0) AS seuil FROM capteurs c WHERE c.site = N'Réservoir Montsouris'), a AS (SELECT horodatage, CASE WHEN valeur < seuil THEN N'sonnée' ELSE N'étouffée' END AS alarme FROM r WHERE valeur < 3.0) SELECT alarme, COUNT(*) AS releves, MIN(horodatage) AS premier, MAX(horodatage) AS dernier FROM a GROUP BY alarme ORDER BY premier;",
+  "hints": [
+   "Le seuil en vigueur : une sous-requête corrélée SELECT TOP 1 o.nouvelle ... ORDER BY o.horodatage DESC, enveloppée dans COALESCE(..., 3.0). Calcule l'alarme dans une CTE pour pouvoir la regrouper.",
+   "WITH r AS (SELECT c.horodatage, c.valeur, COALESCE((SELECT TOP 1 o.nouvelle FROM commandes_ot o WHERE ... ORDER BY o.horodatage DESC), 3.0) AS seuil FROM capteurs c WHERE ...), a AS (SELECT horodatage, CASE WHEN valeur < seuil THEN N'sonnée' ELSE N'étouffée' END AS alarme FROM r WHERE valeur < 3.0) SELECT alarme, COUNT(*) AS releves, MIN(horodatage) AS premier, MAX(horodatage) AS dernier FROM a GROUP BY alarme ORDER BY premier"
+  ],
+  "note": "LIMIT 1 devient TOP 1 dans la sous-requête ; le GROUP BY ne connaît pas l'alias alarme, d'où la CTE intermédiaire."
+ },
+ "39.1": {
+  "solution": "CREATE TABLE ioc (id INT IDENTITY(1,1) PRIMARY KEY, type NVARCHAR(20) NOT NULL, valeur NVARCHAR(200) NOT NULL UNIQUE, source NVARCHAR(20));",
+  "verify": [
+   "SELECT c.name, CASE WHEN t.name IN ('int', 'bigint', 'smallint', 'tinyint') THEN 'entier' WHEN t.name IN ('nvarchar', 'varchar', 'nchar', 'char') THEN 'texte' ELSE t.name END AS famille, CASE WHEN c.is_nullable = 0 THEN 1 ELSE 0 END AS notnull, c.is_identity AS auto, CASE WHEN EXISTS (SELECT 1 FROM sys.index_columns ic JOIN sys.indexes i ON i.object_id = ic.object_id AND i.index_id = ic.index_id WHERE i.is_primary_key = 1 AND ic.object_id = c.object_id AND ic.column_id = c.column_id) THEN 1 ELSE 0 END AS pk FROM sys.columns c JOIN sys.types t ON t.user_type_id = c.user_type_id WHERE c.object_id = OBJECT_ID('ioc') ORDER BY c.column_id",
+   "SELECT COUNT(*) FROM sys.indexes WHERE object_id = OBJECT_ID('ioc') AND is_unique = 1 AND is_primary_key = 0"
+  ],
+  "verify_free": "En SQL Server, une clé primaire est forcément NOT NULL (SQLite affiche notnull = 0 pour id) et le type TEXT ne peut pas porter de contrainte UNIQUE : on vérifie la famille de type (entier, texte), NOT NULL, l'auto-incrément IDENTITY, la clé primaire et l'index unique via sys.columns et sys.indexes.",
+  "hints": [
+   "L'équivalent de INTEGER PRIMARY KEY (auto-incrémenté) est INT IDENTITY(1,1) PRIMARY KEY. Pour le texte, prends NVARCHAR(n) : une colonne NVARCHAR(MAX) ne peut pas être UNIQUE.",
+   "CREATE TABLE ioc (id INT IDENTITY(1,1) PRIMARY KEY, type NVARCHAR(20) NOT NULL, valeur NVARCHAR(200) NOT NULL UNIQUE, source NVARCHAR(20));"
+  ],
+  "note": "INTEGER PRIMARY KEY de SQLite (alias auto-incrémenté du rowid) se traduit par INT IDENTITY(1,1) PRIMARY KEY ; TEXT devient NVARCHAR(n), car un index UNIQUE ne peut pas porter sur NVARCHAR(MAX)."
+ },
+ "39.2": {
+  "setup": "CREATE TABLE ioc (id INT IDENTITY(1,1) PRIMARY KEY, type NVARCHAR(20) NOT NULL, valeur NVARCHAR(200) NOT NULL UNIQUE, source NVARCHAR(20));",
+  "solution": "INSERT INTO ioc (type, valeur, source) SELECT 'ip', source_ip, 'auth' FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100;\nWITH iv AS (SELECT host, domaine, ip_dest, horodatage, CAST(DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage), horodatage) AS FLOAT) AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDEVP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50) INSERT INTO ioc (type, valeur, source) SELECT DISTINCT 'domaine', domaine, 'proxy' FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus);\nINSERT INTO ioc (type, valeur, source) SELECT 'domaine', domaine, 'dns' FROM dns_logs GROUP BY domaine HAVING AVG(CAST(LEN(requete) AS FLOAT)) > 40;",
+  "verify": [
+   "SELECT type, valeur, source FROM ioc ORDER BY type, valeur"
+  ],
+  "hints": [
+   "Trois INSERT ... SELECT terminés par des points-virgules. En SQL Server, le WITH se place AVANT l'INSERT : WITH iv AS (...), st AS (...) INSERT INTO ioc (...) SELECT ...",
+   "INSERT INTO ioc (type, valeur, source) SELECT 'ip', source_ip, 'auth' FROM auth_logs WHERE ... HAVING COUNT(*) >= 100; WITH iv AS (...), st AS (... STDEVP(dt) AS sd ...) INSERT INTO ioc (type, valeur, source) SELECT DISTINCT 'domaine', domaine, 'proxy' FROM st WHERE ...; INSERT INTO ioc (type, valeur, source) SELECT 'domaine', domaine, 'dns' FROM dns_logs GROUP BY domaine HAVING AVG(CAST(LEN(requete) AS FLOAT)) > 40;"
+  ],
+  "note": "En T-SQL, la CTE précède l'instruction : WITH ... INSERT INTO ... SELECT (et l'instruction d'avant doit finir par un point-virgule)."
+ },
+ "39.3": {
+  "setup": "CREATE TABLE ioc (id INT IDENTITY(1,1) PRIMARY KEY, type NVARCHAR(20) NOT NULL, valeur NVARCHAR(200) NOT NULL UNIQUE, source NVARCHAR(20)); INSERT INTO ioc (type, valeur, source) VALUES ('ip', '192.0.2.150', 'auth'), ('ip', '192.0.2.66', 'proxy'), ('domaine', 'cdn-update-check.net', 'proxy'), ('domaine', 'tunnel-meteo.net', 'dns'), ('domaine', 'eaux-de-seine-fr.com', 'mail');",
+  "solution": "UPDATE comptes_ad SET actif = 0 WHERE login IN (SELECT login FROM auth_logs WHERE resultat = 'succes' AND source_ip IN (SELECT valeur FROM ioc WHERE type = 'ip')) OR login IN (SELECT a.login FROM auth_logs a JOIN comptes_ad c ON c.login = a.login AND c.admin = 1 JOIN postes p ON p.ip = a.source_ip AND p.type = 'poste' WHERE a.resultat = 'succes' AND p.utilisateur <> a.login);",
+  "verify": [
+   "SELECT login FROM comptes_ad WHERE actif = 0 ORDER BY login",
+   "SELECT COUNT(*) FROM comptes_ad"
+  ],
+  "hints": [
+   "Un UPDATE avec deux conditions IN (sous-requête) reliées par OR : succès depuis une IP IOC, ou admin connecté depuis le poste d'un autre.",
+   "UPDATE comptes_ad SET actif = 0 WHERE login IN (SELECT login FROM auth_logs WHERE resultat = 'succes' AND source_ip IN (SELECT valeur FROM ioc WHERE type = 'ip')) OR login IN (SELECT a.login FROM auth_logs a JOIN comptes_ad c ... JOIN postes p ... WHERE ...)"
+  ]
+ },
+ "39.4": {
+  "solution": "CREATE INDEX idx_proxy_domaine ON proxy_logs(domaine);\nGO\nSET SHOWPLAN_TEXT ON;\nGO\nSELECT * FROM proxy_logs WITH (INDEX(idx_proxy_domaine)) WHERE domaine = 'cdn-update-check.net';\nGO",
+  "contains": "idx_proxy_domaine",
+  "hints": [
+   "En SQL Server, SET SHOWPLAN_TEXT ON (seul dans son lot, donc entre deux GO) fait afficher le plan au lieu d'exécuter la requête. Sur une petite table, l'optimiseur préfère parcourir la table : force l'index avec WITH (INDEX(nom_index)).",
+   "CREATE INDEX idx_proxy_domaine ON proxy_logs(domaine);\nGO\nSET SHOWPLAN_TEXT ON;\nGO\nSELECT * FROM proxy_logs WITH (INDEX(idx_proxy_domaine)) WHERE domaine = 'cdn-update-check.net';\nGO"
+  ],
+  "note": "EXPLAIN QUERY PLAN devient SET SHOWPLAN_TEXT ON (seul dans son lot). Comme environ un tiers des lignes correspondent, l'optimiseur choisit un parcours de la table : l'indice de table WITH (INDEX(...)) montre le plan avec l'index (Index Seek puis Key Lookup)."
+ },
+ "39.5": {
+  "setup": "CREATE TABLE ioc (id INT IDENTITY(1,1) PRIMARY KEY, type NVARCHAR(20) NOT NULL, valeur NVARCHAR(200) NOT NULL UNIQUE, source NVARCHAR(20)); INSERT INTO ioc (type, valeur, source) VALUES ('ip', '192.0.2.150', 'auth'), ('ip', '192.0.2.66', 'proxy'), ('domaine', 'cdn-update-check.net', 'proxy'), ('domaine', 'tunnel-meteo.net', 'dns'), ('domaine', 'eaux-de-seine-fr.com', 'mail');",
+  "solution": "CREATE TABLE alertes (id INT IDENTITY(1,1) PRIMARY KEY, horodatage DATETIME2(0), host NVARCHAR(32), cible NVARCHAR(40));\nGO\nCREATE TRIGGER trg_ioc ON proxy_logs AFTER INSERT AS\nBEGIN\n  INSERT INTO alertes (horodatage, host, cible)\n  SELECT i.horodatage, i.host, i.domaine FROM inserted i\n  WHERE i.domaine IN (SELECT valeur FROM ioc WHERE type = 'domaine') OR i.ip_dest IN (SELECT valeur FROM ioc WHERE type = 'ip');\nEND;\nGO",
+  "verify": [
+   "INSERT INTO proxy_logs (horodatage, host, domaine, ip_dest, octets_out, octets_in) VALUES ('2028-03-15 10:00:00', 'PC-RH-01', 'cdn-update-check.net', '192.0.2.66', 400, 300), ('2028-03-15 10:01:00', 'PC-RH-02', 'meteo-seine.fr', '203.0.113.22', 400, 300), ('2028-03-15 10:02:00', 'PC-URBA-01', 'nouveau-site.net', '192.0.2.150', 10, 10), ('2028-03-15 10:03:00', 'PC-COM-01', 'tunnel-meteo.net', '198.51.100.9', 10, 10); SELECT horodatage, host, cible FROM alertes ORDER BY horodatage"
+  ],
+  "hints": [
+   "Un trigger SQL Server se déclenche une fois par instruction (pas par ligne) : les lignes ajoutées sont dans la pseudo-table inserted, et le filtre WHEN devient un WHERE. CREATE TRIGGER doit être seul dans son lot, entre deux GO.",
+   "CREATE TABLE alertes (id INT IDENTITY(1,1) PRIMARY KEY, horodatage DATETIME2(0), host NVARCHAR(32), cible NVARCHAR(40));\nGO\nCREATE TRIGGER trg_ioc ON proxy_logs AFTER INSERT AS\nBEGIN\n  INSERT INTO alertes (horodatage, host, cible) SELECT i.horodatage, i.host, i.domaine FROM inserted i WHERE ...;\nEND;\nGO"
+  ],
+  "note": "SQL Server n'a pas de FOR EACH ROW ni de NEW : le trigger reçoit toutes les lignes insérées dans la table virtuelle inserted, qu'on filtre avec un WHERE. CREATE TRIGGER doit ouvrir son propre lot (GO)."
+ },
+ "39.A": {
+  "setup": "CREATE TABLE ioc (id INT IDENTITY(1,1) PRIMARY KEY, type NVARCHAR(20) NOT NULL, valeur NVARCHAR(200) NOT NULL UNIQUE, source NVARCHAR(20)); INSERT INTO ioc (type, valeur, source) VALUES ('ip', '192.0.2.150', 'auth'), ('ip', '192.0.2.66', 'proxy'), ('domaine', 'cdn-update-check.net', 'proxy'), ('domaine', 'tunnel-meteo.net', 'dns'), ('domaine', 'eaux-de-seine-fr.com', 'mail');",
+  "solution": "INSERT INTO ioc (type, valeur, source) SELECT DISTINCT 'ip', ip_dest, 'pivot' FROM proxy_logs WHERE domaine IN (SELECT valeur FROM ioc WHERE type = 'domaine') AND ip_dest NOT IN (SELECT valeur FROM ioc);",
+  "verify": [
+   "SELECT type, valeur, source FROM ioc ORDER BY type, valeur"
+  ],
+  "hints": [
+   "INSERT INTO ioc ... SELECT DISTINCT sur proxy_logs, avec deux sous-requêtes vers ioc (domaines IOC, valeurs déjà présentes). L'id IDENTITY se remplit tout seul.",
+   "INSERT INTO ioc (type, valeur, source) SELECT DISTINCT 'ip', ip_dest, 'pivot' FROM proxy_logs WHERE domaine IN (SELECT valeur FROM ioc WHERE type = 'domaine') AND ip_dest NOT IN (SELECT valeur FROM ioc)"
+  ]
+ },
+ "39.S": {
+  "setup": "CREATE TABLE ioc (id INT IDENTITY(1,1) PRIMARY KEY, type NVARCHAR(20) NOT NULL, valeur NVARCHAR(200) NOT NULL UNIQUE, source NVARCHAR(20)); INSERT INTO ioc (type, valeur, source) VALUES ('ip', '192.0.2.150', 'auth'), ('ip', '192.0.2.66', 'proxy'), ('domaine', 'cdn-update-check.net', 'proxy'), ('domaine', 'tunnel-meteo.net', 'dns'), ('domaine', 'eaux-de-seine-fr.com', 'mail');",
+  "solution": "CREATE TABLE rejeu (horodatage DATETIME2(0), host NVARCHAR(32), domaine NVARCHAR(40), ip_dest NVARCHAR(32));\nCREATE TABLE alertes (id INT IDENTITY(1,1) PRIMARY KEY, horodatage DATETIME2(0), host NVARCHAR(32), cible NVARCHAR(40));\nGO\nCREATE TRIGGER trg_rejeu ON rejeu AFTER INSERT AS\nBEGIN\n  INSERT INTO alertes (horodatage, host, cible)\n  SELECT i.horodatage, i.host, i.domaine FROM inserted i\n  WHERE i.domaine IN (SELECT valeur FROM ioc WHERE type = 'domaine') OR i.ip_dest IN (SELECT valeur FROM ioc WHERE type = 'ip');\nEND;\nGO\nINSERT INTO rejeu (horodatage, host, domaine, ip_dest) SELECT horodatage, host, domaine, ip_dest FROM proxy_logs ORDER BY horodatage;\nSELECT host, MIN(horodatage) AS premiere, COUNT(*) AS alertes FROM alertes GROUP BY host ORDER BY premiere;",
+  "verify": [
+   "SELECT host, MIN(horodatage), COUNT(*) FROM alertes GROUP BY host ORDER BY 2",
+   "SELECT COUNT(*) FROM rejeu",
+   "INSERT INTO rejeu (horodatage, host, domaine, ip_dest) VALUES ('2028-03-15 10:00:00', 'PC-TEST', 'nouveau-site.net', '192.0.2.150'), ('2028-03-15 10:01:00', 'PC-TEST', 'meteo-seine.fr', '203.0.113.22'); SELECT horodatage, host, cible FROM alertes WHERE host = 'PC-TEST'"
+  ],
+  "hints": [
+   "Crée les deux tables, puis le trigger seul dans son lot (GO avant et après) ; il lit la pseudo-table inserted. Le rejeu est un seul INSERT ... SELECT : le trigger reçoit alors toutes les lignes d'un coup.",
+   "CREATE TABLE rejeu (...); CREATE TABLE alertes (id INT IDENTITY(1,1) PRIMARY KEY, ...);\nGO\nCREATE TRIGGER trg_rejeu ON rejeu AFTER INSERT AS\nBEGIN\n  INSERT INTO alertes (horodatage, host, cible) SELECT i.horodatage, i.host, i.domaine FROM inserted i WHERE ...;\nEND;\nGO\nINSERT INTO rejeu (...) SELECT ... FROM proxy_logs ORDER BY horodatage;\nSELECT host, MIN(horodatage) AS premiere, COUNT(*) AS alertes FROM alertes GROUP BY host ORDER BY premiere;"
+  ],
+  "note": "Le trigger SQL Server est déclenché une fois pour l'INSERT ... SELECT entier (7315 lignes dans inserted), là où SQLite le déclenche ligne par ligne ; le résultat est le même."
+ },
+ "40.1": {
+  "solution": "SELECT MIN(horodatage) AS quand, 'pulvérisation' AS etape FROM auth_logs WHERE source_ip = '192.0.2.150' AND resultat = 'echec' UNION ALL SELECT MIN(horodatage), 'phishing' FROM mail_logs WHERE expediteur = 'factures@eaux-de-seine-fr.com' UNION ALL SELECT MIN(horodatage), 'macro' FROM process_logs WHERE ligne_commande LIKE '%-enc%' UNION ALL SELECT MIN(horodatage), 'balise' FROM proxy_logs WHERE domaine = 'cdn-update-check.net' UNION ALL SELECT MIN(horodatage), 'contrôleur de domaine' FROM auth_logs WHERE login = 'adm.varenne' AND dest_host = 'DC01' AND resultat = 'succes' UNION ALL SELECT MIN(horodatage), 'exfiltration' FROM dns_logs WHERE domaine = 'tunnel-meteo.net' UNION ALL SELECT MIN(horodatage), 'sabotage' FROM commandes_ot WHERE login = 'adm.varenne' ORDER BY quand;",
+  "hints": [
+   "Sept SELECT MIN(horodatage), 'étape' empilés par UNION ALL ; le ORDER BY final s'applique à tout l'empilement.",
+   "SELECT MIN(horodatage) AS quand, 'pulvérisation' AS etape FROM auth_logs WHERE ... UNION ALL SELECT MIN(horodatage), 'phishing' FROM mail_logs WHERE ... UNION ALL ... ORDER BY quand"
+  ]
+ },
+ "40.2": {
+  "solution": "WITH j(d) AS (SELECT CAST('2028-03-01' AS DATE) UNION ALL SELECT DATEADD(day, 1, d) FROM j WHERE d < '2028-03-14') SELECT j.d AS jour, (SELECT COUNT(*) FROM auth_logs a WHERE a.login = 'adm.varenne' AND a.resultat = 'succes' AND a.methode <> 'vpn' AND CAST(a.horodatage AS DATE) = j.d) AS connexions, COALESCE((SELECT dp.lieu FROM deplacements dp WHERE dp.login = 'adm.varenne' AND DATEADD(hour, 12, CAST(j.d AS DATETIME2(0))) BETWEEN dp.debut AND dp.fin), 'Paris') AS lieu FROM j ORDER BY jour;",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "Génère le calendrier avec une CTE récursive (en SQL Server : WITH, puis UNION ALL qui relit la CTE)."
+   }
+  ],
+  "hints": [
+   "Calendrier récursif en vraies dates : ancre CAST('2028-03-01' AS DATE), puis DATEADD(day, 1, d). Midi de ce jour : DATEADD(hour, 12, CAST(j.d AS DATETIME2(0))).",
+   "WITH j(d) AS (SELECT CAST('2028-03-01' AS DATE) UNION ALL SELECT DATEADD(day, 1, d) FROM j WHERE d < '2028-03-14') SELECT j.d AS jour, (SELECT COUNT(*) FROM auth_logs a WHERE ... AND CAST(a.horodatage AS DATE) = j.d) AS connexions, COALESCE((SELECT dp.lieu FROM deplacements dp WHERE ... AND DATEADD(hour, 12, CAST(j.d AS DATETIME2(0))) BETWEEN dp.debut AND dp.fin), 'Paris') AS lieu FROM j ORDER BY jour"
+  ],
+  "note": "date(d, '+1 day') devient DATEADD(day, 1, d) et la concaténation d || ' 12:00:00' devient DATEADD(hour, 12, ...) : on calcule sur des dates, pas sur du texte."
+ },
+ "40.3": {
+  "solution": "SELECT l.ip, s.nom AS abonne, s.creation, l.adresse FROM lignes_internet l JOIN societes s ON s.siren = l.abonne_siren WHERE l.ip IN ('192.0.2.150', '192.0.2.66');",
+  "hints": [
+   "Joins lignes_internet à societes sur le SIREN de l'abonné.",
+   "SELECT l.ip, s.nom AS abonne, s.creation, l.adresse FROM lignes_internet l JOIN societes s ON s.siren = l.abonne_siren WHERE l.ip IN ('192.0.2.150', '192.0.2.66')"
+  ]
+ },
+ "40.4": {
+  "solution": "WITH spray AS (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100), iv AS (SELECT host, domaine, ip_dest, CAST(DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage), horodatage) AS FLOAT) AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDEVP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50), ips AS (SELECT source_ip AS ip, 'pulvérisation' AS role FROM spray UNION SELECT DISTINCT ip_dest, 'commande' FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus)) SELECT i.ip, i.role, s.nom AS abonne, s.creation, l.adresse FROM ips i JOIN lignes_internet l ON l.ip = i.ip JOIN societes s ON s.siren = l.abonne_siren ORDER BY i.role;",
+  "hints": [
+   "Assemble dans un même WITH la CTE spray et la détection de balises (LAG, DATEDIFF, STDEVP), puis réunis les deux listes d'IP par UNION.",
+   "WITH spray AS (...), iv AS (SELECT ..., CAST(DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage), horodatage) AS FLOAT) AS dt FROM proxy_logs), st AS (... STDEVP(dt) AS sd ...), ips AS (SELECT source_ip AS ip, 'pulvérisation' AS role FROM spray UNION SELECT DISTINCT ip_dest, 'commande' FROM st WHERE ...) SELECT i.ip, i.role, s.nom AS abonne, s.creation, l.adresse FROM ips i JOIN lignes_internet l ... ORDER BY i.role"
+  ]
+ },
+ "40.5": {
+  "setup": "CREATE TABLE proces_verbal (affaire NVARCHAR(100) NOT NULL, coupable NVARCHAR(100) NOT NULL, preuve NVARCHAR(200));",
+  "solution": "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT 'Hydre', s.nom, 'lignes de l''attaquant' FROM societes s JOIN lignes_internet l ON l.abonne_siren = s.siren WHERE l.ip IN (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100);",
+  "verify": [
+   "SELECT affaire, coupable FROM proces_verbal"
+  ],
+  "hints": [
+   "INSERT INTO ... SELECT sur societes et lignes_internet, avec la liste des IP de pulvérisation en sous-requête. L'apostrophe se double : 'lignes de l''attaquant'.",
+   "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT 'Hydre', s.nom, 'lignes de l''attaquant' FROM societes s JOIN lignes_internet l ON l.abonne_siren = s.siren WHERE l.ip IN (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100)"
+  ]
+ },
+ "40.A": {
+  "solution": "SELECT l.ip, s.nom AS abonne, l.adresse, (SELECT COUNT(*) FROM auth_logs a WHERE a.source_ip = l.ip AND a.resultat = 'echec') AS echecs, (SELECT COUNT(*) FROM proxy_logs x WHERE x.ip_dest = l.ip) AS connexions_proxy FROM lignes_internet l JOIN societes s ON s.siren = l.abonne_siren ORDER BY l.ip;",
+  "hints": [
+   "Deux sous-requêtes corrélées COUNT(*) dans le SELECT, une par journal.",
+   "SELECT l.ip, s.nom AS abonne, l.adresse, (SELECT COUNT(*) FROM auth_logs a WHERE a.source_ip = l.ip AND a.resultat = 'echec') AS echecs, (SELECT COUNT(*) FROM proxy_logs x WHERE x.ip_dest = l.ip) AS connexions_proxy FROM lignes_internet l JOIN societes s ON s.siren = l.abonne_siren ORDER BY l.ip"
+  ]
+ },
+ "40.S": {
+  "solution": "WITH ab AS (SELECT l.abonne_siren AS siren FROM lignes_internet l WHERE l.ip IN (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100)), ju AS (SELECT s.siren, s.nom FROM societes s JOIN societes a ON a.siren = (SELECT siren FROM ab) WHERE s.siren <> a.siren AND ABS(DATEDIFF(day, a.creation, s.creation)) <= 7), c1(siren, part) AS (SELECT CAST(siren AS NVARCHAR(64)), CAST(100.0 AS FLOAT) FROM ab UNION ALL SELECT CAST(p.detenteur AS NVARCHAR(64)), c1.part * p.pct / 100 FROM participations p JOIN c1 ON p.detenue = c1.siren), c2(siren, part) AS (SELECT CAST(siren AS NVARCHAR(64)), CAST(100.0 AS FLOAT) FROM ju UNION ALL SELECT CAST(p.detenteur AS NVARCHAR(64)), c2.part * p.pct / 100 FROM participations p JOIN c2 ON p.detenue = c2.siren), b1 AS (SELECT siren, SUM(part) AS part FROM c1 WHERE siren LIKE 'PERSONNE:%' GROUP BY siren), b2 AS (SELECT siren, SUM(part) AS part FROM c2 WHERE siren LIKE 'PERSONNE:%' GROUP BY siren) SELECT REPLACE(b1.siren, 'PERSONNE:', '') AS beneficiaire, (SELECT nom FROM ju) AS jumelle, ROUND(b1.part, 1) AS part_abonne, ROUND(b2.part, 1) AS part_jumelle FROM b1 JOIN b2 ON b2.siren = b1.siren;",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "Il faut une CTE récursive : en SQL Server, un WITH (sans RECURSIVE) dont la partie après UNION ALL relit la CTE."
+   },
+   {
+    "re": "^(?![\\s\\S]*(Labyrinthe|Ariane|Ricci|Paul|Calanques|Th[ée]s[ée]e|5120|192\\.0\\.2))",
+    "msg": "Ne tape aucun nom, SIREN ni IP : la requête doit tout retrouver."
+   }
+  ],
+  "hints": [
+   "La société jumelle : ABS(DATEDIFF(day, a.creation, s.creation)) <= 7. Ensuite deux CTE récursives dans le même WITH (sans RECURSIVE), avec des CAST pour aligner les types de l'ancre et de la partie récursive.",
+   "WITH ab AS (...), ju AS (... ABS(DATEDIFF(day, a.creation, s.creation)) <= 7), c1(siren, part) AS (SELECT CAST(siren AS NVARCHAR(64)), CAST(100.0 AS FLOAT) FROM ab UNION ALL ...), c2(siren, part) AS (... FROM ju UNION ALL ...), b1 AS (... GROUP BY siren), b2 AS (...) SELECT REPLACE(b1.siren, 'PERSONNE:', '') AS beneficiaire, (SELECT nom FROM ju) AS jumelle, ROUND(b1.part, 1) AS part_abonne, ROUND(b2.part, 1) AS part_jumelle FROM b1 JOIN b2 ON b2.siren = b1.siren"
+  ],
+  "note": "julianday(a) - julianday(b) devient DATEDIFF(day, b, a) ; plusieurs CTE récursives peuvent cohabiter dans un même WITH."
+ },
+ "41.1": {
+  "solution": "SELECT STRING_AGG(UPPER(SUBSTRING(texte, ligne, 1)), '') WITHIN GROUP (ORDER BY page, ligne) AS message FROM carnet_delorme;",
+  "require": [
+   {
+    "re": "STRING_AGG",
+    "msg": "Concatène les lettres avec STRING_AGG."
+   }
+  ],
+  "hints": [
+   "STRING_AGG(expression, '') WITHIN GROUP (ORDER BY page, ligne) concatène dans l'ordre voulu ; SUBSTRING(texte, ligne, 1) prend la lettre.",
+   "SELECT STRING_AGG(UPPER(SUBSTRING(texte, ligne, 1)), '') WITHIN GROUP (ORDER BY page, ligne) AS message FROM carnet_delorme"
+  ],
+  "note": "group_concat(x, '' ORDER BY ...) devient STRING_AGG(x, '') WITHIN GROUP (ORDER BY ...)."
+ },
+ "41.2": {
+  "solution": "WITH b AS (SELECT sous_station, AVG(kwh) AS m, STDEVP(kwh) AS sd FROM releves_electriques WHERE horodatage < '2028-03-01' GROUP BY sous_station), r AS (SELECT sous_station, AVG(kwh) AS m FROM releves_electriques WHERE horodatage >= '2028-03-01' GROUP BY sous_station), z AS (SELECT b.sous_station, b.m AS avant, r.m AS apres, (r.m - b.m) / b.sd AS z FROM b JOIN r ON r.sous_station = b.sous_station) SELECT sous_station, ROUND(avant, 1) AS avant, ROUND(apres, 1) AS apres, ROUND(z, 1) AS z FROM z ORDER BY z DESC;",
+  "hints": [
+   "STDEVP(kwh) donne l'écart type de population de la période « avant » ; calcule avant et après dans deux CTE puis joins-les.",
+   "WITH b AS (SELECT sous_station, AVG(kwh) AS m, STDEVP(kwh) AS sd FROM releves_electriques WHERE horodatage < '2028-03-01' GROUP BY sous_station), r AS (... horodatage >= '2028-03-01' ...), z AS (SELECT b.sous_station, b.m AS avant, r.m AS apres, (r.m - b.m) / b.sd AS z FROM b JOIN r ...) SELECT sous_station, ROUND(avant, 1) AS avant, ... ORDER BY z DESC"
+  ],
+  "note": "STDEVP remplace la formule sqrt(AVG(x*x) - AVG(x)*AVG(x))."
+ },
+ "41.3": {
+  "solution": "WITH h AS (SELECT horodatage, DATEDIFF(hour, '2028-02-15', horodatage) AS n FROM releves_electriques WHERE sous_station = N'SST Dédale' AND kwh > 20), g AS (SELECT horodatage, n - ROW_NUMBER() OVER (ORDER BY n) AS grp FROM h) SELECT MIN(horodatage) AS debut, MAX(horodatage) AS fin, COUNT(*) AS heures FROM g GROUP BY grp ORDER BY debut;",
+  "hints": [
+   "Numérote chaque relevé en heures depuis le 15 février avec DATEDIFF(hour, '2028-02-15', horodatage), puis n - ROW_NUMBER() OVER (ORDER BY n) reste constant dans un îlot.",
+   "WITH h AS (SELECT horodatage, DATEDIFF(hour, '2028-02-15', horodatage) AS n FROM releves_electriques WHERE ...), g AS (SELECT horodatage, n - ROW_NUMBER() OVER (ORDER BY n) AS grp FROM h) SELECT MIN(horodatage) AS debut, MAX(horodatage) AS fin, COUNT(*) AS heures FROM g GROUP BY grp ORDER BY debut"
+  ],
+  "note": "DATEDIFF(hour, ...) donne directement le numéro d'heure entier, sans julianday ni ROUND."
+ },
+ "41.4": {
+  "solution": "WITH c AS (SELECT TOP 48 horodatage, CAST(JSON_VALUE(metriques, '$.acc') AS FLOAT) AS y FROM minotaure_checkpoints ORDER BY epoch DESC), x0 AS (SELECT MIN(horodatage) AS t0 FROM c), pts AS (SELECT DATEDIFF(second, x0.t0, c.horodatage) / 3600.0 AS x, c.y FROM c CROSS JOIN x0), s AS (SELECT COUNT(*) AS n, SUM(x) AS sx, SUM(y) AS sy, SUM(x * x) AS sxx, SUM(x * y) AS sxy FROM pts), reg AS (SELECT (n * sxy - sx * sy) / (n * sxx - sx * sx) AS a, (sy - (n * sxy - sx * sy) / (n * sxx - sx * sx) * sx) / n AS b FROM s) SELECT ROUND(a, 5) AS pente, FORMAT(DATEADD(second, CAST((0.99 - b) / a * 3600 AS INT), (SELECT t0 FROM x0)), 'yyyy-MM-dd HH:mm') AS heure_limite FROM reg;",
+  "require": [
+   {
+    "re": "JSON_VALUE",
+    "msg": "Lis l'exactitude avec JSON_VALUE."
+   }
+  ],
+  "hints": [
+   "JSON_VALUE(metriques, '$.acc') lit l'exactitude (à convertir en FLOAT) et TOP 48 ... ORDER BY epoch DESC garde les derniers checkpoints. Les x en heures : DATEDIFF(second, t0, horodatage) / 3600.0.",
+   "WITH c AS (SELECT TOP 48 horodatage, CAST(JSON_VALUE(metriques, '$.acc') AS FLOAT) AS y FROM minotaure_checkpoints ORDER BY epoch DESC), x0 AS (SELECT MIN(horodatage) AS t0 FROM c), pts AS (...), s AS (...), reg AS (...) SELECT ROUND(a, 5) AS pente, FORMAT(DATEADD(second, CAST((0.99 - b) / a * 3600 AS INT), (SELECT t0 FROM x0)), 'yyyy-MM-dd HH:mm') AS heure_limite FROM reg"
+  ],
+  "note": "json_extract devient JSON_VALUE ; au lieu d'additionner des jours juliens, on ajoute des secondes avec DATEADD puis on formate avec FORMAT(..., 'yyyy-MM-dd HH:mm')."
+ },
+ "41.5": {
+  "solution": "WITH f AS (SELECT DISTINCT numero FROM bornages WHERE antenne = N'Fleury-Mérogis'), lien AS (SELECT appelant AS x, appele AS y FROM communications UNION SELECT appele, appelant FROM communications), cible AS (SELECT DISTINCT b.numero FROM bornages b JOIN antennes a ON a.antenne = b.antenne WHERE a.station = N'Dédale') SELECT DISTINCT f.numero AS depart, l1.y AS relais, l2.y AS arrivee, ab.titulaire FROM f JOIN lien l1 ON l1.x = f.numero JOIN lien l2 ON l2.x = l1.y JOIN cible ON cible.numero = l2.y LEFT JOIN abonnes ab ON ab.numero = l2.y;",
+  "hints": [
+   "Rends les communications symétriques avec un UNION (appelant, appele) et (appele, appelant), puis enchaîne deux jointures.",
+   "WITH f AS (...), lien AS (SELECT appelant AS x, appele AS y FROM communications UNION SELECT appele, appelant FROM communications), cible AS (...) SELECT DISTINCT f.numero AS depart, l1.y AS relais, l2.y AS arrivee, ab.titulaire FROM f JOIN lien l1 ON l1.x = f.numero JOIN lien l2 ON l2.x = l1.y JOIN cible ON ... LEFT JOIN abonnes ab ON ab.numero = l2.y"
+  ]
+ },
+ "41.6": {
+  "solution": "WITH ch(siren, part) AS (SELECT CAST(payeur_siren AS NVARCHAR(64)), CAST(100.0 AS FLOAT) FROM sous_stations WHERE nom = N'SST Dédale' UNION ALL SELECT CAST(p.detenteur AS NVARCHAR(64)), c.part * p.pct / 100 FROM participations p JOIN ch c ON p.detenue = c.siren) SELECT REPLACE(siren, 'PERSONNE:', '') AS beneficiaire, ROUND(SUM(part), 1) AS part FROM ch WHERE siren LIKE 'PERSONNE:%' GROUP BY siren ORDER BY part DESC;",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "Il faut une CTE récursive : en SQL Server, un WITH (sans RECURSIVE) dont la partie après UNION ALL relit la CTE."
+   }
+  ],
+  "hints": [
+   "WITH sans RECURSIVE, et les mêmes types des deux côtés du UNION ALL : CAST(... AS NVARCHAR(64)) et CAST(100.0 AS FLOAT).",
+   "WITH ch(siren, part) AS (SELECT CAST(payeur_siren AS NVARCHAR(64)), CAST(100.0 AS FLOAT) FROM sous_stations WHERE nom = N'SST Dédale' UNION ALL SELECT CAST(p.detenteur AS NVARCHAR(64)), c.part * p.pct / 100 FROM participations p JOIN ch c ON p.detenue = c.siren) SELECT REPLACE(siren, 'PERSONNE:', '') AS beneficiaire, ROUND(SUM(part), 1) AS part FROM ch WHERE siren LIKE 'PERSONNE:%' GROUP BY siren ORDER BY part DESC"
+  ]
+ },
+ "41.7": {
+  "solution": "WITH iv AS (SELECT host, domaine, ip_dest, CAST(DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage), horodatage) AS FLOAT) AS dt FROM proxy_logs WHERE domaine NOT IN (SELECT domaine FROM domaines_connus)), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDEVP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50), c2 AS (SELECT DISTINCT ip_dest FROM st WHERE sd / m < 0.05) SELECT l.ip, l.station, so.nom AS abonne FROM c2 JOIN lignes_internet l ON l.ip = c2.ip_dest JOIN societes so ON so.siren = l.abonne_siren;",
+  "hints": [
+   "Intervalles : DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage), horodatage) en FLOAT ; régularité : STDEVP(dt) / AVG(dt).",
+   "WITH iv AS (SELECT host, domaine, ip_dest, CAST(DATEDIFF(second, LAG(horodatage) OVER (...), horodatage) AS FLOAT) AS dt FROM proxy_logs WHERE domaine NOT IN (...)), st AS (... AVG(dt) AS m, STDEVP(dt) AS sd ... HAVING COUNT(dt) >= 50), c2 AS (SELECT DISTINCT ip_dest FROM st WHERE sd / m < 0.05) SELECT l.ip, l.station, so.nom AS abonne FROM c2 JOIN lignes_internet l ... JOIN societes so ..."
+  ]
+ },
+ "41.8": {
+  "solution": "WITH p(noeud, chemin, total) AS (SELECT CAST(N'Préfecture' AS NVARCHAR(36)), CAST(N'Préfecture' AS NVARCHAR(4000)), CAST(0 AS BIGINT) UNION ALL SELECT t.vers, CAST(p.chemin + ' > ' + t.vers AS NVARCHAR(4000)), p.total + t.minutes FROM p JOIN troncons t ON t.de = p.noeud WHERE t.etat = 'ouvert' AND CHARINDEX(t.vers, p.chemin) = 0 AND p.total + t.minutes <= 60 AND p.noeud <> N'Dédale') SELECT TOP 1 chemin, total AS minutes FROM p WHERE noeud = N'Dédale' ORDER BY total;",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "Il faut une CTE récursive : en SQL Server, un WITH (sans RECURSIVE) dont la partie après UNION ALL relit la CTE."
+   }
+  ],
+  "hints": [
+   "CTE récursive (WITH sans RECURSIVE) : l'ancre doit avoir les mêmes types que la partie récursive, donc CAST(N'Préfecture' AS NVARCHAR(36)), un chemin en NVARCHAR(4000) et CAST(0 AS BIGINT). CHARINDEX évite de repasser par une station ; TOP 1 garde le plus court.",
+   "WITH p(noeud, chemin, total) AS (SELECT CAST(N'Préfecture' AS NVARCHAR(36)), CAST(N'Préfecture' AS NVARCHAR(4000)), CAST(0 AS BIGINT) UNION ALL SELECT t.vers, CAST(p.chemin + ' > ' + t.vers AS NVARCHAR(4000)), p.total + t.minutes FROM p JOIN troncons t ON t.de = p.noeud WHERE t.etat = 'ouvert' AND CHARINDEX(t.vers, p.chemin) = 0 AND ...) SELECT TOP 1 chemin, total AS minutes FROM p WHERE noeud = N'Dédale' ORDER BY total"
+  ],
+  "note": "Sans les CAST, SQL Server refuse la récursion (« Types don't match between the anchor and the recursive part ») : minutes est un BIGINT et les noms des NVARCHAR(36)."
+ },
+ "41.9": {
+  "solution": "BEGIN TRANSACTION; UPDATE file_minotaure SET statut = 'bloque' WHERE statut = 'en_attente' AND compte_dest IN (SELECT compte_dest FROM file_minotaure GROUP BY compte_dest HAVING COUNT(DISTINCT compte_source) >= 10); COMMIT;",
+  "verify": [
+   "SELECT statut, COUNT(*), ROUND(SUM(montant), 2) FROM file_minotaure GROUP BY statut ORDER BY statut",
+   "SELECT COUNT(DISTINCT compte_dest) FROM file_minotaure WHERE statut = 'bloque'"
+  ],
+  "require": [
+   {
+    "re": "BEGIN\\s+TRAN",
+    "msg": "Fais-le dans une transaction : en SQL Server, BEGIN TRANSACTION ... COMMIT."
+   }
+  ],
+  "hints": [
+   "En T-SQL, la transaction s'ouvre avec BEGIN TRANSACTION (BEGIN seul ouvre un simple bloc) et se valide avec COMMIT.",
+   "BEGIN TRANSACTION; UPDATE file_minotaure SET statut = 'bloque' WHERE statut = 'en_attente' AND compte_dest IN (SELECT compte_dest FROM file_minotaure GROUP BY compte_dest HAVING COUNT(DISTINCT compte_source) >= 10); COMMIT;"
+  ],
+  "note": "BEGIN TRANSACTION (ou BEGIN TRAN) au lieu de BEGIN : en T-SQL, BEGIN ... END délimite un bloc d'instructions, pas une transaction."
+ },
+ "41.10": {
+  "solution": "WITH b AS (SELECT sous_station, AVG(kwh) AS m, STDEVP(kwh) AS sd FROM releves_electriques WHERE horodatage < '2028-03-01' GROUP BY sous_station), r AS (SELECT sous_station, AVG(kwh) AS m FROM releves_electriques WHERE horodatage >= '2028-03-01' GROUP BY sous_station), z AS (SELECT b.sous_station, b.m AS avant, r.m AS apres, (r.m - b.m) / b.sd AS z FROM b JOIN r ON r.sous_station = b.sous_station), anomalie AS (SELECT TOP 1 ss.nom, ss.station, ss.payeur_siren FROM sous_stations ss JOIN z ON z.sous_station = ss.nom ORDER BY z.z DESC), p(noeud, chemin, total) AS (SELECT CAST(N'Préfecture' AS NVARCHAR(36)), CAST(N'Préfecture' AS NVARCHAR(4000)), CAST(0 AS BIGINT) UNION ALL SELECT t.vers, CAST(p.chemin + ' > ' + t.vers AS NVARCHAR(4000)), p.total + t.minutes FROM p JOIN troncons t ON t.de = p.noeud WHERE t.etat = 'ouvert' AND CHARINDEX(t.vers, p.chemin) = 0 AND p.total + t.minutes <= 60 AND p.noeud <> (SELECT station FROM anomalie)), trajet AS (SELECT MIN(total) AS minutes FROM p WHERE noeud = (SELECT station FROM anomalie)), c AS (SELECT TOP 48 horodatage, CAST(JSON_VALUE(metriques, '$.acc') AS FLOAT) AS y FROM minotaure_checkpoints ORDER BY epoch DESC), x0 AS (SELECT MIN(horodatage) AS t0 FROM c), pts AS (SELECT DATEDIFF(second, x0.t0, c.horodatage) / 3600.0 AS x, c.y FROM c CROSS JOIN x0), s AS (SELECT COUNT(*) AS n, SUM(x) AS sx, SUM(y) AS sy, SUM(x * x) AS sxx, SUM(x * y) AS sxy FROM pts), reg AS (SELECT (n * sxy - sx * sy) / (n * sxx - sx * sx) AS a, (sy - (n * sxy - sx * sy) / (n * sxx - sx * sx) * sx) / n AS b FROM s), limite AS (SELECT FORMAT(DATEADD(second, CAST((0.99 - b) / a * 3600 AS INT), (SELECT t0 FROM x0)), 'yyyy-MM-dd HH:mm') AS h FROM reg), ch(siren, part) AS (SELECT CAST(payeur_siren AS NVARCHAR(64)), CAST(100.0 AS FLOAT) FROM anomalie UNION ALL SELECT CAST(pa.detenteur AS NVARCHAR(64)), ch.part * pa.pct / 100 FROM participations pa JOIN ch ON pa.detenue = ch.siren), benef AS (SELECT REPLACE(siren, 'PERSONNE:', '') AS nom FROM ch WHERE siren LIKE 'PERSONNE:%' GROUP BY siren HAVING SUM(part) > 25), f AS (SELECT DISTINCT numero FROM bornages WHERE antenne = N'Fleury-Mérogis'), lien AS (SELECT appelant AS x, appele AS y FROM communications UNION SELECT appele, appelant FROM communications), cible AS (SELECT DISTINCT b.numero FROM bornages b JOIN antennes an ON an.antenne = b.antenne WHERE an.station = (SELECT station FROM anomalie)), tel AS (SELECT DISTINCT ab.titulaire FROM f JOIN lien l1 ON l1.x = f.numero JOIN lien l2 ON l2.x = l1.y JOIN cible ON cible.numero = l2.y JOIN abonnes ab ON ab.numero = l2.y), iv AS (SELECT host, domaine, ip_dest, CAST(DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage), horodatage) AS FLOAT) AS dt FROM proxy_logs WHERE domaine NOT IN (SELECT domaine FROM domaines_connus)), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, STDEVP(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50), c2 AS (SELECT DISTINCT ip_dest FROM st WHERE sd / m < 0.05), serveur AS (SELECT l.ip FROM c2 JOIN lignes_internet l ON l.ip = c2.ip_dest WHERE l.station = (SELECT station FROM anomalie)) SELECT (SELECT station FROM anomalie) AS station, (SELECT minutes FROM trajet) AS minutes, (SELECT h FROM limite) AS heure_limite, (SELECT ip FROM serveur) AS serveur, nom AS complice FROM benef WHERE nom IN (SELECT titulaire FROM tel);",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "Le chemin et la propriété exigent une CTE récursive (en SQL Server : WITH, puis UNION ALL qui relit la CTE)."
+   },
+   {
+    "re": "JSON_VALUE",
+    "msg": "La régression exige JSON_VALUE."
+   },
+   {
+    "re": "^(?![\\s\\S]*(D[ée]dale|Ricci|Paul|Ouali|Farid|SST\\s+D|192\\.0\\.2|update|Bercy|Gare de Lyon|Labyrinthe|Calanques|5120|0759|0612|LT60))",
+    "msg": "Ne recopie aucune valeur trouvée avant (station, sous-station, personne, antenne, société, numéro) : la requête doit tout retrouver seule."
+   }
+  ],
+  "hints": [
+   "Assemble tes requêtes du chapitre dans un seul WITH : STDEVP pour l'anomalie (TOP 1 dans la CTE), le trajet récursif typé par CAST, la régression avec JSON_VALUE, DATEADD et FORMAT, la chaîne de propriété récursive, les deux sauts téléphoniques et les balises (LAG, DATEDIFF).",
+   "WITH b AS (...), r AS (...), z AS (...), anomalie AS (SELECT TOP 1 ... ORDER BY z.z DESC), p(noeud, chemin, total) AS (... UNION ALL ...), trajet AS (...), c AS (SELECT TOP 48 ... JSON_VALUE(metriques, '$.acc') ...), x0 AS (...), pts AS (...), s AS (...), reg AS (...), limite AS (...), ch(siren, part) AS (... UNION ALL ...), benef AS (...), f AS (...), lien AS (...), cible AS (...), tel AS (...), iv AS (...), st AS (...), c2 AS (...), serveur AS (...) SELECT (SELECT station FROM anomalie) AS station, ... FROM benef WHERE nom IN (SELECT titulaire FROM tel)"
+  ],
+  "note": "La synthèse finale en T-SQL : un WITH unique mêlant CTE simples et récursives (sans RECURSIVE, types alignés par CAST), TOP dans les CTE, JSON_VALUE, STDEVP, DATEDIFF, DATEADD et FORMAT."
+ },
+ "41.A": {
+  "solution": "WITH h AS (SELECT horodatage, DATEDIFF(hour, '2028-02-15', horodatage) AS n FROM releves_electriques WHERE sous_station = N'SST Dédale' AND kwh > 20), g AS (SELECT horodatage, n - ROW_NUMBER() OVER (ORDER BY n) AS grp FROM h), i AS (SELECT MIN(horodatage) AS debut, MAX(horodatage) AS fin FROM g GROUP BY grp), t AS (SELECT LAG(fin) OVER (ORDER BY debut) AS arret, debut AS reprise FROM i) SELECT arret, reprise, DATEDIFF(hour, arret, reprise) AS heures FROM t WHERE arret IS NOT NULL ORDER BY arret;",
+  "hints": [
+   "Reprends les îlots de 41.3 (DATEDIFF(hour, ...) moins ROW_NUMBER), puis LAG(fin) OVER (ORDER BY debut) donne la fin de l'îlot précédent.",
+   "WITH h AS (SELECT horodatage, DATEDIFF(hour, '2028-02-15', horodatage) AS n FROM ...), g AS (...), i AS (SELECT MIN(horodatage) AS debut, MAX(horodatage) AS fin FROM g GROUP BY grp), t AS (SELECT LAG(fin) OVER (ORDER BY debut) AS arret, debut AS reprise FROM i) SELECT arret, reprise, DATEDIFF(hour, arret, reprise) AS heures FROM t WHERE arret IS NOT NULL ORDER BY arret"
+  ]
+ },
+ "41.S": {
+  "solution": "WITH nm AS (SELECT CAST(siren AS NVARCHAR(64)) AS id, nom AS label FROM societes UNION SELECT detenteur, REPLACE(detenteur, 'PERSONNE:', '') FROM participations WHERE detenteur LIKE 'PERSONNE:%'), e(a, b) AS (SELECT detenteur, detenue FROM participations UNION SELECT detenue, detenteur FROM participations), dep AS (SELECT 'PERSONNE:' + prenom + ' ' + nom AS id FROM employes WHERE poste = 'Directeur SI'), arr AS (SELECT 'PERSONNE:' + nom AS id FROM employes_neurocite WHERE poste = 'Directeur data science'), p(noeud, vus, chemin, sauts) AS (SELECT CAST(id AS NVARCHAR(64)), CAST('|' + id + '|' AS NVARCHAR(4000)), CAST(REPLACE(id, 'PERSONNE:', '') AS NVARCHAR(4000)), 0 FROM dep UNION ALL SELECT CAST(e.b AS NVARCHAR(64)), CAST(p.vus + e.b + '|' AS NVARCHAR(4000)), CAST(p.chemin + ' > ' + nm.label AS NVARCHAR(4000)), p.sauts + 1 FROM p JOIN e ON e.a = p.noeud JOIN nm ON nm.id = e.b WHERE CHARINDEX('|' + e.b + '|', p.vus) = 0 AND p.sauts < 12) SELECT TOP 1 chemin, sauts FROM p WHERE noeud = (SELECT id FROM arr) ORDER BY sauts;",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "Il faut une CTE récursive : en SQL Server, un WITH (sans RECURSIVE) dont la partie après UNION ALL relit la CTE."
+   },
+   {
+    "re": "^(?![\\s\\S]*(Ouali|Farid|Delorme|Maxime|Ricci|Paul|Ariane|Th[ée]s[ée]e|Labyrinthe|Calanques|5120))",
+    "msg": "Ne tape aucun nom ni SIREN : pars des postes, la requête doit retrouver tout le fil."
+   }
+  ],
+  "hints": [
+   "La partie récursive d'une CTE SQL Server n'accepte pas de sous-requête : récupère le libellé du nœud par une jointure (JOIN nm ON nm.id = e.b). Concatène avec + et aligne les types par CAST (NVARCHAR(64), NVARCHAR(4000)).",
+   "WITH nm AS (...), e(a, b) AS (... UNION ...), dep AS (SELECT 'PERSONNE:' + prenom + ' ' + nom AS id FROM employes WHERE ...), arr AS (...), p(noeud, vus, chemin, sauts) AS (SELECT CAST(id AS NVARCHAR(64)), CAST('|' + id + '|' AS NVARCHAR(4000)), ... FROM dep UNION ALL SELECT CAST(e.b AS NVARCHAR(64)), CAST(p.vus + e.b + '|' AS NVARCHAR(4000)), CAST(p.chemin + ' > ' + nm.label AS NVARCHAR(4000)), p.sauts + 1 FROM p JOIN e ON e.a = p.noeud JOIN nm ON nm.id = e.b WHERE CHARINDEX('|' + e.b + '|', p.vus) = 0 AND p.sauts < 12) SELECT TOP 1 chemin, sauts FROM p WHERE noeud = (SELECT id FROM arr) ORDER BY sauts"
+  ],
+  "note": "SQL Server interdit les sous-requêtes (et TOP, DISTINCT, GROUP BY, LEFT JOIN) dans la partie récursive d'une CTE : le libellé vient d'une jointure interne. || devient +, instr devient CHARINDEX, LIMIT 1 devient TOP 1."
+ }
+}

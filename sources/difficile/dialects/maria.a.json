@@ -1,0 +1,1407 @@
+{
+ "1.1": {
+  "solution": "SELECT * FROM suspects;",
+  "hints": [
+   "L'étoile * sélectionne toutes les colonnes d'une table.",
+   "Structure : SELECT * FROM nom_de_la_table;"
+  ]
+ },
+ "1.2": {
+  "solution": "SELECT prenom, nom, age FROM suspects;",
+  "hints": [
+   "Liste les colonnes voulues après SELECT, séparées par des virgules.",
+   "SELECT prenom, nom, age FROM ...;"
+  ]
+ },
+ "1.3": {
+  "solution": "SELECT nom, age, 2026 - age AS annee_naissance FROM suspects;",
+  "hints": [
+   "Tu peux calculer directement dans le SELECT et nommer le résultat avec AS.",
+   "SELECT nom, age, 2026 - age AS annee_naissance FROM suspects;"
+  ]
+ },
+ "1.4": {
+  "solution": "SELECT CONCAT(prenom, ' ', nom) AS identite, ville FROM suspects;",
+  "hints": [
+   "Sous MariaDB, || est un OU logique par défaut, pas une concaténation : utilise la fonction CONCAT().",
+   "CONCAT(prenom, ' ', nom) AS identite, puis la colonne ville."
+  ],
+  "note": "MariaDB concatène avec CONCAT(a, b, ...) : l'opérateur || y signifie OR (sauf mode PIPES_AS_CONCAT)."
+ },
+ "1.5": {
+  "solution": "SELECT DISTINCT ville FROM suspects;",
+  "hints": [
+   "Un mot-clé placé juste après SELECT supprime les doublons.",
+   "SELECT DISTINCT ville FROM suspects;"
+  ]
+ },
+ "1.6": {
+  "solution": "SELECT prenom, nom, age FROM suspects ORDER BY age DESC, nom ASC, prenom ASC;",
+  "hints": [
+   "ORDER BY accepte plusieurs critères, chacun avec ASC ou DESC.",
+   "ORDER BY age DESC, nom ASC"
+  ]
+ },
+ "1.7": {
+  "solution": "SELECT id, prenom, nom, age FROM suspects ORDER BY age DESC, id ASC LIMIT 5;",
+  "hints": [
+   "MariaDB limite le nombre de lignes avec LIMIT, placé tout à la fin.",
+   "ORDER BY age DESC, id ASC LIMIT 5"
+  ]
+ },
+ "1.A": {
+  "solution": "SELECT nom, territoire, fondation, 2026 - fondation AS anciennete FROM gangs ORDER BY fondation;",
+  "hints": [
+   "Calcule l'ancienneté dans le SELECT et nomme-la avec AS.",
+   "SELECT nom, territoire, fondation, 2026 - fondation AS anciennete FROM gangs ORDER BY ..."
+  ]
+ },
+ "1.S": {
+  "solution": "SELECT horodatage, compte_source, compte_dest, montant, 480000 - montant AS evapore FROM virements ORDER BY montant DESC LIMIT 5;",
+  "hints": [
+   "Trie par montant décroissant et garde les 5 premières lignes avec LIMIT.",
+   "... 480000 - montant AS evapore FROM virements ORDER BY montant DESC LIMIT 5;"
+  ]
+ },
+ "1.8": {
+  "solution": "SELECT CONCAT(prenom, ' ', nom) AS identite, age, ville FROM suspects ORDER BY age DESC, id ASC LIMIT 10;",
+  "hints": [
+   "Pour coller prénom et nom, MariaDB utilise CONCAT() (|| y est un OU logique).",
+   "SELECT CONCAT(prenom, ' ', nom) AS identite, age, ville ... ORDER BY age DESC, id ASC LIMIT 10;"
+  ],
+  "note": "Concaténation avec CONCAT() et limitation avec LIMIT."
+ },
+ "2.1": {
+  "solution": "SELECT id, prenom, nom FROM suspects WHERE sexe = 'H';",
+  "hints": [
+   "Filtre les lignes avec WHERE. Attention : sur ce serveur MariaDB, les comparaisons de texte sont sensibles à la casse.",
+   "WHERE sexe = 'H'"
+  ]
+ },
+ "2.2": {
+  "solution": "SELECT id, prenom, nom FROM suspects WHERE sexe = 'H' AND cicatrices = 'Oui';",
+  "hints": [
+   "Combine deux conditions avec AND.",
+   "WHERE sexe = 'H' AND cicatrices = 'Oui'"
+  ]
+ },
+ "2.3": {
+  "solution": "SELECT id, prenom, nom, cheveux FROM suspects WHERE sexe = 'H' AND cicatrices = 'Oui' AND (cheveux = 'Noirs' OR cheveux = 'Bruns');",
+  "hints": [
+   "AND est prioritaire sur OR : sans parenthèses, le OR s'applique à tout le reste.",
+   "... AND (cheveux = 'Noirs' OR cheveux = 'Bruns')"
+  ]
+ },
+ "2.4": {
+  "solution": "SELECT id, prenom, nom, pointure FROM suspects WHERE sexe = 'H' AND cicatrices = 'Oui' AND (cheveux = 'Noirs' OR cheveux = 'Bruns') AND pointure >= 44;",
+  "hints": [
+   "Ajoute une condition de comparaison numérique avec >=.",
+   "... AND pointure >= 44"
+  ]
+ },
+ "2.5": {
+  "solution": "SELECT id, prenom, nom, age, lunettes FROM suspects WHERE sexe = 'H' AND cicatrices = 'Oui' AND (cheveux = 'Noirs' OR cheveux = 'Bruns') AND pointure >= 44 AND age BETWEEN 50 AND 59;",
+  "hints": [
+   "BETWEEN a AND b inclut les deux bornes.",
+   "... AND age BETWEEN 50 AND 59"
+  ]
+ },
+ "2.6": {
+  "solution": "SELECT * FROM suspects WHERE sexe = 'H' AND cicatrices = 'Oui' AND (cheveux = 'Noirs' OR cheveux = 'Bruns') AND pointure >= 44 AND age BETWEEN 50 AND 59 AND lunettes = 'Oui';",
+  "hints": [
+   "Reprends la requête précédente avec SELECT * et une condition de plus.",
+   "... AND lunettes = 'Oui'"
+  ]
+ },
+ "2.A": {
+  "solution": "SELECT immatriculation, marque, annee, suspect_id FROM vehicules WHERE (marque = 'Peugeot' OR marque = 'Citroën') AND couleur = 'Grise' AND annee BETWEEN 2010 AND 2020;",
+  "hints": [
+   "Mets le OR sur les marques entre parenthèses. Les accents comptent : la collation est binaire.",
+   "WHERE (marque = 'Peugeot' OR marque = 'Citroën') AND couleur = 'Grise' AND annee BETWEEN 2010 AND 2020"
+  ]
+ },
+ "2.S": {
+  "solution": "SELECT horodatage, lieu, immatriculation FROM cameras WHERE (immatriculation = 'FB-221-TR' OR immatriculation = 'NC-406-DR') AND horodatage > '2026-11-14 06:12:00' ORDER BY horodatage;",
+  "hints": [
+   "horodatage est un DATETIME : MariaDB convertit la chaîne 'AAAA-MM-JJ HH:MM:SS' pour la comparer.",
+   "WHERE (immatriculation = ... OR immatriculation = ...) AND horodatage > '2026-11-14 06:12:00' ORDER BY horodatage"
+  ]
+ },
+ "2.7": {
+  "solution": "SELECT id, prenom, nom, age, pointure FROM suspects WHERE sexe = 'H' AND age BETWEEN 20 AND 35 AND taille = 'Petite' AND tatouages = 'Oui' AND cheveux IN ('Noirs', 'Bruns') AND lunettes = 'Non';",
+  "hints": [
+   "Traduis chaque élément du signalement en condition, reliées par AND.",
+   "sexe, age BETWEEN 20 AND 35, taille = 'Petite', tatouages = 'Oui', cheveux IN (...), lunettes = 'Non'"
+  ]
+ },
+ "3.1": {
+  "solution": "SELECT id, prenom, nom, cheveux FROM suspects WHERE sexe = 'F' AND taille = 'Grande' AND cheveux IN ('Roux', 'Blonds');",
+  "hints": [
+   "IN (...) remplace une suite de OR sur la même colonne.",
+   "... AND cheveux IN ('Roux', 'Blonds')"
+  ]
+ },
+ "3.2": {
+  "solution": "SELECT id, prenom, nom, telephone FROM suspects WHERE sexe = 'F' AND taille = 'Grande' AND cheveux IN ('Roux', 'Blonds') AND tatouages = 'Oui' AND nom LIKE 'Le%';",
+  "hints": [
+   "LIKE avec % remplace n'importe quelle suite de caractères. Ici LIKE est sensible à la casse (collation binaire) : écris bien 'Le'.",
+   "... AND nom LIKE 'Le%'"
+  ],
+  "note": "La base MariaDB utilise une collation binaire (utf8mb4_bin) : LIKE y distingue majuscules et minuscules, contrairement à SQLite."
+ },
+ "3.3": {
+  "solution": "SELECT * FROM suspects WHERE sexe = 'F' AND taille = 'Grande' AND cheveux IN ('Roux', 'Blonds') AND tatouages = 'Oui' AND nom LIKE 'Le%' AND telephone IS NULL;",
+  "hints": [
+   "NULL ne se compare pas avec = : il faut un opérateur spécial.",
+   "... AND telephone IS NULL"
+  ]
+ },
+ "3.4": {
+  "solution": "SELECT id, prenom, nom, cheveux FROM suspects WHERE cheveux IS NOT NULL AND cheveux NOT IN ('Noirs', 'Bruns', 'Chauve');",
+  "hints": [
+   "Combine IS NOT NULL et NOT IN.",
+   "WHERE cheveux IS NOT NULL AND cheveux NOT IN ('Noirs', 'Bruns', 'Chauve')"
+  ]
+ },
+ "3.5": {
+  "solution": "SELECT * FROM vehicules WHERE immatriculation LIKE 'G_-7__-K_';",
+  "hints": [
+   "Dans LIKE, le caractère _ remplace exactement un caractère.",
+   "WHERE immatriculation LIKE 'G_-7__-K_'"
+  ]
+ },
+ "3.A": {
+  "solution": "SELECT numero, banque, ouverture FROM comptes WHERE titulaire_id IS NULL AND numero NOT LIKE 'HEL%' ORDER BY ouverture, numero;",
+  "hints": [
+   "Teste l'absence de titulaire avec IS NULL et exclus un préfixe avec NOT LIKE.",
+   "WHERE titulaire_id IS NULL AND numero NOT LIKE 'HEL%' ORDER BY ouverture, numero"
+  ]
+ },
+ "3.S": {
+  "solution": "SELECT horodatage, appelant, appele, duree_s FROM appels WHERE appelant NOT LIKE '06%' OR appele NOT LIKE '06%' ORDER BY horodatage;",
+  "hints": [
+   "Un des deux numéros suffit : relie deux NOT LIKE par OR.",
+   "WHERE appelant NOT LIKE '06%' OR appele NOT LIKE '06%' ORDER BY horodatage"
+  ]
+ },
+ "3.6": {
+  "solution": "SELECT id, prenom, nom, ville, cheveux, telephone FROM suspects WHERE prenom LIKE '%e' AND ville IN ('Lille', 'Marseille') AND (cheveux IS NULL OR telephone IS NULL);",
+  "hints": [
+   "Prénom finissant par e : LIKE '%e' (sensible à la casse ici). Une des deux informations manque : OR entre parenthèses.",
+   "WHERE prenom LIKE '%e' AND ville IN (...) AND (cheveux IS NULL OR telephone IS NULL)"
+  ]
+ },
+ "4.1": {
+  "solution": "SELECT CONCAT(UPPER(nom), ', ', prenom) AS avis, ville FROM suspects WHERE id IN (217, 388);",
+  "hints": [
+   "UPPER() met en majuscules ; pour assembler les morceaux, MariaDB utilise CONCAT().",
+   "CONCAT(UPPER(nom), ', ', prenom) AS avis"
+  ],
+  "note": "CONCAT() au lieu de || (qui est un OU logique sous MariaDB)."
+ },
+ "4.2": {
+  "solution": "SELECT immatriculation, REPLACE(immatriculation, '-', '') AS plaque_brute, CHAR_LENGTH(REPLACE(immatriculation, '-', '')) AS longueur FROM vehicules WHERE suspect_id IN (217, 388);",
+  "hints": [
+   "REPLACE(texte, '-', '') retire les tirets. Pour compter les caractères, MariaDB a CHAR_LENGTH() (LENGTH() compte les octets).",
+   "REPLACE(immatriculation, '-', '') AS plaque_brute, CHAR_LENGTH(REPLACE(...)) AS longueur"
+  ],
+  "note": "Sous MariaDB, LENGTH() compte des octets et CHAR_LENGTH() des caractères (identiques ici, les plaques étant en ASCII)."
+ },
+ "4.3": {
+  "solution": "SELECT type, date_faits, YEAR(date_faits) AS annee, DATEDIFF(fin_peine, debut_peine) AS jours FROM delits WHERE suspect_id = 217 ORDER BY date_faits;",
+  "hints": [
+   "Les colonnes sont de vrais DATE : MariaDB a YEAR() pour l'année et DATEDIFF(fin, debut) pour l'écart en jours.",
+   "YEAR(date_faits) AS annee, DATEDIFF(fin_peine, debut_peine) AS jours"
+  ],
+  "note": "strftime() et julianday() n'existent pas : YEAR() (ou DATE_FORMAT(d, '%Y')) et DATEDIFF() les remplacent."
+ },
+ "4.4": {
+  "solution": "SELECT horodatage, immatriculation FROM cameras WHERE lieu = 'Esplanade La Défense' AND horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 00:30:00' ORDER BY horodatage;",
+  "hints": [
+   "BETWEEN fonctionne aussi avec des DATETIME, bornes incluses.",
+   "WHERE lieu = '...' AND horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 00:30:00' ORDER BY horodatage"
+  ]
+ },
+ "4.5": {
+  "solution": "SELECT id, type, prejudice, CASE WHEN prejudice IS NULL THEN 'Inconnu' WHEN prejudice < 1000 THEN 'Mineur' WHEN prejudice < 20000 THEN 'Moyen' ELSE 'Majeur' END AS gravite FROM delits WHERE suspect_id IN (217, 388);",
+  "hints": [
+   "CASE WHEN ... THEN ... ELSE ... END teste les conditions dans l'ordre : commence par le cas NULL.",
+   "CASE WHEN prejudice IS NULL THEN 'Inconnu' WHEN prejudice < 1000 THEN 'Mineur' WHEN ... END AS gravite"
+  ]
+ },
+ "4.6": {
+  "solution": "SELECT prenom, nom, IFNULL(telephone, 'non renseigné') AS tel FROM suspects WHERE ville = 'Nanterre';",
+  "hints": [
+   "MariaDB propose IFNULL(a, b) (ou COALESCE, standard) pour remplacer un NULL.",
+   "IFNULL(telephone, 'non renseigné') AS tel"
+  ]
+ },
+ "4.A": {
+  "solution": "SELECT lieu, DATE_FORMAT(horodatage, '%H:%i') AS heure, ROUND(TIMESTAMPDIFF(SECOND, '2026-11-13 23:40:00', horodatage) / 60) AS minutes FROM cameras WHERE immatriculation = 'GH-713-KZ' AND horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 01:00:00' ORDER BY horodatage;",
+  "hints": [
+   "DATE_FORMAT(h, '%H:%i') donne HH:MM (attention : les minutes s'écrivent %i sous MariaDB). Pour un écart, TIMESTAMPDIFF(unité, debut, fin).",
+   "ROUND(TIMESTAMPDIFF(SECOND, '2026-11-13 23:40:00', horodatage) / 60) AS minutes"
+  ],
+  "note": "DATE_FORMAT remplace strftime (%i pour les minutes) et TIMESTAMPDIFF remplace la différence de julianday."
+ },
+ "4.S": {
+  "solution": "SELECT DATE(horodatage) AS jour, DATE_FORMAT(horodatage, '%H:%i') AS heure, lieu, DATEDIFF('2026-11-13', DATE(horodatage)) AS jours_avant, CASE WHEN lieu = 'Esplanade La Défense' THEN 'Repérage' ELSE 'Trajet' END AS nature FROM cameras WHERE immatriculation = 'GH-713-KZ' AND horodatage < '2026-11-13 23:00:00' ORDER BY horodatage;",
+  "hints": [
+   "DATE() garde la date seule, DATE_FORMAT(h, '%H:%i') l'heure, et DATEDIFF(a, b) renvoie directement un nombre entier de jours.",
+   "DATE(horodatage) AS jour, ..., DATEDIFF('2026-11-13', DATE(horodatage)) AS jours_avant, CASE WHEN lieu = ... THEN 'Repérage' ELSE 'Trajet' END AS nature"
+  ],
+  "note": "DATEDIFF renvoie déjà un entier : pas besoin de CAST."
+ },
+ "4.7": {
+  "solution": "SELECT id, date_faits, MONTH(date_faits) AS mois, QUARTER(date_faits) AS trimestre, CASE WHEN prejudice IS NULL THEN 'Inconnu' WHEN prejudice < 1000 THEN 'Mineur' WHEN prejudice < 20000 THEN 'Moyen' ELSE 'Majeur' END AS gravite FROM delits WHERE YEAR(date_faits) = 2025 ORDER BY date_faits, id;",
+  "hints": [
+   "MariaDB a MONTH() et même QUARTER(). Attention : (mois + 2) / 3 donne un décimal sous MariaDB ; utilise DIV pour une division entière.",
+   "MONTH(date_faits) AS mois, QUARTER(date_faits) AS trimestre, ... WHERE YEAR(date_faits) = 2025 ORDER BY date_faits, id"
+  ],
+  "note": "Sous MariaDB, / est une division décimale (7/2 = 3.5) : QUARTER() ou (MONTH(d) + 2) DIV 3 donnent le trimestre."
+ },
+ "5.1": {
+  "solution": "SELECT COUNT(*) AS echecs FROM connexions WHERE succes = 0;",
+  "hints": [
+   "COUNT(*) compte les lignes retenues par le WHERE.",
+   "SELECT COUNT(*) AS echecs FROM connexions WHERE succes = 0;"
+  ]
+ },
+ "5.2": {
+  "solution": "SELECT COUNT(*) AS total, COUNT(telephone) AS avec_tel, COUNT(DISTINCT ville) AS villes FROM suspects;",
+  "hints": [
+   "COUNT(colonne) ignore les NULL, COUNT(DISTINCT colonne) compte les valeurs différentes.",
+   "COUNT(*) AS total, COUNT(telephone) AS avec_tel, COUNT(DISTINCT ville) AS villes"
+  ]
+ },
+ "5.3": {
+  "solution": "SELECT MIN(prejudice) AS mini, MAX(prejudice) AS maxi, ROUND(AVG(prejudice), 2) AS moyenne FROM delits;",
+  "hints": [
+   "MIN, MAX et AVG s'utilisent ensemble ; ROUND(x, 2) arrondit.",
+   "MIN(prejudice) AS mini, MAX(prejudice) AS maxi, ROUND(AVG(prejudice), 2) AS moyenne"
+  ]
+ },
+ "5.4": {
+  "solution": "SELECT ip, COUNT(*) AS echecs FROM connexions WHERE succes = 0 GROUP BY ip ORDER BY echecs DESC;",
+  "hints": [
+   "GROUP BY ip crée un groupe par IP ; MariaDB accepte l'alias dans ORDER BY.",
+   "... WHERE succes = 0 GROUP BY ip ORDER BY echecs DESC"
+  ]
+ },
+ "5.5": {
+  "solution": "SELECT ip, COUNT(*) AS echecs, MAX(pays) AS pays FROM connexions WHERE succes = 0 GROUP BY ip HAVING COUNT(*) >= 10 ORDER BY echecs DESC;",
+  "hints": [
+   "WHERE filtre les lignes avant le regroupement, HAVING filtre les groupes après.",
+   "GROUP BY ip HAVING COUNT(*) >= 10 ORDER BY echecs DESC"
+  ]
+ },
+ "5.6": {
+  "solution": "SELECT login, horodatage FROM connexions WHERE ip = '203.0.113.66' AND succes = 1;",
+  "hints": [
+   "Deux conditions simples suffisent.",
+   "WHERE ip = '203.0.113.66' AND succes = 1"
+  ]
+ },
+ "5.7": {
+  "solution": "SELECT type, COUNT(*) AS nb, ROUND(SUM(prejudice), 2) AS total FROM delits GROUP BY type HAVING SUM(prejudice) > 1000000 ORDER BY total DESC;",
+  "hints": [
+   "Regroupe par type et filtre sur la somme avec HAVING.",
+   "GROUP BY type HAVING SUM(prejudice) > 1000000 ORDER BY total DESC"
+  ]
+ },
+ "5.A": {
+  "solution": "SELECT ip, COUNT(*) AS tentatives, SUM(succes) AS reussites, MIN(horodatage) AS premiere FROM connexions WHERE login = 'j.ferrand' GROUP BY ip ORDER BY tentatives DESC;",
+  "hints": [
+   "succes vaut 0 ou 1 : SUM(succes) compte les réussites. MIN() marche aussi sur un DATETIME.",
+   "WHERE login = 'j.ferrand' GROUP BY ip ORDER BY tentatives DESC"
+  ]
+ },
+ "5.S": {
+  "solution": "SELECT COUNT(*) AS tentatives, COUNT(DISTINCT login) AS logins_differents, COUNT(DISTINCT CASE WHEN login LIKE '_.%' THEN login END) AS logins_internes FROM connexions WHERE ip = '203.0.113.66';",
+  "hints": [
+   "Un CASE sans ELSE renvoie NULL, que COUNT(DISTINCT ...) ignore.",
+   "COUNT(DISTINCT CASE WHEN login LIKE '_.%' THEN login END) AS logins_internes"
+  ]
+ },
+ "5.8": {
+  "solution": "SELECT ip, DATE_FORMAT(horodatage, '%Y-%m-%d %H') AS heure, COUNT(*) AS echecs FROM connexions WHERE succes = 0 GROUP BY ip, heure HAVING COUNT(*) >= 50 ORDER BY echecs DESC;",
+  "hints": [
+   "DATE_FORMAT(horodatage, '%Y-%m-%d %H') tronque l'horodatage à l'heure ; MariaDB accepte l'alias dans GROUP BY.",
+   "SELECT ip, DATE_FORMAT(...) AS heure, COUNT(*) AS echecs ... GROUP BY ip, heure HAVING COUNT(*) >= 50"
+  ],
+  "note": "DATE_FORMAT remplace strftime."
+ },
+ "6.1": {
+  "solution": "SELECT s.prenom, s.nom, d.type, d.date_faits FROM suspects s JOIN delits d ON d.suspect_id = s.id WHERE s.id = 217 ORDER BY d.date_faits;",
+  "hints": [
+   "JOIN ... ON relie les délits à leur suspect par la clé suspect_id.",
+   "FROM suspects s JOIN delits d ON d.suspect_id = s.id WHERE s.id = 217"
+  ]
+ },
+ "6.2": {
+  "solution": "SELECT s.id, s.prenom, s.nom, COUNT(*) AS nb FROM suspects s JOIN delits d ON d.suspect_id = s.id GROUP BY s.id, s.prenom, s.nom HAVING COUNT(*) >= 6 ORDER BY nb DESC;",
+  "hints": [
+   "Joins, regroupe par suspect, puis filtre avec HAVING. Le serveur est en ONLY_FULL_GROUP_BY : mets toutes les colonnes non agrégées dans le GROUP BY.",
+   "GROUP BY s.id, s.prenom, s.nom HAVING COUNT(*) >= 6 ORDER BY nb DESC"
+  ]
+ },
+ "6.3": {
+  "solution": "SELECT g.nom AS gang, m.role, m.depuis FROM suspects s JOIN membres m ON m.suspect_id = s.id JOIN gangs g ON g.id = m.gang_id WHERE s.id = 217;",
+  "hints": [
+   "membres est la table de liaison entre suspects et gangs : deux JOIN.",
+   "FROM suspects s JOIN membres m ON ... JOIN gangs g ON g.id = m.gang_id"
+  ]
+ },
+ "6.4": {
+  "solution": "SELECT c.horodatage, c.immatriculation, s.prenom, s.nom FROM cameras c JOIN vehicules v ON v.immatriculation = c.immatriculation JOIN suspects s ON s.id = v.suspect_id WHERE c.lieu = 'Esplanade La Défense' AND c.horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 00:30:00';",
+  "hints": [
+   "Passe de la caméra au véhicule (immatriculation), puis du véhicule au suspect.",
+   "cameras c JOIN vehicules v ON v.immatriculation = c.immatriculation JOIN suspects s ON s.id = v.suspect_id"
+  ]
+ },
+ "6.5": {
+  "solution": "SELECT c.horodatage, c.immatriculation, v.suspect_id FROM cameras c LEFT JOIN vehicules v ON v.immatriculation = c.immatriculation WHERE c.lieu = 'Esplanade La Défense' AND c.horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 00:30:00';",
+  "hints": [
+   "LEFT JOIN garde toutes les lignes de gauche, même sans correspondance.",
+   "cameras c LEFT JOIN vehicules v ON v.immatriculation = c.immatriculation"
+  ]
+ },
+ "6.6": {
+  "solution": "SELECT s.id, s.prenom, s.nom, m.role FROM membres m JOIN suspects s ON s.id = m.suspect_id LEFT JOIN delits d ON d.suspect_id = s.id WHERE m.gang_id = 2 AND d.id IS NULL;",
+  "hints": [
+   "LEFT JOIN vers delits, puis garde les lignes sans correspondance.",
+   "... LEFT JOIN delits d ON d.suspect_id = s.id WHERE m.gang_id = 2 AND d.id IS NULL"
+  ]
+ },
+ "6.7": {
+  "solution": "SELECT e.prenom, e.nom, e.poste, CONCAT(m.prenom, ' ', m.nom) AS manager FROM employes e LEFT JOIN employes m ON m.id = e.manager_id WHERE e.agence_id = 1;",
+  "hints": [
+   "Joins employes avec elle-même via deux alias ; assemble le nom du manager avec CONCAT().",
+   "FROM employes e LEFT JOIN employes m ON m.id = e.manager_id, et CONCAT(m.prenom, ' ', m.nom) AS manager"
+  ],
+  "note": "CONCAT() renvoie NULL si un argument est NULL, comme || en SQLite."
+ },
+ "6.8": {
+  "solution": "SELECT a.horodatage, e.prenom, e.nom, a.duree_s FROM appels a JOIN employes e ON e.telephone = a.appelant WHERE a.appele = '0611223344';",
+  "hints": [
+   "La jointure peut se faire sur un numéro de téléphone.",
+   "appels a JOIN employes e ON e.telephone = a.appelant WHERE a.appele = '0611223344'"
+  ]
+ },
+ "6.A": {
+  "solution": "SELECT c.horodatage, c.ip, c.pays, e.prenom, e.nom, a.nom AS agence FROM connexions c JOIN employes e ON e.login = c.login JOIN agences a ON a.id = e.agence_id WHERE c.succes = 1 AND c.pays <> 'FR' ORDER BY c.horodatage;",
+  "hints": [
+   "Relie connexions à employes par le login, puis employes à agences.",
+   "connexions c JOIN employes e ON e.login = c.login JOIN agences a ON a.id = e.agence_id WHERE c.succes = 1 AND c.pays <> 'FR'"
+  ]
+ },
+ "6.S": {
+  "solution": "SELECT b.badge, b.horodatage, CONCAT(e.prenom, ' ', e.nom) AS titulaire, e.poste, CONCAT(m.prenom, ' ', m.nom) AS responsable, m.poste AS poste_responsable FROM acces_badges b JOIN employes e ON e.id = b.employe_id LEFT JOIN employes m ON m.id = e.manager_id WHERE b.resultat = 'REFUSE' AND b.porte = 'Salle des coffres' AND b.horodatage BETWEEN '2026-11-13 22:00:00' AND '2026-11-14 01:00:00';",
+  "hints": [
+   "Deux alias de employes : le titulaire du badge et son manager. Les noms s'assemblent avec CONCAT().",
+   "acces_badges b JOIN employes e ON e.id = b.employe_id LEFT JOIN employes m ON m.id = e.manager_id, CONCAT(e.prenom, ' ', e.nom) AS titulaire ..."
+  ],
+  "note": "CONCAT() remplace ||."
+ },
+ "6.9": {
+  "solution": "SELECT c.horodatage, c.immatriculation, CONCAT(s.prenom, ' ', s.nom) AS proprietaire, g.nom AS gang FROM cameras c LEFT JOIN vehicules v ON v.immatriculation = c.immatriculation LEFT JOIN suspects s ON s.id = v.suspect_id LEFT JOIN membres m ON m.suspect_id = s.id LEFT JOIN gangs g ON g.id = m.gang_id WHERE c.lieu = 'Esplanade La Défense' AND c.horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 00:30:00';",
+  "hints": [
+   "Enchaîne des LEFT JOIN jusqu'à gangs pour ne perdre aucun passage ; CONCAT() pour le propriétaire.",
+   "cameras c LEFT JOIN vehicules v ... LEFT JOIN suspects s ... LEFT JOIN membres m ... LEFT JOIN gangs g ..."
+  ],
+  "note": "CONCAT() remplace ||."
+ },
+ "7.1": {
+  "solution": "SELECT id, type, prejudice FROM delits WHERE prejudice > (SELECT AVG(prejudice) FROM delits);",
+  "hints": [
+   "Une sous-requête entre parenthèses peut renvoyer une seule valeur à comparer.",
+   "WHERE prejudice > (SELECT AVG(prejudice) FROM delits)"
+  ]
+ },
+ "7.2": {
+  "solution": "SELECT id, prenom, nom FROM suspects WHERE id IN (SELECT suspect_id FROM membres WHERE gang_id = (SELECT id FROM gangs WHERE nom = 'Le Cercle'));",
+  "hints": [
+   "Emboîte deux sous-requêtes : l'id du gang, puis les suspect_id de ses membres.",
+   "WHERE id IN (SELECT suspect_id FROM membres WHERE gang_id = (SELECT id FROM gangs WHERE nom = 'Le Cercle'))"
+  ]
+ },
+ "7.3": {
+  "solution": "SELECT e.id, e.prenom, e.nom, e.poste FROM employes e WHERE EXISTS (SELECT 1 FROM acces_badges b WHERE b.employe_id = e.id AND b.porte = 'Salle des coffres' AND b.resultat = 'OK' AND b.horodatage BETWEEN '2026-11-13 22:00:00' AND '2026-11-14 01:00:00');",
+  "hints": [
+   "EXISTS (SELECT 1 ...) est vrai dès qu'une ligne existe ; relie la sous-requête à l'employé courant.",
+   "WHERE EXISTS (SELECT 1 FROM acces_badges b WHERE b.employe_id = e.id AND ...)"
+  ]
+ },
+ "7.4": {
+  "solution": "SELECT s.id, s.prenom, s.nom FROM suspects s JOIN membres m ON m.suspect_id = s.id WHERE m.gang_id = 2 AND NOT EXISTS (SELECT 1 FROM vehicules v WHERE v.suspect_id = s.id);",
+  "hints": [
+   "NOT EXISTS est vrai quand la sous-requête ne trouve rien.",
+   "... WHERE m.gang_id = 2 AND NOT EXISTS (SELECT 1 FROM vehicules v WHERE v.suspect_id = s.id)"
+  ]
+ },
+ "7.5": {
+  "solution": "SELECT g.nom AS gang, s.prenom, s.nom, s.age FROM gangs g JOIN membres m ON m.gang_id = g.id JOIN suspects s ON s.id = m.suspect_id WHERE s.age = (SELECT MAX(s2.age) FROM membres m2 JOIN suspects s2 ON s2.id = m2.suspect_id WHERE m2.gang_id = g.id);",
+  "hints": [
+   "Sous-requête corrélée : pour chaque gang, calcule l'âge maximum de ses membres.",
+   "WHERE s.age = (SELECT MAX(s2.age) FROM membres m2 JOIN suspects s2 ON ... WHERE m2.gang_id = g.id)"
+  ]
+ },
+ "7.6": {
+  "solution": "SELECT ROUND(AVG(nb), 2) AS moyenne FROM (SELECT suspect_id, COUNT(*) AS nb FROM delits GROUP BY suspect_id) t;",
+  "hints": [
+   "Une sous-requête dans le FROM doit obligatoirement avoir un alias sous MariaDB.",
+   "SELECT ROUND(AVG(nb), 2) AS moyenne FROM (SELECT suspect_id, COUNT(*) AS nb FROM delits GROUP BY suspect_id) t;"
+  ],
+  "note": "MariaDB exige un alias pour toute table dérivée (... ) t."
+ },
+ "7.A": {
+  "solution": "SELECT s.id, s.prenom, s.nom, (SELECT COUNT(*) FROM delits d WHERE d.suspect_id = s.id AND d.type = 'Braquage') AS nb_braquages FROM suspects s WHERE s.id IN (SELECT suspect_id FROM membres WHERE gang_id = 2) AND EXISTS (SELECT 1 FROM delits d WHERE d.suspect_id = s.id AND d.type = 'Braquage') ORDER BY s.id;",
+  "hints": [
+   "Une sous-requête scalaire dans le SELECT peut compter les braquages ; EXISTS filtre ceux qui en ont.",
+   "(SELECT COUNT(*) FROM delits d WHERE d.suspect_id = s.id AND d.type = 'Braquage') AS nb_braquages ... AND EXISTS (...)"
+  ]
+ },
+ "7.S": {
+  "solution": "SELECT e.id, e.prenom, e.nom, e.poste FROM employes e WHERE EXISTS (SELECT 1 FROM appels a WHERE a.appelant = e.telephone AND a.horodatage >= '2026-11-01' AND a.horodatage < '2026-12-01' AND a.appele IN (SELECT s.telephone FROM suspects s JOIN membres m ON m.suspect_id = s.id WHERE m.gang_id = 2 AND m.depuis >= '2025-01-01'));",
+  "hints": [
+   "horodatage est un DATETIME : pour novembre 2026, préfère un intervalle (>= '2026-11-01' AND < '2026-12-01') ou YEAR()/MONTH() plutôt que LIKE.",
+   "WHERE EXISTS (SELECT 1 FROM appels a WHERE a.appelant = e.telephone AND ... AND a.appele IN (SELECT s.telephone FROM suspects s JOIN membres m ... ))"
+  ],
+  "note": "Sur un DATETIME, un intervalle de dates est plus propre (et indexable) qu'un LIKE '2026-11%'."
+ },
+ "7.7": {
+  "solution": "SELECT e.id, e.prenom, e.nom FROM employes e WHERE EXISTS (SELECT 1 FROM acces_badges b WHERE b.employe_id = e.id AND b.resultat = 'OK' AND b.horodatage BETWEEN '2026-11-13 20:00:00' AND '2026-11-14 06:00:00') AND NOT EXISTS (SELECT 1 FROM appels a WHERE a.appelant = e.telephone AND a.appele = '0611223344');",
+  "hints": [
+   "Combine un EXISTS (accès OK) et un NOT EXISTS (aucun appel à Vasseur).",
+   "WHERE EXISTS (SELECT 1 FROM acces_badges b ...) AND NOT EXISTS (SELECT 1 FROM appels a WHERE a.appelant = e.telephone AND a.appele = '0611223344')"
+  ]
+ },
+ "8.1": {
+  "solution": "SELECT appele AS numero FROM appels WHERE appelant = '0611223344' UNION SELECT appelant FROM appels WHERE appele = '0611223344';",
+  "hints": [
+   "UNION colle deux SELECT de même nombre de colonnes et supprime les doublons.",
+   "SELECT appele AS numero FROM appels WHERE appelant = '...' UNION SELECT appelant FROM appels WHERE appele = '...'"
+  ]
+ },
+ "8.2": {
+  "solution": "SELECT numero FROM (SELECT appele AS numero FROM appels WHERE appelant = '0611223344' UNION SELECT appelant FROM appels WHERE appele = '0611223344') AS v INTERSECT SELECT numero FROM (SELECT appele AS numero FROM appels WHERE appelant = '0645454545' UNION SELECT appelant FROM appels WHERE appele = '0645454545') AS f;",
+  "hints": [
+   "MariaDB connaît INTERSECT, mais chaque sous-requête du FROM doit recevoir un alias.",
+   "SELECT numero FROM (... UNION ...) AS v INTERSECT SELECT numero FROM (... UNION ...) AS f;"
+  ],
+  "note": "INTERSECT existe depuis MariaDB 10.3 ; les tables dérivées doivent être nommées (AS v)."
+ },
+ "8.3": {
+  "solution": "WITH contacts_v AS (SELECT appele AS numero FROM appels WHERE appelant = '0611223344' UNION SELECT appelant FROM appels WHERE appele = '0611223344'), contacts_f AS (SELECT appele AS numero FROM appels WHERE appelant = '0645454545' UNION SELECT appelant FROM appels WHERE appele = '0645454545') SELECT s.id, s.prenom, s.nom, s.telephone FROM suspects s WHERE s.telephone IN (SELECT numero FROM contacts_v) AND s.telephone IN (SELECT numero FROM contacts_f);",
+  "hints": [
+   "WITH nom AS (...), autre AS (...) définit plusieurs CTE séparées par des virgules.",
+   "WITH contacts_v AS (...), contacts_f AS (...) SELECT ... FROM suspects s WHERE s.telephone IN (SELECT numero FROM contacts_v) AND ..."
+  ]
+ },
+ "8.4": {
+  "solution": "WITH RECURSIVE piste(compte, etape, montant, quand) AS (SELECT CAST('HEL-COFFRE-01' AS CHAR(32)), 0, CAST(NULL AS DOUBLE), CAST('2026-11-13 23:00:00' AS DATETIME) UNION ALL SELECT v.compte_dest, p.etape + 1, v.montant, v.horodatage FROM virements v JOIN piste p ON v.compte_source = p.compte WHERE v.montant > 100000 AND v.horodatage > p.quand) SELECT * FROM piste;",
+  "hints": [
+   "MariaDB écrit WITH RECURSIVE. Le type de chaque colonne vient de la ligne de départ : un NULL ou une chaîne seule y sont mal typés.",
+   "Ancrage : SELECT CAST('HEL-COFFRE-01' AS CHAR(32)), 0, CAST(NULL AS DOUBLE), CAST('2026-11-13 23:00:00' AS DATETIME) UNION ALL SELECT v.compte_dest, p.etape + 1, v.montant, v.horodatage FROM virements v JOIN piste p ON ..."
+  ],
+  "note": "Dans une CTE récursive MariaDB, le type des colonnes est fixé par la partie d'ancrage : CAST(NULL AS DOUBLE), CAST('...' AS DATETIME) ou CAST('...' AS CHAR(n)) évitent les valeurs tronquées ou mal typées."
+ },
+ "8.5": {
+  "solution": "WITH RECURSIVE piste(compte, etape, montant, quand) AS (SELECT CAST('HEL-COFFRE-01' AS CHAR(32)), 0, CAST(NULL AS DOUBLE), CAST('2026-11-13 23:00:00' AS DATETIME) UNION ALL SELECT v.compte_dest, p.etape + 1, v.montant, v.horodatage FROM virements v JOIN piste p ON v.compte_source = p.compte WHERE v.montant > 100000 AND v.horodatage > p.quand) SELECT c.numero, c.banque, s.prenom, s.nom FROM piste p JOIN comptes c ON c.numero = p.compte JOIN suspects s ON s.id = c.titulaire_id WHERE p.etape = (SELECT MAX(etape) FROM piste);",
+  "hints": [
+   "Reprends la CTE récursive (avec ses CAST dans l'ancrage) et filtre sur l'étape maximale.",
+   "... SELECT c.numero, c.banque, s.prenom, s.nom FROM piste p JOIN comptes c ... JOIN suspects s ... WHERE p.etape = (SELECT MAX(etape) FROM piste)"
+  ],
+  "note": "Dans une CTE récursive MariaDB, le type des colonnes est fixé par la partie d'ancrage : CAST(NULL AS DOUBLE), CAST('...' AS DATETIME) ou CAST('...' AS CHAR(n)) évitent les valeurs tronquées ou mal typées."
+ },
+ "8.6": {
+  "solution": "WITH RECURSIVE chaine(id, prenom, nom, poste, manager_id, niveau) AS (SELECT id, prenom, nom, poste, manager_id, 0 FROM employes WHERE id = 27 UNION ALL SELECT e.id, e.prenom, e.nom, e.poste, e.manager_id, c.niveau + 1 FROM employes e JOIN chaine c ON e.id = c.manager_id) SELECT niveau, prenom, nom, poste FROM chaine ORDER BY niveau;",
+  "hints": [
+   "Pars de l'employé 27, puis remonte à chaque étape vers son manager_id.",
+   "WITH RECURSIVE chaine(...) AS (SELECT ..., 0 FROM employes WHERE id = 27 UNION ALL SELECT e.*, c.niveau + 1 FROM employes e JOIN chaine c ON e.id = c.manager_id) ..."
+  ]
+ },
+ "8.A": {
+  "solution": "WITH piste AS (SELECT compte_dest AS compte FROM virements WHERE montant > 100000 AND horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 23:59:59'), branches AS (SELECT compte_dest AS compte FROM virements WHERE compte_source IN (SELECT compte FROM piste) EXCEPT SELECT compte FROM piste) SELECT b.compte, s.prenom, s.nom FROM branches b JOIN comptes c ON c.numero = b.compte JOIN suspects s ON s.id = c.titulaire_id ORDER BY b.compte;",
+  "hints": [
+   "MariaDB accepte EXCEPT (on peut aussi écrire MINUS en mode Oracle) entre deux SELECT.",
+   "branches AS (SELECT compte_dest AS compte FROM virements WHERE compte_source IN (SELECT compte FROM piste) EXCEPT SELECT compte FROM piste)"
+  ]
+ },
+ "8.S": {
+  "solution": "WITH mules AS (SELECT s.telephone FROM virements v JOIN comptes c ON c.numero = v.compte_dest JOIN suspects s ON s.id = c.titulaire_id WHERE v.compte_source IN ('FR76-7001', 'LT-4402', 'MT-0913', 'CY-2207') AND v.montant < 100000), contacts AS (SELECT appele AS numero FROM appels WHERE appelant IN (SELECT telephone FROM mules) UNION SELECT appelant FROM appels WHERE appele IN (SELECT telephone FROM mules)), cercle AS (SELECT s.telephone AS numero FROM suspects s JOIN membres m ON m.suspect_id = s.id WHERE m.gang_id = 2), communs AS (SELECT numero FROM contacts INTERSECT SELECT numero FROM cercle) SELECT s.prenom, s.nom, m.role, m.depuis FROM communs c JOIN suspects s ON s.telephone = c.numero JOIN membres m ON m.suspect_id = s.id AND m.gang_id = 2 ORDER BY s.nom;",
+  "hints": [
+   "Enchaîne plusieurs CTE : mules, puis contacts (UNION dans les deux sens), puis l'intersection avec les téléphones du gang 2.",
+   "WITH mules AS (...), contacts AS (... UNION ...), cercle AS (...), communs AS (SELECT numero FROM contacts INTERSECT SELECT numero FROM cercle) SELECT ..."
+  ]
+ },
+ "8.7": {
+  "solution": "WITH RECURSIVE branches(compte, chemin, quand) AS (SELECT CAST('HEL-COFFRE-01' AS CHAR(32)), CAST('HEL-COFFRE-01' AS CHAR(1000)), CAST('2026-11-13 23:00:00' AS DATETIME) UNION ALL SELECT v.compte_dest, CONCAT(b.chemin, ' > ', v.compte_dest), v.horodatage FROM virements v JOIN branches b ON v.compte_source = b.compte WHERE v.montant > 1000 AND v.horodatage > b.quand) SELECT compte, chemin FROM branches;",
+  "hints": [
+   "Le chemin grandit à chaque étape : concatène avec CONCAT() et réserve la place dès l'ancrage avec CAST(... AS CHAR(1000)), sinon MariaDB tronque.",
+   "Ancrage : CAST('HEL-COFFRE-01' AS CHAR(32)), CAST('HEL-COFFRE-01' AS CHAR(1000)), CAST('2026-11-13 23:00:00' AS DATETIME) ; étape : CONCAT(b.chemin, ' > ', v.compte_dest)"
+  ],
+  "note": "La colonne chemin prend la longueur de l'ancrage (13 caractères) : il faut l'élargir avec CAST AS CHAR(1000). CONCAT() remplace ||."
+ },
+ "9.1": {
+  "solution": "SELECT ROW_NUMBER() OVER (ORDER BY horodatage) AS n, horodatage, porte FROM acces_badges WHERE employe_id = 27 AND horodatage BETWEEN '2026-11-13 20:00:00' AND '2026-11-14 06:00:00' ORDER BY horodatage;",
+  "hints": [
+   "ROW_NUMBER() OVER (ORDER BY ...) numérote les lignes.",
+   "ROW_NUMBER() OVER (ORDER BY horodatage) AS n"
+  ]
+ },
+ "9.2": {
+  "solution": "SELECT horodatage, porte, ROUND(TIMESTAMPDIFF(SECOND, LAG(horodatage) OVER (ORDER BY horodatage), horodatage) / 60) AS minutes FROM acces_badges WHERE employe_id = 27 AND horodatage BETWEEN '2026-11-13 20:00:00' AND '2026-11-14 06:00:00' ORDER BY horodatage;",
+  "hints": [
+   "LAG(horodatage) OVER (ORDER BY horodatage) donne l'accès précédent ; l'écart se calcule avec TIMESTAMPDIFF.",
+   "ROUND(TIMESTAMPDIFF(SECOND, LAG(horodatage) OVER (ORDER BY horodatage), horodatage) / 60) AS minutes"
+  ],
+  "note": "julianday n'existe pas : TIMESTAMPDIFF(SECOND, a, b) / 60 donne l'écart en minutes."
+ },
+ "9.3": {
+  "solution": "WITH nb AS (SELECT s.id AS suspect_id, COUNT(d.id) AS nb_delits FROM suspects s LEFT JOIN delits d ON d.suspect_id = s.id GROUP BY s.id) SELECT g.nom AS gang, s.nom, nb.nb_delits, RANK() OVER (PARTITION BY g.id ORDER BY nb.nb_delits DESC) AS rang FROM membres m JOIN gangs g ON g.id = m.gang_id JOIN suspects s ON s.id = m.suspect_id JOIN nb ON nb.suspect_id = s.id;",
+  "hints": [
+   "COUNT(d.id) avec un LEFT JOIN donne 0 aux suspects sans délit. RANK() OVER (PARTITION BY ...) classe dans chaque gang.",
+   "RANK() OVER (PARTITION BY g.id ORDER BY nb.nb_delits DESC) AS rang"
+  ]
+ },
+ "9.4": {
+  "solution": "WITH nb AS (SELECT s.id AS suspect_id, COUNT(d.id) AS nb_delits FROM suspects s LEFT JOIN delits d ON d.suspect_id = s.id GROUP BY s.id), classes AS (SELECT g.nom AS gang, s.nom, nb.nb_delits, RANK() OVER (PARTITION BY g.id ORDER BY nb.nb_delits DESC) AS rang FROM membres m JOIN gangs g ON g.id = m.gang_id JOIN suspects s ON s.id = m.suspect_id JOIN nb ON nb.suspect_id = s.id) SELECT gang, nom, nb_delits FROM classes WHERE rang = 1;",
+  "hints": [
+   "On ne peut pas filtrer une fonction de fenêtrage dans le WHERE du même SELECT : passe par une CTE.",
+   "WITH nb AS (...), classes AS (... RANK() OVER (...) AS rang ...) SELECT gang, nom, nb_delits FROM classes WHERE rang = 1;"
+  ]
+ },
+ "9.5": {
+  "solution": "SELECT horodatage, compte_dest, montant, ROUND(SUM(montant) OVER (ORDER BY horodatage), 2) AS cumul FROM virements WHERE compte_source = 'HEL-COFFRE-01' AND horodatage >= '2026-11-01' AND horodatage < '2026-12-01' ORDER BY horodatage;",
+  "hints": [
+   "SUM(...) OVER (ORDER BY ...) calcule un cumul. Pour « novembre 2026 » sur un DATETIME, un intervalle de dates est plus propre que LIKE.",
+   "ROUND(SUM(montant) OVER (ORDER BY horodatage), 2) AS cumul ... AND horodatage >= '2026-11-01' AND horodatage < '2026-12-01'"
+  ]
+ },
+ "9.A": {
+  "solution": "SELECT horodatage, compte_source, compte_dest, montant, LAG(montant) OVER (ORDER BY horodatage) - montant AS commission, ROUND(TIMESTAMPDIFF(SECOND, LAG(horodatage) OVER (ORDER BY horodatage), horodatage) / 60) AS delai_min FROM virements WHERE montant > 100000 AND horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 23:59:59' ORDER BY horodatage;",
+  "hints": [
+   "Deux LAG : un sur le montant, un sur l'horodatage. L'écart en minutes se calcule avec TIMESTAMPDIFF.",
+   "LAG(montant) OVER (ORDER BY horodatage) - montant AS commission, ROUND(TIMESTAMPDIFF(SECOND, LAG(horodatage) OVER (...), horodatage) / 60) AS delai_min"
+  ],
+  "note": "TIMESTAMPDIFF remplace julianday. Le dernier écart vaut exactement 225,5 minutes : MariaDB calcule en exact et ROUND donne 226, alors que SQLite (julianday en virgule flottante) obtient 225,4999... et affiche 225. Le résultat attendu est donc celui de MariaDB.",
+  "expected_from_solution": true
+ },
+ "9.S": {
+  "solution": "WITH t AS (SELECT horodatage, login, succes, TIMESTAMPDIFF(SECOND, LAG(horodatage) OVER (ORDER BY horodatage), horodatage) AS ecart_s FROM connexions WHERE ip = '203.0.113.66') SELECT horodatage, login, succes, ecart_s FROM t ORDER BY ecart_s DESC LIMIT 3;",
+  "hints": [
+   "TIMESTAMPDIFF(SECOND, a, b) renvoie directement un nombre entier de secondes : pas besoin de ROUND ni de CAST.",
+   "WITH t AS (SELECT ..., TIMESTAMPDIFF(SECOND, LAG(horodatage) OVER (ORDER BY horodatage), horodatage) AS ecart_s FROM connexions WHERE ip = ...) SELECT ... ORDER BY ecart_s DESC LIMIT 3;"
+  ],
+  "note": "TIMESTAMPDIFF renvoie un entier ; si tu veux garder CAST, MariaDB écrit CAST(x AS SIGNED) (ou INTEGER)."
+ },
+ "9.6": {
+  "solution": "WITH r AS (SELECT g.nom AS gang, s.nom, s.age, DENSE_RANK() OVER (PARTITION BY g.id ORDER BY s.age DESC) AS rang FROM membres m JOIN gangs g ON g.id = m.gang_id JOIN suspects s ON s.id = m.suspect_id) SELECT gang, nom, age, rang FROM r WHERE rang <= 3;",
+  "hints": [
+   "DENSE_RANK() ne laisse pas de trou après une égalité. Filtre le rang dans une requête englobante.",
+   "WITH r AS (SELECT ..., DENSE_RANK() OVER (PARTITION BY g.id ORDER BY s.age DESC) AS rang ...) SELECT ... FROM r WHERE rang <= 3;"
+  ]
+ },
+ "10.1": {
+  "solution": "INSERT INTO delits (id, suspect_id, type, date_faits, ville) VALUES (9001, 217, 'Braquage', '2026-11-13', 'Puteaux');",
+  "hints": [
+   "INSERT INTO table (colonnes) VALUES (valeurs) ; MariaDB convertit '2026-11-13' en DATE.",
+   "INSERT INTO delits (id, suspect_id, type, date_faits, ville) VALUES (9001, 217, ...);"
+  ],
+  "verify": [
+   "SELECT id, suspect_id, type, date_faits, ville FROM delits WHERE id >= 9000",
+   "SELECT COUNT(*) FROM delits"
+  ]
+ },
+ "10.2": {
+  "solution": "INSERT INTO delits (id, suspect_id, type, date_faits, ville) VALUES (9002, 388, 'Braquage', '2026-11-13', 'Puteaux'), (9003, 131, 'Blanchiment', '2026-11-14', 'Neuilly-sur-Seine');",
+  "hints": [
+   "Un seul INSERT peut contenir plusieurs tuples séparés par des virgules.",
+   "INSERT INTO delits (...) VALUES (9002, ...), (9003, ...);"
+  ],
+  "verify": [
+   "SELECT id, suspect_id, type, date_faits, ville FROM delits WHERE id >= 9000",
+   "SELECT COUNT(*) FROM delits"
+  ]
+ },
+ "10.3": {
+  "solution": "UPDATE suspects SET telephone = '0700000713' WHERE id = 388;",
+  "hints": [
+   "UPDATE ... SET ... WHERE : sans WHERE, toutes les lignes changent.",
+   "UPDATE suspects SET telephone = '0700000713' WHERE id = 388;"
+  ],
+  "verify": [
+   "SELECT id, telephone FROM suspects WHERE telephone = '0700000713' OR id = 388",
+   "SELECT COUNT(*) FROM suspects WHERE telephone IS NULL"
+  ]
+ },
+ "10.4": {
+  "solution": "UPDATE membres SET role = CONCAT('Cible : ', role) WHERE gang_id = 2;",
+  "hints": [
+   "La nouvelle valeur peut utiliser l'ancienne. Sous MariaDB, assemble les textes avec CONCAT().",
+   "UPDATE membres SET role = CONCAT('Cible : ', role) WHERE gang_id = 2;"
+  ],
+  "note": "Avec ||, MariaDB ferait un OU logique et refuserait de convertir le texte en nombre.",
+  "verify": [
+   "SELECT suspect_id, gang_id, role FROM membres ORDER BY suspect_id, gang_id"
+  ]
+ },
+ "10.5": {
+  "solution": "DELETE FROM cameras WHERE immatriculation = 'XX-000-XX';",
+  "hints": [
+   "DELETE FROM ... WHERE supprime seulement les lignes visées.",
+   "DELETE FROM cameras WHERE immatriculation = 'XX-000-XX';"
+  ],
+  "verify": [
+   "SELECT COUNT(*) FROM cameras",
+   "SELECT COUNT(*) FROM cameras WHERE immatriculation = 'XX-000-XX'"
+  ]
+ },
+ "10.6": {
+  "solution": "INSERT INTO interpellations (suspect_id, motif, date_prevue) SELECT suspect_id, 'Association de malfaiteurs', '2026-11-16' FROM membres WHERE gang_id = 2;",
+  "hints": [
+   "INSERT INTO ... SELECT insère d'un coup toutes les lignes renvoyées par le SELECT.",
+   "INSERT INTO interpellations (suspect_id, motif, date_prevue) SELECT suspect_id, 'Association de malfaiteurs', '2026-11-16' FROM membres WHERE gang_id = 2;"
+  ],
+  "setup": "CREATE TABLE interpellations (suspect_id BIGINT, motif VARCHAR(60), date_prevue DATE);",
+  "verify": [
+   "SELECT suspect_id, motif, date_prevue FROM interpellations ORDER BY suspect_id"
+  ]
+ },
+ "10.7": {
+  "solution": "START TRANSACTION; UPDATE employes SET salaire = 0; SELECT SUM(salaire) FROM employes; ROLLBACK;",
+  "hints": [
+   "MariaDB ouvre une transaction avec START TRANSACTION (BEGIN marche aussi hors procédure) ; ROLLBACK annule tout.",
+   "START TRANSACTION; UPDATE employes SET salaire = 0; SELECT SUM(salaire) FROM employes; ROLLBACK;"
+  ],
+  "note": "START TRANSACTION est la forme standard sous MariaDB ; BEGIN y est accepté comme synonyme.",
+  "require": [
+   {
+    "re": "(BEGIN|START\\s+TRANSACTION)[\\s\\S]*UPDATE\\s+employes\\s+SET\\s+salaire\\s*=\\s*0[\\s\\S]*SUM\\s*\\(\\s*salaire\\s*\\)[\\s\\S]*ROLLBACK",
+    "msg": "Dans l'ordre : START TRANSACTION (ou BEGIN), UPDATE employes SET salaire = 0, SELECT SUM(salaire), puis ROLLBACK."
+   }
+  ],
+  "verify": [
+   "SELECT SUM(salaire) FROM employes"
+  ]
+ },
+ "10.A": {
+  "solution": "UPDATE comptes SET banque = CONCAT(banque, ' (gelé)') WHERE numero IN (SELECT compte_dest FROM virements WHERE montant > 100000 AND horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 23:59:59');",
+  "hints": [
+   "Le WHERE peut contenir une sous-requête IN (SELECT ...). Ajoute le suffixe avec CONCAT().",
+   "UPDATE comptes SET banque = CONCAT(banque, ' (gelé)') WHERE numero IN (SELECT compte_dest FROM virements WHERE ...);"
+  ],
+  "note": "CONCAT() remplace ||.",
+  "verify": [
+   "SELECT numero, banque FROM comptes WHERE banque LIKE '%gelé%' ORDER BY numero",
+   "SELECT numero, banque FROM comptes ORDER BY numero"
+  ]
+ },
+ "10.S": {
+  "solution": "START TRANSACTION; INSERT INTO violations (badge, horodatage, employe) SELECT b.badge, b.horodatage, CONCAT(e.prenom, ' ', e.nom) FROM acces_badges b JOIN employes e ON e.id = b.employe_id WHERE b.porte = 'Salle des coffres' AND b.agence_id = 1 AND b.resultat = 'OK' AND b.horodatage > '2026-11-14 00:30:00'; COMMIT;",
+  "hints": [
+   "Ouvre la transaction avec START TRANSACTION (ou BEGIN), fais un INSERT ... SELECT avec CONCAT() pour le nom, puis COMMIT.",
+   "START TRANSACTION; INSERT INTO violations (badge, horodatage, employe) SELECT b.badge, b.horodatage, CONCAT(e.prenom, ' ', e.nom) FROM acces_badges b JOIN employes e ... WHERE ...; COMMIT;"
+  ],
+  "note": "START TRANSACTION (ou BEGIN) et CONCAT().",
+  "setup": "CREATE TABLE violations (badge VARCHAR(32), horodatage DATETIME, employe VARCHAR(80));",
+  "require": [
+   {
+    "re": "(BEGIN|START\\s+TRANSACTION)",
+    "msg": "Ouvre une transaction avec START TRANSACTION (ou BEGIN)."
+   },
+   {
+    "re": "COMMIT",
+    "msg": "Valide avec COMMIT."
+   },
+   {
+    "re": "INSERT[\\s\\S]*SELECT",
+    "msg": "Remplis la table avec INSERT ... SELECT."
+   }
+  ],
+  "verify": [
+   "SELECT badge, horodatage, employe FROM violations ORDER BY horodatage"
+  ]
+ },
+ "10.8": {
+  "solution": "START TRANSACTION; CREATE TABLE gardes_a_vue (suspect_id INTEGER, debut TEXT); INSERT INTO gardes_a_vue VALUES (217, '2026-11-16 06:00'), (388, '2026-11-16 06:00'); UPDATE membres SET role = 'Interpellé' WHERE gang_id = 2 AND suspect_id IN (217, 388); COMMIT;",
+  "hints": [
+   "MariaDB accepte INTEGER et TEXT. Attention : un CREATE TABLE valide implicitement la transaction en cours (commit implicite).",
+   "START TRANSACTION; CREATE TABLE gardes_a_vue (...); INSERT INTO gardes_a_vue VALUES (217, ...), (388, ...); UPDATE membres SET role = 'Interpellé' WHERE gang_id = 2 AND suspect_id IN (217, 388); COMMIT;"
+  ],
+  "note": "Sous MariaDB, le DDL (CREATE TABLE) provoque un COMMIT implicite : la transaction ne protège que les instructions qui le suivent.",
+  "require": [
+   {
+    "re": "(BEGIN|START\\s+TRANSACTION)",
+    "msg": "Ouvre une transaction avec START TRANSACTION (ou BEGIN)."
+   },
+   {
+    "re": "COMMIT",
+    "msg": "Valide avec COMMIT."
+   }
+  ],
+  "verify": [
+   "SELECT suspect_id, debut FROM gardes_a_vue",
+   "SELECT suspect_id, gang_id, role FROM membres WHERE role = 'Interpellé'"
+  ]
+ },
+ "11.1": {
+  "solution": "CREATE TABLE preuves (id INT AUTO_INCREMENT PRIMARY KEY, affaire VARCHAR(50) NOT NULL, description VARCHAR(255) NOT NULL, type VARCHAR(20) CHECK (type IN ('Physique', 'Numérique', 'Témoignage')), suspect_id BIGINT, FOREIGN KEY (suspect_id) REFERENCES suspects(id));",
+  "hints": [
+   "Sous MariaDB, une clé étrangère exige exactement le même type que la colonne visée : suspects.id est un BIGINT. Préfère VARCHAR(n) à TEXT pour les colonnes courtes.",
+   "CREATE TABLE preuves (id INT AUTO_INCREMENT PRIMARY KEY, affaire VARCHAR(50) NOT NULL, ..., type VARCHAR(20) CHECK (type IN (...)), suspect_id BIGINT, FOREIGN KEY (suspect_id) REFERENCES suspects(id));"
+  ],
+  "note": "InnoDB refuse une clé étrangère INT vers un BIGINT (erreur 150). AUTO_INCREMENT remplace l'auto-numérotation implicite de INTEGER PRIMARY KEY.",
+  "verify": [
+   "SELECT column_name AS name, column_key = 'PRI' AS pk, CASE WHEN column_name IN ('affaire', 'description') THEN is_nullable = 'NO' ELSE 0 END AS nn FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'preuves' ORDER BY ordinal_position",
+   "SELECT referenced_table_name AS `table`, column_name AS `from`, referenced_column_name AS `to` FROM information_schema.key_column_usage WHERE table_schema = DATABASE() AND table_name = 'preuves' AND referenced_table_name IS NOT NULL",
+   "SELECT EXISTS (SELECT 1 FROM information_schema.check_constraints WHERE constraint_schema = DATABASE() AND table_name = 'preuves' AND check_clause LIKE '%Physique%Numérique%Témoignage%') AS ok"
+  ]
+ },
+ "11.2": {
+  "solution": "INSERT INTO preuves (affaire, description, type, suspect_id) VALUES ('Minuit', 'Empreinte de chaussure pointure 45', 'Physique', 217), ('Minuit', 'Journal de connexion 203.0.113.66', 'Numérique', NULL);",
+  "hints": [
+   "Ne fournis pas id : AUTO_INCREMENT le remplit tout seul.",
+   "INSERT INTO preuves (affaire, description, type, suspect_id) VALUES (...), (...);"
+  ],
+  "setup": "CREATE TABLE preuves (id INT AUTO_INCREMENT PRIMARY KEY, affaire VARCHAR(50) NOT NULL, description VARCHAR(255) NOT NULL, type VARCHAR(20) CHECK (type IN ('Physique', 'Numérique', 'Témoignage')), suspect_id BIGINT, FOREIGN KEY (suspect_id) REFERENCES suspects(id));",
+  "verify": [
+   "SELECT affaire, description, type, suspect_id FROM preuves"
+  ]
+ },
+ "11.3": {
+  "solution": "ALTER TABLE preuves ADD COLUMN scellee INT DEFAULT 0;",
+  "hints": [
+   "ALTER TABLE ... ADD COLUMN ajoute une colonne ; DEFAULT fixe sa valeur par défaut.",
+   "ALTER TABLE preuves ADD COLUMN scellee INT DEFAULT 0;"
+  ],
+  "note": "La structure se lit dans information_schema.columns (MariaDB y écrit 'NULL' pour une colonne sans défaut explicite).",
+  "setup": "CREATE TABLE preuves (id INT AUTO_INCREMENT PRIMARY KEY, affaire VARCHAR(50) NOT NULL, description VARCHAR(255) NOT NULL, type VARCHAR(20) CHECK (type IN ('Physique', 'Numérique', 'Témoignage')), suspect_id BIGINT, FOREIGN KEY (suspect_id) REFERENCES suspects(id));",
+  "verify": [
+   "SELECT column_name AS name, NULLIF(column_default, 'NULL') AS dflt_value FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'preuves' ORDER BY ordinal_position"
+  ]
+ },
+ "11.4": {
+  "solution": "CREATE VIEW v_casiers AS SELECT s.id, s.prenom, s.nom, COUNT(d.id) AS nb_delits FROM suspects s LEFT JOIN delits d ON d.suspect_id = s.id GROUP BY s.id, s.prenom, s.nom;",
+  "hints": [
+   "CREATE VIEW nom AS SELECT ... enregistre une requête. LEFT JOIN et COUNT(d.id) pour garder les casiers vierges.",
+   "CREATE VIEW v_casiers AS SELECT s.id, s.prenom, s.nom, COUNT(d.id) AS nb_delits FROM suspects s LEFT JOIN delits d ... GROUP BY ...;"
+  ],
+  "verify": [
+   "SELECT id, prenom, nom, nb_delits FROM v_casiers ORDER BY id"
+  ]
+ },
+ "11.5": {
+  "solution": "CREATE INDEX idx_cameras_immat ON cameras(immatriculation);",
+  "hints": [
+   "CREATE INDEX nom ON table(colonne). Bonus : EXPLAIN SELECT ... montre ensuite l'index utilisé.",
+   "CREATE INDEX idx_cameras_immat ON cameras(immatriculation);"
+  ],
+  "note": "Les index se lisent dans information_schema.statistics ; le plan s'affiche avec EXPLAIN.",
+  "verify": [
+   "SELECT column_name AS name FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'cameras' AND index_name <> 'PRIMARY'"
+  ]
+ },
+ "11.6": {
+  "solution": "CREATE TABLE temoins (id INT AUTO_INCREMENT PRIMARY KEY, nom VARCHAR(60) NOT NULL, telephone VARCHAR(20)); CREATE TABLE temoignages (id INT AUTO_INCREMENT PRIMARY KEY, temoin_id INT NOT NULL, date DATE, texte TEXT NOT NULL, FOREIGN KEY (temoin_id) REFERENCES temoins(id));",
+  "hints": [
+   "Crée d'abord temoins, puis temoignages. La clé étrangère doit avoir le même type que temoins.id.",
+   "CREATE TABLE temoins (id INT AUTO_INCREMENT PRIMARY KEY, ...); CREATE TABLE temoignages (..., temoin_id INT NOT NULL, ..., FOREIGN KEY (temoin_id) REFERENCES temoins(id));"
+  ],
+  "note": "MariaDB accepte une colonne nommée date ; les types des deux côtés d'une clé étrangère doivent correspondre.",
+  "verify": [
+   "SELECT column_name AS name, is_nullable = 'NO' AS nn, column_key = 'PRI' AS pk FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'temoins' ORDER BY ordinal_position",
+   "SELECT column_name AS name, is_nullable = 'NO' AS nn, column_key = 'PRI' AS pk FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'temoignages' ORDER BY ordinal_position",
+   "SELECT referenced_table_name AS `table`, column_name AS `from`, referenced_column_name AS `to` FROM information_schema.key_column_usage WHERE table_schema = DATABASE() AND table_name = 'temoignages' AND referenced_table_name IS NOT NULL"
+  ]
+ },
+ "11.A": {
+  "solution": "CREATE TABLE vehicules_surveilles (immatriculation VARCHAR(32) PRIMARY KEY, motif VARCHAR(80) NOT NULL, depuis DATE DEFAULT '2026-11-14', FOREIGN KEY (immatriculation) REFERENCES vehicules(immatriculation)); INSERT INTO vehicules_surveilles (immatriculation, motif) SELECT immatriculation, 'Véhicule de suspect' FROM vehicules WHERE suspect_id IN (217, 388);",
+  "hints": [
+   "Une colonne TEXT ne peut pas être clé primaire sous MariaDB : utilise VARCHAR(32), comme vehicules.immatriculation.",
+   "CREATE TABLE vehicules_surveilles (immatriculation VARCHAR(32) PRIMARY KEY, motif ... NOT NULL, depuis DATE DEFAULT '2026-11-14', FOREIGN KEY (immatriculation) REFERENCES vehicules(immatriculation)); INSERT INTO ... (immatriculation, motif) SELECT ...;"
+  ],
+  "note": "TEXT/BLOB ne peuvent pas servir de clé sans longueur : VARCHAR(32), du même type et de la même collation que la colonne référencée.",
+  "verify": [
+   "SELECT column_name AS name, is_nullable = 'NO' AS nn, column_key = 'PRI' AS pk, NULLIF(column_default, 'NULL') AS dflt_value FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'vehicules_surveilles' ORDER BY ordinal_position",
+   "SELECT referenced_table_name AS `table`, column_name AS `from`, referenced_column_name AS `to` FROM information_schema.key_column_usage WHERE table_schema = DATABASE() AND table_name = 'vehicules_surveilles' AND referenced_table_name IS NOT NULL",
+   "SELECT immatriculation, motif, depuis FROM vehicules_surveilles ORDER BY immatriculation"
+  ]
+ },
+ "11.S": {
+  "solution": "CREATE VIEW v_annuaire AS SELECT telephone AS numero, CONCAT(prenom, ' ', nom) AS identite, 'suspect' AS categorie FROM suspects WHERE telephone IS NOT NULL UNION ALL SELECT telephone, CONCAT(prenom, ' ', nom), 'employé' FROM employes; SELECT a.horodatage, v.identite, v.categorie FROM appels a JOIN employes e ON e.telephone = a.appelant LEFT JOIN v_annuaire v ON v.numero = a.appele WHERE e.login = 'f.ouali' ORDER BY a.horodatage;",
+  "hints": [
+   "La vue est un UNION ALL de deux SELECT ; les identités s'assemblent avec CONCAT().",
+   "CREATE VIEW v_annuaire AS SELECT telephone AS numero, CONCAT(prenom, ' ', nom) AS identite, 'suspect' AS categorie FROM suspects WHERE ... UNION ALL SELECT ... FROM employes; puis SELECT ... LEFT JOIN v_annuaire v ON v.numero = a.appele ..."
+  ],
+  "note": "CONCAT() remplace ||.",
+  "verify": [
+   "SELECT numero, identite, categorie FROM v_annuaire ORDER BY numero",
+   "SELECT a.horodatage, v.identite, v.categorie FROM appels a JOIN employes e ON e.telephone = a.appelant LEFT JOIN v_annuaire v ON v.numero = a.appele WHERE e.login = 'f.ouali' ORDER BY a.horodatage"
+  ]
+ },
+ "11.7": {
+  "solution": "CREATE TABLE mandats (id INT AUTO_INCREMENT PRIMARY KEY, suspect_id BIGINT NOT NULL, type VARCHAR(20) CHECK (type IN ('Arrêt', 'Perquisition', 'Amener')), emis_le DATE, UNIQUE (suspect_id, type), FOREIGN KEY (suspect_id) REFERENCES suspects(id)); INSERT INTO mandats (suspect_id, type, emis_le) VALUES (217, 'Arrêt', '2026-11-15'), (388, 'Arrêt', '2026-11-15'); CREATE VIEW v_mandats AS SELECT s.nom, s.prenom, m.type FROM mandats m JOIN suspects s ON s.id = m.suspect_id;",
+  "hints": [
+   "suspect_id doit être un BIGINT pour référencer suspects(id). La contrainte UNIQUE (suspect_id, type) se déclare comme une ligne de la table.",
+   "CREATE TABLE mandats (id INT AUTO_INCREMENT PRIMARY KEY, suspect_id BIGINT NOT NULL, type VARCHAR(20) CHECK (...), emis_le DATE, UNIQUE (suspect_id, type), FOREIGN KEY (suspect_id) REFERENCES suspects(id)); INSERT ...; CREATE VIEW v_mandats AS ..."
+  ],
+  "note": "Types identiques exigés pour la clé étrangère (BIGINT). La structure se vérifie dans information_schema.",
+  "verify": [
+   "SELECT nom, prenom, type FROM v_mandats",
+   "SELECT referenced_table_name AS `table`, column_name AS `from` FROM information_schema.key_column_usage WHERE table_schema = DATABASE() AND table_name = 'mandats' AND referenced_table_name IS NOT NULL",
+   "SELECT GROUP_CONCAT(column_name ORDER BY seq_in_index SEPARATOR ',') AS cols FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'mandats' AND non_unique = 0 AND index_name <> 'PRIMARY'",
+   "SELECT is_nullable = 'NO' AS nn FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'mandats' AND column_name = 'suspect_id'",
+   "SELECT EXISTS (SELECT 1 FROM information_schema.check_constraints WHERE constraint_schema = DATABASE() AND table_name = 'mandats' AND check_clause LIKE '%Arrêt%Perquisition%Amener%') AS ok"
+  ]
+ },
+ "12.1": {
+  "solution": "SELECT * FROM utilisateurs_portail WHERE login = 'admin' -- ' AND hash_mdp = 'x'",
+  "hints": [
+   "Sous MariaDB, -- n'ouvre un commentaire que s'il est suivi d'une espace (ou on utilise #). La charge injectée devient donc admin' -- avec une espace.",
+   "SELECT * FROM utilisateurs_portail WHERE login = 'admin' -- ' AND hash_mdp = 'x'"
+  ],
+  "note": "MariaDB n'accepte « -- » comme commentaire que suivi d'une espace : l'injection classique s'écrit admin' -- (avec espace) ou admin'#."
+ },
+ "12.2": {
+  "solution": "SELECT * FROM utilisateurs_portail WHERE login = '' OR '1'='1' -- ' AND hash_mdp = 'x'",
+  "hints": [
+   "La tautologie '1'='1' rend le WHERE toujours vrai. N'oublie pas l'espace après -- sous MariaDB.",
+   "SELECT * FROM utilisateurs_portail WHERE login = '' OR '1'='1' -- ' AND hash_mdp = 'x'"
+  ],
+  "note": "Commentaire « -- » suivi d'une espace obligatoire sous MariaDB."
+ },
+ "12.3": {
+  "solution": "SELECT nom, ville FROM agences WHERE ville = 'x' UNION SELECT login, hash_mdp FROM utilisateurs_portail -- '",
+  "hints": [
+   "UNION ajoute les lignes d'une autre table avec le même nombre de colonnes. Le commentaire final s'écrit -- suivi d'une espace.",
+   "SELECT nom, ville FROM agences WHERE ville = 'x' UNION SELECT login, hash_mdp FROM utilisateurs_portail -- '"
+  ],
+  "note": "Commentaire « -- » suivi d'une espace (ou #) sous MariaDB."
+ },
+ "12.4": {
+  "solution": "SELECT horodatage, ip, login FROM connexions WHERE login LIKE '%''%' ORDER BY horodatage;",
+  "hints": [
+   "Une apostrophe dans une chaîne se double : ''. MariaDB accepte aussi l'échappement \\'.",
+   "WHERE login LIKE '%''%' ORDER BY horodatage"
+  ]
+ },
+ "12.A": {
+  "solution": "SELECT horodatage, login, CASE WHEN login LIKE '%UNION%' THEN 'UNION' WHEN login LIKE '%''1''=''1''%' THEN 'Tautologie' WHEN login LIKE '%--%' THEN 'Commentaire' WHEN login LIKE '%/*%' THEN 'Commentaire bloc' END AS technique FROM connexions WHERE login LIKE '%''%' ORDER BY horodatage;",
+  "hints": [
+   "Teste les motifs dans l'ordre demandé avec CASE WHEN login LIKE ... Ici LIKE est sensible à la casse : écris UNION en majuscules.",
+   "CASE WHEN login LIKE '%UNION%' THEN 'UNION' WHEN login LIKE '%''1''=''1''%' THEN 'Tautologie' WHEN ... END AS technique"
+  ],
+  "note": "Collation binaire : LIKE '%UNION%' ne trouverait pas « union » en minuscules (utilise UPPER(login) si besoin)."
+ },
+ "12.S": {
+  "solution": "WITH dico(mot, empreinte) AS (VALUES ('123456', '8d969eef6ecad3c2'), ('azerty', 'f2d81a260dea8a10'), ('password', '5e884898da280471'), ('admin', '8c6976e5b5410415'), ('test', '9f86d081884c7d65'), ('foo', '2c26b46b68ffc68f'), ('bar', 'fcde2b2edba56bf4'), ('helios', '48582bd628b7c800'), ('soleil', 'e93e24c1b877a15d')) SELECT u.login, u.profil, d.mot AS mot_de_passe FROM utilisateurs_portail u JOIN dico d ON d.empreinte = u.hash_mdp ORDER BY u.login;",
+  "hints": [
+   "MariaDB accepte une CTE construite avec VALUES (...), (...) et une liste de colonnes WITH dico(mot, empreinte).",
+   "WITH dico(mot, empreinte) AS (VALUES ('123456', '8d96...'), ...) SELECT u.login, u.profil, d.mot AS mot_de_passe FROM utilisateurs_portail u JOIN dico d ON d.empreinte = u.hash_mdp ORDER BY u.login;"
+  ]
+ },
+ "12.5": {
+  "solution": "SELECT ip, COUNT(*) AS tentatives, MIN(horodatage) AS premiere, MAX(horodatage) AS derniere FROM connexions WHERE (login LIKE '%''%' OR login LIKE '%--%' OR login LIKE '%UNION%') GROUP BY ip;",
+  "hints": [
+   "Trois LIKE reliés par OR, puis un regroupement par IP.",
+   "WHERE (login LIKE '%''%' OR login LIKE '%--%' OR login LIKE '%UNION%') GROUP BY ip"
+  ]
+ },
+ "13.1": {
+  "solution": "WITH RECURSIVE piste(compte, etape, quand) AS (SELECT CAST('HEL-COFFRE-01' AS CHAR(32)), 0, CAST('2026-11-13 23:00:00' AS DATETIME) UNION ALL SELECT v.compte_dest, p.etape + 1, v.horodatage FROM virements v JOIN piste p ON v.compte_source = p.compte WHERE v.montant > 100000 AND v.horodatage > p.quand), compte_final AS (SELECT compte FROM piste WHERE etape = (SELECT MAX(etape) FROM piste)), contacts_ferrand AS (SELECT appele AS numero FROM appels WHERE appelant = (SELECT telephone FROM employes WHERE nom = 'Ferrand' AND prenom = 'Julien') UNION SELECT appelant FROM appels WHERE appele = (SELECT telephone FROM employes WHERE nom = 'Ferrand' AND prenom = 'Julien')) SELECT s.prenom, s.nom FROM suspects s WHERE s.id IN (SELECT chef_id FROM gangs) AND s.id IN (SELECT titulaire_id FROM comptes WHERE numero IN (SELECT compte FROM compte_final)) AND s.telephone IN (SELECT numero FROM contacts_ferrand);",
+  "hints": [
+   "Combine trois CTE (piste récursive, compte final, contacts de Ferrand) et trois conditions IN. Type l'ancrage de la piste avec CAST.",
+   "WITH RECURSIVE piste(compte, etape, quand) AS (SELECT CAST('HEL-COFFRE-01' AS CHAR(32)), 0, CAST('2026-11-13 23:00:00' AS DATETIME) UNION ALL ...), compte_final AS (...), contacts_ferrand AS (...) SELECT s.prenom, s.nom FROM suspects s WHERE s.id IN (SELECT chef_id FROM gangs) AND ..."
+  ],
+  "note": "Dans une CTE récursive MariaDB, le type des colonnes est fixé par la partie d'ancrage : CAST(NULL AS DOUBLE), CAST('...' AS DATETIME) ou CAST('...' AS CHAR(n)) évitent les valeurs tronquées ou mal typées."
+ },
+ "13.2": {
+  "solution": "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT 'Minuit', CONCAT(s.prenom, ' ', s.nom), 'chef du Cercle' FROM suspects s JOIN gangs g ON g.chef_id = s.id WHERE g.nom = 'Le Cercle';",
+  "hints": [
+   "INSERT ... SELECT avec une jointure gangs et suspects sur chef_id ; le nom s'assemble avec CONCAT().",
+   "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT 'Minuit', CONCAT(s.prenom, ' ', s.nom), 'chef du Cercle' FROM suspects s JOIN gangs g ON g.chef_id = s.id WHERE g.nom = 'Le Cercle';"
+  ],
+  "note": "CONCAT() remplace ||.",
+  "setup": "CREATE TABLE proces_verbal (affaire VARCHAR(40) NOT NULL, coupable VARCHAR(80) NOT NULL, preuve VARCHAR(80));",
+  "verify": [
+   "SELECT affaire, coupable FROM proces_verbal"
+  ]
+ },
+ "13.A": {
+  "solution": "WITH RECURSIVE piste(compte, etape, quand) AS (SELECT CAST('HEL-COFFRE-01' AS CHAR(32)), 0, CAST('2026-11-13 23:00:00' AS DATETIME) UNION ALL SELECT v.compte_dest, p.etape + 1, v.horodatage FROM virements v JOIN piste p ON v.compte_source = p.compte WHERE v.montant > 100000 AND v.horodatage > p.quand), entrees AS (SELECT compte_dest AS compte, SUM(montant) AS total FROM virements GROUP BY compte_dest), sorties AS (SELECT compte_source AS compte, SUM(montant) AS total FROM virements GROUP BY compte_source) SELECT p.etape, p.compte, IFNULL(e.total, 0) AS entrees, IFNULL(s.total, 0) AS sorties, IFNULL(e.total, 0) - IFNULL(s.total, 0) AS reste FROM piste p LEFT JOIN entrees e ON e.compte = p.compte LEFT JOIN sorties s ON s.compte = p.compte WHERE p.etape >= 1 ORDER BY p.etape;",
+  "hints": [
+   "Calcule les entrées et les sorties dans deux CTE agrégées, puis joins-les à la piste avec LEFT JOIN et IFNULL(..., 0).",
+   "WITH RECURSIVE piste(...) AS (... CAST dans l'ancrage ...), entrees AS (...), sorties AS (...) SELECT p.etape, p.compte, IFNULL(e.total, 0) AS entrees, ... FROM piste p LEFT JOIN entrees e ... LEFT JOIN sorties s ... WHERE p.etape >= 1 ORDER BY p.etape;"
+  ],
+  "note": "Dans une CTE récursive MariaDB, le type des colonnes est fixé par la partie d'ancrage : CAST(NULL AS DOUBLE), CAST('...' AS DATETIME) ou CAST('...' AS CHAR(n)) évitent les valeurs tronquées ou mal typées."
+ },
+ "13.S": {
+  "solution": "SELECT a.horodatage, a.appele AS numero, a.duree_s, COALESCE((SELECT CONCAT(prenom, ' ', nom) FROM suspects WHERE telephone = a.appele), (SELECT CONCAT(prenom, ' ', nom) FROM employes WHERE telephone = a.appele), 'inconnu') AS titulaire FROM appels a WHERE a.appelant = (SELECT s.telephone FROM suspects s JOIN gangs g ON g.chef_id = s.id WHERE g.nom = 'Le Cercle') ORDER BY a.horodatage DESC LIMIT 1;",
+  "hints": [
+   "COALESCE prend la première valeur non NULL parmi deux sous-requêtes scalaires et 'inconnu'. Les noms s'assemblent avec CONCAT().",
+   "COALESCE((SELECT CONCAT(prenom, ' ', nom) FROM suspects WHERE telephone = a.appele), (SELECT ... FROM employes ...), 'inconnu') AS titulaire ... ORDER BY a.horodatage DESC LIMIT 1"
+  ],
+  "note": "CONCAT() remplace ||."
+ },
+ "14.1": {
+  "solution": "SELECT ligne, COUNT(*) AS nb FROM incidents GROUP BY ligne ORDER BY nb DESC;",
+  "hints": [
+   "Regroupe par ligne et compte.",
+   "SELECT ligne, COUNT(*) AS nb FROM incidents GROUP BY ligne ORDER BY nb DESC;"
+  ]
+ },
+ "14.2": {
+  "solution": "SELECT ligne, SUM(CASE WHEN type = 'Panne' THEN 1 ELSE 0 END) AS pannes, SUM(CASE WHEN type = 'Signalisation' THEN 1 ELSE 0 END) AS signalisation, SUM(CASE WHEN type = 'Cyber' THEN 1 ELSE 0 END) AS cyber, COUNT(*) AS total FROM incidents GROUP BY ligne;",
+  "hints": [
+   "Agrégation conditionnelle : SUM(CASE WHEN condition THEN 1 ELSE 0 END) par colonne. (MariaDB permet aussi SUM(type = 'Panne'), une comparaison valant 0 ou 1.)",
+   "SUM(CASE WHEN type = 'Panne' THEN 1 ELSE 0 END) AS pannes, ..., COUNT(*) AS total ... GROUP BY ligne"
+  ]
+ },
+ "14.3": {
+  "solution": "SELECT type, COUNT(*) AS nb, ROUND(AVG(TIMESTAMPDIFF(SECOND, debut, fin)) / 60) AS duree_moy FROM incidents GROUP BY type ORDER BY duree_moy DESC;",
+  "hints": [
+   "La durée d'un incident se calcule avec TIMESTAMPDIFF(unité, debut, fin).",
+   "ROUND(AVG(TIMESTAMPDIFF(SECOND, debut, fin)) / 60) AS duree_moy"
+  ],
+  "note": "TIMESTAMPDIFF remplace la différence de julianday."
+ },
+ "14.4": {
+  "solution": "SELECT station, MIN(debut) AS premiere_alerte FROM incidents WHERE type = 'Cyber' AND debut BETWEEN '2027-05-12 06:00:00' AND '2027-05-12 07:00:00' GROUP BY station ORDER BY premiere_alerte;",
+  "hints": [
+   "Filtre le type et la fenêtre horaire, puis prends le MIN(debut) par station.",
+   "WHERE type = 'Cyber' AND debut BETWEEN ... GROUP BY station ORDER BY premiere_alerte"
+  ]
+ },
+ "14.5": {
+  "solution": "SELECT station, COUNT(DISTINCT ligne) AS nb_lignes, MIN(debut) AS premiere_alerte FROM incidents WHERE type = 'Cyber' AND debut BETWEEN '2027-05-12 06:00:00' AND '2027-05-12 07:00:00' GROUP BY station HAVING COUNT(DISTINCT ligne) >= 2 ORDER BY nb_lignes DESC, premiere_alerte;",
+  "hints": [
+   "COUNT(DISTINCT ligne) compte les lignes différentes ; HAVING garde les stations à 2 lignes ou plus.",
+   "GROUP BY station HAVING COUNT(DISTINCT ligne) >= 2 ORDER BY nb_lignes DESC, premiere_alerte"
+  ]
+ },
+ "14.A": {
+  "solution": "SELECT type, SUM(CASE WHEN MONTH(debut) = 4 THEN 1 ELSE 0 END) AS avril, SUM(CASE WHEN MONTH(debut) = 5 THEN 1 ELSE 0 END) AS mai, COUNT(*) AS total FROM incidents GROUP BY type;",
+  "hints": [
+   "MONTH(debut) renvoie le numéro du mois sous forme de nombre.",
+   "SUM(CASE WHEN MONTH(debut) = 4 THEN 1 ELSE 0 END) AS avril, ..."
+  ],
+  "note": "MONTH() remplace strftime('%m', ...) et renvoie un entier, pas une chaîne '04'."
+ },
+ "14.S": {
+  "solution": "SELECT station, SUM(CASE WHEN type = 'Cyber' AND debut < '2027-05-12' THEN 1 ELSE 0 END) AS reperages, SUM(CASE WHEN type = 'Cyber' AND debut < '2027-05-12' AND (HOUR(debut) >= 21 OR HOUR(debut) < 6) THEN 1 ELSE 0 END) AS de_nuit, SUM(CASE WHEN type = 'Cyber' AND DATE(debut) = '2027-05-12' THEN 1 ELSE 0 END) AS jour_j FROM incidents GROUP BY station HAVING jour_j > 0 AND reperages >= 2 ORDER BY reperages DESC, station;",
+  "hints": [
+   "HOUR(debut) donne l'heure en nombre, DATE(debut) la date seule. MariaDB accepte les alias dans HAVING.",
+   "SUM(CASE WHEN ... AND (HOUR(debut) >= 21 OR HOUR(debut) < 6) THEN 1 ELSE 0 END) AS de_nuit, SUM(CASE WHEN ... AND DATE(debut) = '2027-05-12' ...) AS jour_j ... HAVING jour_j > 0 AND reperages >= 2"
+  ],
+  "note": "HOUR() et DATE() remplacent strftime('%H') et date()."
+ },
+ "15.1": {
+  "solution": "SELECT id, JSON_VALUE(contenu, '$.type') AS type, JSON_VALUE(contenu, '$.date') AS date FROM saisies ORDER BY date;",
+  "hints": [
+   "JSON_EXTRACT renvoie du JSON (la chaîne garde ses guillemets) : pour une valeur scalaire, utilise JSON_VALUE(contenu, '$.cle').",
+   "SELECT id, JSON_VALUE(contenu, '$.type') AS type, JSON_VALUE(contenu, '$.date') AS date FROM saisies ORDER BY date;"
+  ],
+  "note": "Sous MariaDB, JSON_EXTRACT(contenu, '$.type') donne \"message\" avec guillemets : JSON_VALUE (ou JSON_UNQUOTE(JSON_EXTRACT(...))) renvoie le texte nu. MariaDB n'a pas l'opérateur ->>.",
+  "require": [
+   {
+    "re": "JSON_VALUE|JSON_UNQUOTE|JSON_EXTRACT",
+    "msg": "Utilise les fonctions JSON de MariaDB (JSON_VALUE, ou JSON_UNQUOTE(JSON_EXTRACT(...)))."
+   }
+  ]
+ },
+ "15.2": {
+  "solution": "SELECT JSON_VALUE(contenu, '$.date') AS date, JSON_COMPACT(JSON_QUERY(contenu, '$.a')) AS destinataires, JSON_VALUE(contenu, '$.texte') AS texte FROM saisies WHERE JSON_VALUE(contenu, '$.type') = 'message' AND JSON_VALUE(contenu, '$.de') = 'solene' ORDER BY date;",
+  "hints": [
+   "JSON_VALUE pour les scalaires, JSON_QUERY pour un tableau ou un objet. JSON_COMPACT retire les espaces du JSON renvoyé.",
+   "JSON_VALUE(contenu, '$.date') AS date, JSON_COMPACT(JSON_QUERY(contenu, '$.a')) AS destinataires, JSON_VALUE(contenu, '$.texte') AS texte ... WHERE JSON_VALUE(contenu, '$.type') = 'message' AND ..."
+  ],
+  "note": "JSON_VALUE ne renvoie que des scalaires : le tableau $.a se lit avec JSON_QUERY (ou JSON_EXTRACT), et JSON_COMPACT donne la forme sans espaces attendue."
+ },
+ "15.3": {
+  "solution": "SELECT j.destinataire, COUNT(*) AS nb FROM saisies s, JSON_TABLE(s.contenu, '$.a[*]' COLUMNS (destinataire VARCHAR(40) PATH '$')) AS j WHERE JSON_VALUE(s.contenu, '$.type') = 'message' GROUP BY j.destinataire ORDER BY nb DESC;",
+  "hints": [
+   "MariaDB n'a pas json_each : JSON_TABLE(doc, '$.a[*]' COLUMNS (...)) transforme le tableau en lignes.",
+   "FROM saisies s, JSON_TABLE(s.contenu, '$.a[*]' COLUMNS (destinataire VARCHAR(40) PATH '$')) AS j WHERE ... GROUP BY j.destinataire"
+  ],
+  "note": "JSON_TABLE (MariaDB 10.6 et plus) remplace json_each : chaque élément du tableau devient une ligne avec des colonnes typées.",
+  "require": [
+   {
+    "re": "JSON_TABLE",
+    "msg": "Utilise JSON_TABLE pour parcourir le tableau des destinataires."
+   }
+  ]
+ },
+ "15.4": {
+  "solution": "SELECT JSON_VALUE(contenu, '$.date') AS date, JSON_VALUE(contenu, '$.de') AS de, JSON_VALUE(contenu, '$.texte') AS texte FROM saisies WHERE JSON_VALUE(contenu, '$.type') = 'message' AND (JSON_VALUE(contenu, '$.de') = 'cartographe' OR JSON_CONTAINS(JSON_QUERY(contenu, '$.a'), '\"cartographe\"')) ORDER BY date;",
+  "hints": [
+   "Pour savoir si un tableau JSON contient une valeur, MariaDB a JSON_CONTAINS(tableau, valeur_json) : la valeur cherchée s'écrit en JSON, avec ses guillemets.",
+   "WHERE JSON_VALUE(contenu, '$.type') = 'message' AND (JSON_VALUE(contenu, '$.de') = 'cartographe' OR JSON_CONTAINS(JSON_QUERY(contenu, '$.a'), '\"cartographe\"'))"
+  ],
+  "note": "JSON_CONTAINS remplace le EXISTS sur json_each ; la cible doit être du JSON valide ('\"cartographe\"')."
+ },
+ "15.5": {
+  "solution": "SELECT JSON_VALUE(contenu, '$.wallet') AS wallet, COUNT(*) AS nb, SUM(JSON_VALUE(contenu, '$.montant')) AS total FROM saisies WHERE JSON_VALUE(contenu, '$.type') = 'paiement' GROUP BY wallet ORDER BY total DESC;",
+  "hints": [
+   "JSON_VALUE renvoie du texte : SUM le convertit en nombre. Regroupe sur l'alias wallet.",
+   "SELECT JSON_VALUE(contenu, '$.wallet') AS wallet, COUNT(*) AS nb, SUM(JSON_VALUE(contenu, '$.montant')) AS total ... GROUP BY wallet ORDER BY total DESC;"
+  ],
+  "note": "JSON_VALUE remplace json_extract (qui garderait les guillemets autour du wallet)."
+ },
+ "15.A": {
+  "solution": "SELECT JSON_VALUE(s.contenu, '$.type') AS categorie, k.cle, COUNT(*) AS nb FROM saisies s, JSON_TABLE(JSON_KEYS(s.contenu), '$[*]' COLUMNS (cle VARCHAR(40) PATH '$')) AS k GROUP BY categorie, k.cle ORDER BY categorie, k.cle;",
+  "hints": [
+   "JSON_KEYS(contenu) renvoie le tableau des clés d'un objet ; JSON_TABLE le transforme en lignes.",
+   "FROM saisies s, JSON_TABLE(JSON_KEYS(s.contenu), '$[*]' COLUMNS (cle VARCHAR(40) PATH '$')) AS k GROUP BY categorie, k.cle ORDER BY categorie, k.cle"
+  ],
+  "note": "Pas de json_each sous MariaDB : JSON_KEYS donne les clés, JSON_TABLE les déplie en lignes.",
+  "require": [
+   {
+    "re": "JSON_TABLE",
+    "msg": "Utilise JSON_TABLE (avec JSON_KEYS) pour parcourir les clés."
+   }
+  ]
+ },
+ "15.S": {
+  "solution": "SELECT j.complice, su.prenom, su.nom, g.nom AS gang, m.role FROM saisies s JOIN JSON_TABLE(s.contenu, '$.a[*]' COLUMNS (complice VARCHAR(40) PATH '$')) AS j JOIN suspects su ON LOWER(su.nom) = j.complice JOIN membres m ON m.suspect_id = su.id JOIN gangs g ON g.id = m.gang_id WHERE JSON_VALUE(s.contenu, '$.type') = 'message' AND JSON_CONTAINS(JSON_QUERY(s.contenu, '$.a'), '\"cartographe\"') AND j.complice <> 'cartographe' AND g.nom = 'Le Cercle';",
+  "hints": [
+   "Déplie le tableau $.a avec JSON_TABLE, garde les messages où JSON_CONTAINS trouve 'cartographe', puis joins sur LOWER(su.nom).",
+   "FROM saisies s JOIN JSON_TABLE(s.contenu, '$.a[*]' COLUMNS (complice VARCHAR(40) PATH '$')) AS j JOIN suspects su ON LOWER(su.nom) = j.complice JOIN membres ... JOIN gangs ... WHERE ... AND JSON_CONTAINS(JSON_QUERY(s.contenu, '$.a'), '\"cartographe\"') AND j.complice <> 'cartographe'"
+  ],
+  "note": "JSON_TABLE et JSON_CONTAINS remplacent json_each.",
+  "require": [
+   {
+    "re": "JSON_TABLE",
+    "msg": "Utilise JSON_TABLE pour parcourir le tableau des destinataires."
+   }
+  ]
+ },
+ "16.1": {
+  "solution": "SELECT evenement, horodatage, LEAD(horodatage) OVER (ORDER BY horodatage) AS suivant, ROUND(TIMESTAMPDIFF(SECOND, horodatage, LEAD(horodatage) OVER (ORDER BY horodatage)) / 3600, 1) AS heures FROM mouvements_port WHERE conteneur = 'MSCU-449120' ORDER BY horodatage;",
+  "hints": [
+   "LEAD() lit la ligne suivante ; TIMESTAMPDIFF(SECOND, a, b) / 3600 donne des heures.",
+   "LEAD(horodatage) OVER (ORDER BY horodatage) AS suivant, ROUND(TIMESTAMPDIFF(SECOND, horodatage, LEAD(horodatage) OVER (...)) / 3600, 1) AS heures"
+  ],
+  "note": "TIMESTAMPDIFF remplace julianday."
+ },
+ "16.2": {
+  "solution": "WITH g AS (SELECT conteneur, horodatage, LAG(horodatage) OVER (PARTITION BY conteneur ORDER BY horodatage) AS precedent FROM mouvements_port WHERE evenement <> 'Inventaire') SELECT conteneur, precedent, horodatage, ROUND(TIMESTAMPDIFF(SECOND, precedent, horodatage) / 3600, 1) AS heures FROM g WHERE TIMESTAMPDIFF(SECOND, precedent, horodatage) > 48 * 3600;",
+  "hints": [
+   "Calcule le scan précédent avec LAG dans une CTE, puis filtre les écarts dans la requête principale.",
+   "WITH g AS (SELECT ..., LAG(horodatage) OVER (PARTITION BY conteneur ORDER BY horodatage) AS precedent ...) SELECT ..., ROUND(TIMESTAMPDIFF(SECOND, precedent, horodatage) / 3600, 1) AS heures FROM g WHERE TIMESTAMPDIFF(...) > 48 * 3600;"
+  ],
+  "note": "TIMESTAMPDIFF remplace julianday."
+ },
+ "16.3": {
+  "solution": "SELECT DISTINCT conteneur, FIRST_VALUE(quai) OVER (PARTITION BY conteneur ORDER BY horodatage) AS premier_quai, LAST_VALUE(quai) OVER (PARTITION BY conteneur ORDER BY horodatage ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS dernier_quai FROM mouvements_port WHERE navire = 'Stella Maris' AND evenement <> 'Inventaire';",
+  "hints": [
+   "LAST_VALUE a besoin d'un cadre qui va jusqu'à la fin de la partition.",
+   "LAST_VALUE(quai) OVER (PARTITION BY conteneur ORDER BY horodatage ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)"
+  ]
+ },
+ "16.4": {
+  "solution": "WITH j AS (SELECT DATE(horodatage) AS jour, COUNT(*) AS scans FROM mouvements_port WHERE quai = 4 GROUP BY DATE(horodatage)) SELECT jour, scans, ROUND(AVG(scans) OVER (ORDER BY jour ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 2) AS moy7 FROM j ORDER BY jour;",
+  "hints": [
+   "Regroupe par DATE(horodatage) dans une CTE, puis AVG(...) OVER avec un cadre de 7 lignes.",
+   "ROUND(AVG(scans) OVER (ORDER BY jour ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 2) AS moy7"
+  ]
+ },
+ "16.5": {
+  "solution": "WITH j AS (SELECT DISTINCT DATE(horodatage) AS jour FROM mouvements_port WHERE conteneur = 'MSCU-449120'), n AS (SELECT jour, TO_DAYS(jour) - ROW_NUMBER() OVER (ORDER BY jour) AS ile FROM j) SELECT MIN(jour) AS debut, MAX(jour) AS fin, COUNT(*) AS nb_jours FROM n GROUP BY ile ORDER BY debut;",
+  "hints": [
+   "Astuce des îlots : numéro du jour moins ROW_NUMBER() est constant sur une suite de jours consécutifs. TO_DAYS(date) donne ce numéro de jour sous MariaDB.",
+   "n AS (SELECT jour, TO_DAYS(jour) - ROW_NUMBER() OVER (ORDER BY jour) AS ile FROM j) SELECT MIN(jour) AS debut, MAX(jour) AS fin, COUNT(*) AS nb_jours FROM n GROUP BY ile"
+  ],
+  "note": "TO_DAYS() remplace julianday() pour numéroter les jours."
+ },
+ "16.A": {
+  "solution": "WITH f AS (SELECT DISTINCT conteneur, FIRST_VALUE(horodatage) OVER (PARTITION BY conteneur ORDER BY horodatage) AS arrivee, LAST_VALUE(horodatage) OVER (PARTITION BY conteneur ORDER BY horodatage ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS depart FROM mouvements_port WHERE navire = 'Stella Maris' AND evenement <> 'Inventaire') SELECT conteneur, arrivee, depart, ROUND(TIMESTAMPDIFF(SECOND, arrivee, depart) / 86400, 1) AS jours FROM f ORDER BY jours DESC;",
+  "hints": [
+   "FIRST_VALUE et LAST_VALUE (avec le cadre complet) dans une CTE, puis l'écart en jours avec TIMESTAMPDIFF.",
+   "ROUND(TIMESTAMPDIFF(SECOND, arrivee, depart) / 86400, 1) AS jours"
+  ],
+  "note": "TIMESTAMPDIFF(SECOND, ...) / 86400 donne des jours fractionnaires (DATEDIFF ne compterait que des jours entiers)."
+ },
+ "16.S": {
+  "solution": "WITH g AS (SELECT conteneur, TIMESTAMPDIFF(MINUTE, LAG(horodatage) OVER (PARTITION BY conteneur ORDER BY horodatage), horodatage) AS minutes FROM mouvements_port WHERE evenement <> 'Inventaire') SELECT g.conteneur, COUNT(*) AS ecarts, SUM(CASE WHEN g.minutes % 60 <> 0 THEN 1 ELSE 0 END) AS irreguliers, s.nom AS importateur FROM g JOIN conteneurs c ON c.code = g.conteneur JOIN societes s ON s.siren = c.importateur_siren WHERE g.minutes IS NOT NULL GROUP BY g.conteneur, s.nom HAVING irreguliers > 0;",
+  "hints": [
+   "TIMESTAMPDIFF(MINUTE, precedent, courant) donne l'écart en minutes ; % (ou MOD) teste le multiple de 60.",
+   "WITH g AS (SELECT conteneur, TIMESTAMPDIFF(MINUTE, LAG(horodatage) OVER (PARTITION BY conteneur ORDER BY horodatage), horodatage) AS minutes ...) SELECT ..., SUM(CASE WHEN g.minutes % 60 <> 0 THEN 1 ELSE 0 END) AS irreguliers ..."
+  ],
+  "note": "TIMESTAMPDIFF remplace julianday."
+ },
+ "17.1": {
+  "solution": "WITH t AS (SELECT poste, SUM(octets) AS total FROM trafic GROUP BY poste) SELECT poste, total, NTILE(4) OVER (ORDER BY total) AS quartile FROM t ORDER BY total DESC;",
+  "hints": [
+   "NTILE(4) OVER (ORDER BY ...) répartit les lignes en 4 groupes.",
+   "WITH t AS (SELECT poste, SUM(octets) AS total ...) SELECT poste, total, NTILE(4) OVER (ORDER BY total) AS quartile FROM t ORDER BY total DESC;"
+  ]
+ },
+ "17.2": {
+  "solution": "WITH s AS (SELECT AVG(octets) AS m, STDDEV_POP(octets) AS sd FROM trafic) SELECT t.horodatage, t.poste, t.ip_dst, t.octets FROM trafic t, s WHERE t.octets > s.m + 3 * s.sd ORDER BY t.octets DESC;",
+  "hints": [
+   "MariaDB a des fonctions statistiques intégrées : STDDEV_POP() calcule l'écart-type.",
+   "WITH s AS (SELECT AVG(octets) AS m, STDDEV_POP(octets) AS sd FROM trafic) SELECT ... FROM trafic t, s WHERE t.octets > s.m + 3 * s.sd ORDER BY t.octets DESC;"
+  ],
+  "note": "STDDEV_POP() (ou STD()) remplace le calcul à la main avec sqrt."
+ },
+ "17.3": {
+  "solution": "SELECT poste, horodatage FROM trafic WHERE ip_dst = '198.51.100.200' ORDER BY horodatage LIMIT 1;",
+  "hints": [
+   "Trie par horodatage et garde une seule ligne avec LIMIT.",
+   "... WHERE ip_dst = '198.51.100.200' ORDER BY horodatage LIMIT 1;"
+  ]
+ },
+ "17.4": {
+  "solution": "WITH p AS (SELECT poste, MIN(horodatage) AS premier_contact FROM trafic WHERE ip_dst = '198.51.100.200' GROUP BY poste) SELECT ROW_NUMBER() OVER (ORDER BY premier_contact) AS rang, poste, premier_contact, ROUND(TIMESTAMPDIFF(SECOND, MIN(premier_contact) OVER (), premier_contact) / 60) AS minutes FROM p ORDER BY rang;",
+  "hints": [
+   "MIN(...) OVER () donne le minimum global sur toutes les lignes ; l'écart se calcule avec TIMESTAMPDIFF.",
+   "ROUND(TIMESTAMPDIFF(SECOND, MIN(premier_contact) OVER (), premier_contact) / 60) AS minutes"
+  ],
+  "note": "TIMESTAMPDIFF remplace julianday."
+ },
+ "17.5": {
+  "solution": "WITH p AS (SELECT poste, horodatage AS instant FROM trafic WHERE ip_dst = '198.51.100.200' ORDER BY horodatage LIMIT 1) SELECT p.poste, p.instant, s.login FROM p JOIN sessions_postes s ON s.poste = p.poste AND p.instant BETWEEN s.debut AND s.fin;",
+  "hints": [
+   "Isole le premier contact dans une CTE (ORDER BY ... LIMIT 1), puis joins la session qui l'encadre.",
+   "WITH p AS (SELECT poste, horodatage AS instant FROM trafic WHERE ... ORDER BY horodatage LIMIT 1) SELECT ... FROM p JOIN sessions_postes s ON s.poste = p.poste AND p.instant BETWEEN s.debut AND s.fin;"
+  ]
+ },
+ "17.A": {
+  "solution": "WITH p AS (SELECT poste, MIN(horodatage) AS premier_contact FROM trafic WHERE ip_dst = '198.51.100.200' GROUP BY poste) SELECT p.poste, p.premier_contact FROM p LEFT JOIN sessions_postes s ON s.poste = p.poste AND p.premier_contact BETWEEN s.debut AND s.fin WHERE s.id IS NULL ORDER BY p.premier_contact;",
+  "hints": [
+   "LEFT JOIN avec la condition d'intervalle dans le ON, puis garde les lignes sans session.",
+   "... FROM p LEFT JOIN sessions_postes s ON s.poste = p.poste AND p.premier_contact BETWEEN s.debut AND s.fin WHERE s.id IS NULL ..."
+  ]
+ },
+ "17.S": {
+  "solution": "SELECT a.poste, a.login AS premier, b.login AS second, b.debut AS ouverture, a.fin AS fermeture, ROUND(TIMESTAMPDIFF(SECOND, b.debut, a.fin) / 60, 1) AS minutes FROM sessions_postes a JOIN sessions_postes b ON b.poste = a.poste AND b.debut > a.debut AND b.debut < a.fin;",
+  "hints": [
+   "Auto-jointure de sessions_postes : la seconde session commence pendant la première.",
+   "... JOIN sessions_postes b ON b.poste = a.poste AND b.debut > a.debut AND b.debut < a.fin, avec ROUND(TIMESTAMPDIFF(SECOND, b.debut, a.fin) / 60, 1) AS minutes"
+  ],
+  "note": "TIMESTAMPDIFF remplace julianday."
+ },
+ "18.1": {
+  "solution": "SELECT t.vers, w.type, t.montant, t.horodatage FROM tx_crypto t JOIN wallets w ON w.adresse = t.vers WHERE t.de = 'bc1q-eclipse-7f3a' ORDER BY t.horodatage;",
+  "hints": [
+   "Joins tx_crypto à wallets sur l'adresse de destination.",
+   "FROM tx_crypto t JOIN wallets w ON w.adresse = t.vers WHERE t.de = 'bc1q-eclipse-7f3a' ORDER BY t.horodatage"
+  ]
+ },
+ "18.2": {
+  "solution": "WITH RECURSIVE suivi(adresse, saut, chemin, quand) AS (SELECT CAST('bc1q-eclipse-7f3a' AS CHAR(34)), 0, CAST('bc1q-eclipse-7f3a' AS CHAR(1000)), CAST('2027-05-12 00:00:00' AS DATETIME) UNION ALL SELECT t.vers, c.saut + 1, CONCAT(c.chemin, ' > ', t.vers), t.horodatage FROM tx_crypto t JOIN suivi c ON t.de = c.adresse WHERE c.saut < 8 AND t.horodatage > c.quand AND INSTR(c.chemin, t.vers) = 0) SELECT adresse, saut, chemin FROM suivi;",
+  "hints": [
+   "WITH RECURSIVE : élargis le chemin dès l'ancrage avec CAST(... AS CHAR(1000)) et prolonge-le avec CONCAT(). INSTR(chemin, adresse) = 0 évite les boucles.",
+   "Ancrage : SELECT CAST('bc1q-eclipse-7f3a' AS CHAR(34)), 0, CAST('bc1q-eclipse-7f3a' AS CHAR(1000)), CAST('2027-05-12 00:00:00' AS DATETIME) ; étape : CONCAT(c.chemin, ' > ', t.vers) ... WHERE c.saut < 8 AND t.horodatage > c.quand AND INSTR(c.chemin, t.vers) = 0"
+  ],
+  "note": "Dans la CTE récursive, l'ancrage fixe les types : CAST(... AS CHAR(1000)) pour le chemin qui s'allonge, CAST(... AS DATETIME) pour quand ; CONCAT() remplace ||."
+ },
+ "18.3": {
+  "solution": "WITH RECURSIVE suivi(adresse, saut, chemin, quand) AS (SELECT CAST('bc1q-eclipse-7f3a' AS CHAR(34)), 0, CAST('bc1q-eclipse-7f3a' AS CHAR(1000)), CAST('2027-05-12 00:00:00' AS DATETIME) UNION ALL SELECT t.vers, c.saut + 1, CONCAT(c.chemin, ' > ', t.vers), t.horodatage FROM tx_crypto t JOIN suivi c ON t.de = c.adresse WHERE c.saut < 8 AND t.horodatage > c.quand AND INSTR(c.chemin, t.vers) = 0) SELECT DISTINCT s.adresse, w.plateforme, w.kyc_nom, s.saut FROM suivi s JOIN wallets w ON w.adresse = s.adresse WHERE w.type = 'exchange';",
+  "hints": [
+   "Reprends la CTE suivi (avec ses CAST) et joins wallets pour ne garder que les 'exchange'.",
+   "... SELECT DISTINCT s.adresse, w.plateforme, w.kyc_nom, s.saut FROM suivi s JOIN wallets w ON w.adresse = s.adresse WHERE w.type = 'exchange';"
+  ],
+  "note": "Dans la CTE récursive, l'ancrage fixe les types : CAST(... AS CHAR(1000)) pour le chemin qui s'allonge, CAST(... AS DATETIME) pour quand ; CONCAT() remplace ||."
+ },
+ "18.4": {
+  "solution": "WITH RECURSIVE suivi(adresse, saut, chemin, quand) AS (SELECT CAST('bc1q-eclipse-7f3a' AS CHAR(34)), 0, CAST('bc1q-eclipse-7f3a' AS CHAR(1000)), CAST('2027-05-12 00:00:00' AS DATETIME) UNION ALL SELECT t.vers, c.saut + 1, CONCAT(c.chemin, ' > ', t.vers), t.horodatage FROM tx_crypto t JOIN suivi c ON t.de = c.adresse WHERE c.saut < 8 AND t.horodatage > c.quand AND INSTR(c.chemin, t.vers) = 0), r AS (SELECT s.adresse, s.saut, s.chemin, ROW_NUMBER() OVER (PARTITION BY s.adresse ORDER BY s.saut, s.chemin) AS rn FROM suivi s JOIN wallets w ON w.adresse = s.adresse WHERE w.type = 'exchange') SELECT adresse, saut, chemin FROM r WHERE rn = 1;",
+  "hints": [
+   "ROW_NUMBER() OVER (PARTITION BY adresse ORDER BY saut, chemin) puis rn = 1 garde le chemin le plus court.",
+   "..., r AS (SELECT ..., ROW_NUMBER() OVER (PARTITION BY s.adresse ORDER BY s.saut, s.chemin) AS rn FROM suivi s JOIN wallets w ... WHERE w.type = 'exchange') SELECT adresse, saut, chemin FROM r WHERE rn = 1;"
+  ],
+  "note": "Dans la CTE récursive, l'ancrage fixe les types : CAST(... AS CHAR(1000)) pour le chemin qui s'allonge, CAST(... AS DATETIME) pour quand ; CONCAT() remplace ||."
+ },
+ "18.5": {
+  "solution": "WITH RECURSIVE chaine(siren, part) AS (SELECT CAST(importateur_siren AS CHAR(48)), CAST(100 AS DOUBLE) FROM conteneurs WHERE code = 'MSCU-449120' UNION ALL SELECT p.detenteur, c.part * p.pct / 100 FROM participations p JOIN chaine c ON p.detenue = c.siren) SELECT REPLACE(siren, 'PERSONNE:', '') AS beneficiaire, ROUND(part, 1) AS part FROM chaine WHERE siren LIKE 'PERSONNE:%' ORDER BY part DESC;",
+  "hints": [
+   "Remonte de la société détenue vers ses détenteurs en multipliant les parts. Type l'ancrage : CAST(100 AS DOUBLE) et un siren assez long pour les détenteurs.",
+   "WITH RECURSIVE chaine(siren, part) AS (SELECT CAST(importateur_siren AS CHAR(48)), CAST(100 AS DOUBLE) FROM conteneurs WHERE code = 'MSCU-449120' UNION ALL SELECT p.detenteur, c.part * p.pct / 100 FROM participations p JOIN chaine c ON p.detenue = c.siren) SELECT REPLACE(siren, 'PERSONNE:', '') AS beneficiaire, ..."
+  ],
+  "note": "Sans CAST, l'ancrage 100.0 serait un DECIMAL(4,1) et les parts calculées seraient arrondies à chaque étape ; detenteur (48 caractères) dépasse aussi le VARCHAR(32) de importateur_siren."
+ },
+ "18.A": {
+  "solution": "WITH RECURSIVE suivi(adresse, saut, chemin, quand) AS (SELECT CAST('bc1q-eclipse-7f3a' AS CHAR(34)), 0, CAST('bc1q-eclipse-7f3a' AS CHAR(1000)), CAST('2027-05-12 00:00:00' AS DATETIME) UNION ALL SELECT t.vers, c.saut + 1, CONCAT(c.chemin, ' > ', t.vers), t.horodatage FROM tx_crypto t JOIN suivi c ON t.de = c.adresse WHERE c.saut < 8 AND t.horodatage > c.quand AND INSTR(c.chemin, t.vers) = 0) SELECT s.chemin, t.vers AS retour, t.montant, t.horodatage FROM suivi s JOIN tx_crypto t ON t.de = s.adresse AND t.horodatage > s.quand WHERE INSTR(s.chemin, t.vers) > 0;",
+  "hints": [
+   "Repars de suivi et cherche les transactions dont la destination figure déjà dans le chemin : INSTR(chemin, vers) > 0.",
+   "... SELECT s.chemin, t.vers AS retour, t.montant, t.horodatage FROM suivi s JOIN tx_crypto t ON t.de = s.adresse AND t.horodatage > s.quand WHERE INSTR(s.chemin, t.vers) > 0;"
+  ],
+  "note": "Dans la CTE récursive, l'ancrage fixe les types : CAST(... AS CHAR(1000)) pour le chemin qui s'allonge, CAST(... AS DATETIME) pour quand ; CONCAT() remplace ||."
+ },
+ "18.S": {
+  "solution": "SELECT w.adresse, w.plateforme, w.kyc_nom, COUNT(*) AS versements, ROUND(SUM(t.montant), 2) AS total, SUM(CASE WHEN src.type = 'mixeur' THEN 1 ELSE 0 END) AS via_mixeur, MIN(t.horodatage) AS premier FROM gangs g JOIN suspects s ON s.id = g.chef_id JOIN wallets w ON w.kyc_nom = UPPER(CONCAT(LEFT(s.prenom, 1), '. ', s.nom)) JOIN tx_crypto t ON t.vers = w.adresse JOIN wallets src ON src.adresse = t.de WHERE g.nom = 'Le Cercle' GROUP BY w.adresse, w.plateforme, w.kyc_nom;",
+  "hints": [
+   "Construis le kyc_nom avec UPPER(CONCAT(LEFT(prenom, 1), '. ', nom)) : sous MariaDB, || ne concatène pas.",
+   "... JOIN wallets w ON w.kyc_nom = UPPER(CONCAT(LEFT(s.prenom, 1), '. ', s.nom)) JOIN tx_crypto t ON t.vers = w.adresse JOIN wallets src ON src.adresse = t.de WHERE g.nom = 'Le Cercle' GROUP BY ..."
+  ],
+  "note": "CONCAT() remplace || ; LEFT(s, 1) (ou SUBSTRING) donne l'initiale."
+ },
+ "19.1": {
+  "solution": "CREATE TRIGGER trg_archive AFTER DELETE ON pieces FOR EACH ROW INSERT INTO archive_pieces VALUES (OLD.id, OLD.affaire, OLD.description, NOW()); DELETE FROM pieces WHERE id = 1;",
+  "hints": [
+   "Un trigger MariaDB s'écrit CREATE TRIGGER nom AFTER DELETE ON table FOR EACH ROW instruction ; OLD désigne la ligne supprimée et NOW() l'instant présent.",
+   "CREATE TRIGGER trg_archive AFTER DELETE ON pieces FOR EACH ROW INSERT INTO archive_pieces VALUES (OLD.id, OLD.affaire, OLD.description, NOW()); DELETE FROM pieces WHERE id = 1;"
+  ],
+  "note": "FOR EACH ROW est obligatoire ; pour une seule instruction, pas besoin de BEGIN ... END. NOW() remplace datetime('now').",
+  "setup": "CREATE TABLE archive_pieces (id BIGINT, affaire VARCHAR(32), description VARCHAR(68), supprimee_le DATETIME);",
+  "verify": [
+   "DELETE FROM pieces WHERE id = 2; SELECT id, affaire, description FROM archive_pieces ORDER BY id",
+   "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema = DATABASE() AND event_object_table = 'pieces'"
+  ]
+ },
+ "19.2": {
+  "solution": "INSERT INTO compteurs_alertes (station, nb) VALUES ('Grande Arche', 1) ON DUPLICATE KEY UPDATE nb = nb + 1; INSERT INTO compteurs_alertes (station, nb) VALUES ('Grande Arche', 1) ON DUPLICATE KEY UPDATE nb = nb + 1; INSERT INTO compteurs_alertes (station, nb) VALUES ('Châtelet-Seine', 1) ON DUPLICATE KEY UPDATE nb = nb + 1;",
+  "hints": [
+   "MariaDB n'a pas ON CONFLICT : l'UPSERT s'écrit INSERT ... ON DUPLICATE KEY UPDATE, déclenché par la clé primaire station.",
+   "INSERT INTO compteurs_alertes (station, nb) VALUES ('Grande Arche', 1) ON DUPLICATE KEY UPDATE nb = nb + 1; (trois fois, avec la bonne station)"
+  ],
+  "note": "ON DUPLICATE KEY UPDATE remplace ON CONFLICT ... DO UPDATE : pas besoin de nommer la colonne en conflit, toute clé unique déclenche la mise à jour.",
+  "require": [
+   {
+    "re": "ON\\s+DUPLICATE\\s+KEY\\s+UPDATE",
+    "msg": "Utilise INSERT ... ON DUPLICATE KEY UPDATE."
+   }
+  ],
+  "verify": [
+   "SELECT station, nb FROM compteurs_alertes ORDER BY station"
+  ]
+ },
+ "19.3": {
+  "solution": "START TRANSACTION; INSERT INTO pieces VALUES (20, 'Éclipse', 'Clé USB du dépôt MAINT-07', '2027-05-12'); SAVEPOINT avant_test; DELETE FROM pieces WHERE affaire = 'Minuit'; ROLLBACK TO avant_test; COMMIT;",
+  "hints": [
+   "SAVEPOINT nom pose un point de retour ; ROLLBACK TO nom (ou ROLLBACK TO SAVEPOINT nom) y revient sans annuler le début de la transaction.",
+   "START TRANSACTION; INSERT INTO pieces VALUES (20, ...); SAVEPOINT avant_test; DELETE FROM pieces WHERE affaire = 'Minuit'; ROLLBACK TO avant_test; COMMIT;"
+  ],
+  "note": "Les savepoints fonctionnent avec InnoDB ; START TRANSACTION ouvre la transaction.",
+  "verify": [
+   "SELECT id, affaire, description FROM pieces ORDER BY id"
+  ]
+ },
+ "19.4": {
+  "solution": "SELECT j.login, c.nom_complet, COUNT(*) AS suppressions, MIN(j.horodatage) AS premiere, MAX(j.horodatage) AS derniere FROM journal_brigade j LEFT JOIN consultants c ON c.login = j.login WHERE j.action = 'DELETE' AND j.table_cible = 'pieces' GROUP BY j.login, c.nom_complet;",
+  "hints": [
+   "LEFT JOIN vers consultants pour garder les logins qui n'en sont pas.",
+   "FROM journal_brigade j LEFT JOIN consultants c ON c.login = j.login WHERE j.action = 'DELETE' AND j.table_cible = 'pieces' GROUP BY j.login, c.nom_complet"
+  ]
+ },
+ "19.5": {
+  "solution": "INSERT INTO pieces (id, affaire, description, ajoutee_le) SELECT ligne_id, JSON_VALUE(ancienne_valeur, '$.affaire'), JSON_VALUE(ancienne_valeur, '$.description'), JSON_VALUE(ancienne_valeur, '$.ajoutee_le') FROM journal_brigade WHERE login = 'consultant.fo' AND action = 'DELETE' AND table_cible = 'pieces';",
+  "hints": [
+   "Lis les champs de ancienne_valeur avec JSON_VALUE : JSON_EXTRACT garderait les guillemets et la date serait refusée.",
+   "INSERT INTO pieces (id, affaire, description, ajoutee_le) SELECT ligne_id, JSON_VALUE(ancienne_valeur, '$.affaire'), ... FROM journal_brigade WHERE login = 'consultant.fo' AND action = 'DELETE' AND table_cible = 'pieces';"
+  ],
+  "note": "JSON_EXTRACT renvoie \"2027-05-12 08:00:00\" avec guillemets, que MariaDB refuse dans un DATETIME : JSON_VALUE renvoie la valeur nue.",
+  "verify": [
+   "SELECT id, affaire, description, ajoutee_le FROM pieces ORDER BY id"
+  ]
+ },
+ "19.A": {
+  "solution": "CREATE TRIGGER trg_modif AFTER UPDATE ON pieces FOR EACH ROW INSERT INTO journal_brigade (login, action, table_cible, ligne_id, ancienne_valeur, horodatage) VALUES ('trigger', 'UPDATE', 'pieces', OLD.id, JSON_QUOTE(OLD.description), NOW()); UPDATE pieces SET description = 'Relevé NeoCoin, compte EXCH-NEO-5521' WHERE id = 14;",
+  "hints": [
+   "Syntaxe : CREATE TRIGGER nom AFTER UPDATE ON pieces FOR EACH ROW INSERT ... ; OLD.description est l'ancienne valeur et NOW() l'instant présent. Attention : ancienne_valeur est une colonne JSON (CHECK json_valid).",
+   "... VALUES ('trigger', 'UPDATE', 'pieces', OLD.id, JSON_QUOTE(OLD.description), NOW()); puis UPDATE pieces SET description = '...' WHERE id = 14;"
+  ],
+  "note": "Sous MariaDB, ancienne_valeur est un JSON contrôlé par json_valid : un texte brut y est refusé, JSON_QUOTE() en fait une chaîne JSON valide (lue ensuite avec JSON_VALUE(ancienne_valeur, '$')).",
+  "verify": [
+   "SELECT id, description FROM pieces ORDER BY id",
+   "UPDATE pieces SET description = 'Relevé CH-9131 (copie)' WHERE id = 4; SELECT action, table_cible, ligne_id, JSON_VALUE(ancienne_valeur, '$') AS ancienne_valeur FROM journal_brigade WHERE login = 'trigger' ORDER BY ligne_id"
+  ]
+ },
+ "19.S": {
+  "solution": "INSERT INTO fiche_activite (login, lectures, ecritures, suppressions) SELECT login, SUM(CASE WHEN action = 'SELECT' THEN 1 ELSE 0 END), SUM(CASE WHEN action IN ('INSERT', 'UPDATE') THEN 1 ELSE 0 END), SUM(CASE WHEN action = 'DELETE' THEN 1 ELSE 0 END) FROM journal_brigade GROUP BY login ON DUPLICATE KEY UPDATE lectures = lectures + VALUES(lectures), ecritures = ecritures + VALUES(ecritures), suppressions = suppressions + VALUES(suppressions);",
+  "hints": [
+   "MariaDB écrit l'UPSERT INSERT ... SELECT ... ON DUPLICATE KEY UPDATE ; la valeur qu'on voulait insérer se lit avec VALUES(colonne) (l'équivalent de excluded.colonne).",
+   "INSERT INTO fiche_activite (...) SELECT login, SUM(CASE ...), ... FROM journal_brigade GROUP BY login ON DUPLICATE KEY UPDATE lectures = lectures + VALUES(lectures), ...;"
+  ],
+  "note": "VALUES(col) dans ON DUPLICATE KEY UPDATE remplace excluded.col ; la clé primaire login déclenche la mise à jour.",
+  "setup": "CREATE TABLE fiche_activite (login VARCHAR(32) PRIMARY KEY, lectures INT NOT NULL DEFAULT 0, ecritures INT NOT NULL DEFAULT 0, suppressions INT NOT NULL DEFAULT 0); INSERT INTO fiche_activite VALUES ('i.varga', 412, 57, 0), ('n.kessler', 388, 61, 0), ('consultant.fo', 0, 0, 0);",
+  "require": [
+   {
+    "re": "ON\\s+DUPLICATE\\s+KEY\\s+UPDATE",
+    "msg": "Utilise INSERT ... ON DUPLICATE KEY UPDATE."
+   },
+   {
+    "re": "VALUES\\s*\\(\\s*(lectures|ecritures|suppressions)\\s*\\)",
+    "msg": "Ajoute les nouvelles valeurs avec VALUES(colonne)."
+   }
+  ],
+  "verify": [
+   "SELECT login, lectures, ecritures, suppressions FROM fiche_activite ORDER BY login"
+  ]
+ },
+ "20.1": {
+  "solution": "EXPLAIN SELECT * FROM trafic WHERE poste = 'MAINT-07';",
+  "hints": [
+   "Sous MariaDB, le plan s'affiche avec EXPLAIN devant la requête (pas de QUERY PLAN).",
+   "EXPLAIN SELECT * FROM trafic WHERE poste = 'MAINT-07'; puis regarde la colonne type : ALL signifie un parcours complet de la table."
+  ],
+  "note": "EXPLAIN renvoie une ligne par table ; type = ALL correspond au SCAN de SQLite.",
+  "contains": "trafic ALL",
+  "require": [
+   {
+    "re": "EXPLAIN",
+    "msg": "Utilise EXPLAIN."
+   },
+   {
+    "re": "WHERE\\s+poste\\s*=\\s*'MAINT-07'",
+    "msg": "Analyse la requête demandée."
+   }
+  ]
+ },
+ "20.2": {
+  "solution": "CREATE INDEX idx_trafic_poste ON trafic(poste); EXPLAIN SELECT * FROM trafic WHERE poste = 'MAINT-07';",
+  "hints": [
+   "Crée l'index avec CREATE INDEX nom ON trafic(poste), puis relance EXPLAIN.",
+   "CREATE INDEX idx_trafic_poste ON trafic(poste); EXPLAIN SELECT * FROM trafic WHERE poste = 'MAINT-07'; la colonne type passe à ref et key nomme l'index."
+  ],
+  "note": "Avec l'index, EXPLAIN affiche type = ref (accès par index) au lieu de ALL.",
+  "contains": "trafic ref"
+ },
+ "20.3": {
+  "solution": "CREATE INDEX idx_trafic_dst_h ON trafic(ip_dst, horodatage);",
+  "hints": [
+   "Un index composite liste plusieurs colonnes entre parenthèses, dans l'ordre d'utilisation.",
+   "CREATE INDEX idx_trafic_dst_h ON trafic(ip_dst, horodatage);"
+  ],
+  "note": "Les colonnes d'un index se lisent dans information_schema.statistics (seq_in_index donne leur ordre).",
+  "verify": [
+   "SELECT GROUP_CONCAT(column_name ORDER BY index_name, seq_in_index SEPARATOR ',') AS cols FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'trafic' AND index_name <> 'PRIMARY'"
+  ]
+ },
+ "20.4": {
+  "solution": "CREATE INDEX idx_trafic_cov ON trafic(ip_dst, poste, octets); EXPLAIN FORMAT=JSON SELECT poste, octets FROM trafic WHERE ip_dst = '198.51.100.200';",
+  "hints": [
+   "Un index couvrant contient toutes les colonnes lues par la requête : ip_dst pour le filtre, puis poste et octets.",
+   "CREATE INDEX idx_trafic_cov ON trafic(ip_dst, poste, octets); EXPLAIN FORMAT=JSON SELECT poste, octets FROM trafic WHERE ip_dst = '198.51.100.200'; cherche \"using_index\": true dans la sortie."
+  ],
+  "note": "Avec EXPLAIN FORMAT=JSON, un index couvrant apparaît comme \"using_index\": true (Extra = Using index en EXPLAIN classique, à ne pas confondre avec Using index condition).",
+  "contains": "\"using_index\": true"
+ },
+ "20.5": {
+  "solution": "CREATE INDEX idx_c2 ON trafic(ip_dst, horodatage); SELECT poste, MAX(horodatage) AS dernier_contact FROM trafic WHERE ip_dst = '198.51.100.200' AND horodatage >= '2027-05-12 23:20:00' GROUP BY poste ORDER BY dernier_contact;",
+  "hints": [
+   "Un index qui commence par ip_dst puis horodatage sert à la fois l'égalité et l'intervalle.",
+   "CREATE INDEX idx_c2 ON trafic(ip_dst, horodatage); SELECT poste, MAX(horodatage) AS dernier_contact FROM trafic WHERE ip_dst = ... AND horodatage >= ... GROUP BY poste ORDER BY dernier_contact;"
+  ],
+  "worker": true
+ },
+ "20.A": {
+  "solution": "CREATE INDEX idx_sessions_poste_debut ON sessions_postes(poste, debut); EXPLAIN SELECT login FROM sessions_postes WHERE poste = 'MAINT-02' AND debut <= '2027-05-12 06:17:12' AND fin >= '2027-05-12 06:17:12';",
+  "hints": [
+   "L'égalité sur poste puis l'inégalité sur debut utilisent les deux colonnes de l'index : EXPLAIN montre un accès par intervalle.",
+   "CREATE INDEX idx_sessions_poste_debut ON sessions_postes(poste, debut); EXPLAIN SELECT login FROM sessions_postes WHERE poste = 'MAINT-02' AND debut <= '...' AND fin >= '...'; la colonne type vaut range."
+  ],
+  "note": "type = range dans EXPLAIN correspond au « debut<? » du plan SQLite : l'index sert sur poste puis sur un intervalle de debut.",
+  "contains": "sessions_postes range"
+ },
+ "20.S": {
+  "solution": "CREATE INDEX idx_tx_de ON tx_crypto(de); CREATE INDEX idx_tx_vers ON tx_crypto(vers); SELECT w.adresse, w.plateforme, w.kyc_nom, ROUND(SUM(t.montant), 2) AS recu, MAX(t.horodatage) AS derniere_entree FROM wallets w JOIN tx_crypto t ON t.vers = w.adresse WHERE w.type = 'exchange' AND NOT EXISTS (SELECT 1 FROM tx_crypto x WHERE x.de = w.adresse) GROUP BY w.adresse, w.plateforme, w.kyc_nom;",
+  "hints": [
+   "Indexe les colonnes de jointure et de recherche de tx_crypto (de et vers), puis combine JOIN et NOT EXISTS.",
+   "CREATE INDEX idx_tx_de ON tx_crypto(de); CREATE INDEX idx_tx_vers ON tx_crypto(vers); SELECT ... FROM wallets w JOIN tx_crypto t ON t.vers = w.adresse WHERE w.type = 'exchange' AND NOT EXISTS (SELECT 1 FROM tx_crypto x WHERE x.de = w.adresse) GROUP BY ...;"
+  ],
+  "worker": true
+ }
+}

@@ -1,0 +1,1639 @@
+{
+ "1.1": {
+  "solution": "SELECT * FROM suspects;",
+  "hints": [
+   "L'étoile * sélectionne toutes les colonnes d'une table.",
+   "Structure : SELECT * FROM nom_de_la_table;"
+  ]
+ },
+ "1.2": {
+  "solution": "SELECT prenom, nom, age FROM suspects;",
+  "hints": [
+   "Liste les colonnes voulues après SELECT, séparées par des virgules.",
+   "Structure : SELECT col1, col2, col3 FROM suspects;"
+  ]
+ },
+ "1.3": {
+  "solution": "SELECT nom, age, 2026 - age AS annee_naissance FROM suspects;",
+  "hints": [
+   "Une colonne calculée s'écrit comme une expression dans le SELECT, renommée avec AS.",
+   "Structure : SELECT nom, age, 2026 - age AS annee_naissance FROM ...;"
+  ]
+ },
+ "1.4": {
+  "solution": "SELECT CONCAT(prenom, ' ', nom) AS identite, ville FROM suspects;",
+  "hints": [
+   "SQL Server ne connaît pas l'opérateur || : il concatène avec + ou avec la fonction CONCAT().",
+   "Structure : SELECT CONCAT(prenom, ' ', nom) AS identite, ville FROM suspects;"
+  ],
+  "note": "SQL Server concatène avec + ou CONCAT() au lieu de ||. CONCAT() remplace les NULL par une chaîne vide, alors que + renvoie NULL."
+ },
+ "1.5": {
+  "solution": "SELECT DISTINCT ville FROM suspects;",
+  "hints": [
+   "Un mot-clé placé juste après SELECT supprime les doublons.",
+   "Structure : SELECT DISTINCT ville FROM suspects;"
+  ]
+ },
+ "1.6": {
+  "solution": "SELECT prenom, nom, age FROM suspects ORDER BY age DESC, nom ASC, prenom ASC;",
+  "hints": [
+   "ORDER BY accepte plusieurs critères séparés par des virgules, chacun avec ASC ou DESC.",
+   "Structure : ORDER BY age DESC, nom ASC (ajoute prenom pour départager)."
+  ]
+ },
+ "1.7": {
+  "solution": "SELECT TOP (5) id, prenom, nom, age FROM suspects ORDER BY age DESC, id ASC;",
+  "hints": [
+   "SQL Server n'a pas LIMIT : on écrit TOP (n) juste après SELECT, ou OFFSET 0 ROWS FETCH NEXT n ROWS ONLY après ORDER BY.",
+   "Structure : SELECT TOP (5) id, prenom, nom, age FROM suspects ORDER BY age DESC, id ASC;"
+  ],
+  "note": "LIMIT n'existe pas en T-SQL : on utilise SELECT TOP (n) ou ORDER BY ... OFFSET 0 ROWS FETCH NEXT n ROWS ONLY."
+ },
+ "1.A": {
+  "solution": "SELECT nom, territoire, fondation, 2026 - fondation AS anciennete FROM gangs ORDER BY fondation;",
+  "hints": [
+   "Calcule anciennete dans le SELECT et trie sur fondation.",
+   "Structure : SELECT nom, territoire, fondation, 2026 - fondation AS anciennete FROM gangs ORDER BY fondation;"
+  ]
+ },
+ "1.S": {
+  "solution": "SELECT TOP (5) horodatage, compte_source, compte_dest, montant, 480000 - montant AS evapore FROM virements ORDER BY montant DESC;",
+  "hints": [
+   "Pour garder les 5 premières lignes en SQL Server, utilise TOP (5) après SELECT.",
+   "Structure : SELECT TOP (5) ..., 480000 - montant AS evapore FROM virements ORDER BY montant DESC;"
+  ],
+  "note": "TOP (5) remplace LIMIT 5."
+ },
+ "1.8": {
+  "solution": "SELECT TOP (10) CONCAT(prenom, ' ', nom) AS identite, age, ville FROM suspects ORDER BY age DESC, id ASC;",
+  "hints": [
+   "Combine CONCAT() (ou +) pour l'identité et TOP (10) pour limiter le nombre de lignes.",
+   "Structure : SELECT TOP (10) CONCAT(prenom, ' ', nom) AS identite, age, ville FROM suspects ORDER BY age DESC, id ASC;"
+  ],
+  "note": "En T-SQL : CONCAT() ou + au lieu de ||, et TOP au lieu de LIMIT."
+ },
+ "2.1": {
+  "solution": "SELECT id, prenom, nom FROM suspects WHERE sexe = 'H';",
+  "hints": [
+   "Filtre les lignes avec WHERE et compare la colonne sexe à une chaîne entre apostrophes.",
+   "Structure : SELECT id, prenom, nom FROM suspects WHERE sexe = 'H';"
+  ]
+ },
+ "2.2": {
+  "solution": "SELECT id, prenom, nom FROM suspects WHERE sexe = 'H' AND cicatrices = 'Oui';",
+  "hints": [
+   "Combine deux conditions avec AND. Attention : dans cette base SQL Server, les comparaisons de texte sont sensibles à la casse ('Oui' et 'oui' diffèrent).",
+   "Structure : WHERE sexe = 'H' AND cicatrices = 'Oui'"
+  ]
+ },
+ "2.3": {
+  "solution": "SELECT id, prenom, nom, cheveux FROM suspects WHERE sexe = 'H' AND cicatrices = 'Oui' AND (cheveux = 'Noirs' OR cheveux = 'Bruns');",
+  "hints": [
+   "AND est prioritaire sur OR : sans parenthèses, la condition OR s'applique mal.",
+   "Structure : WHERE sexe = 'H' AND cicatrices = 'Oui' AND (cheveux = 'Noirs' OR cheveux = 'Bruns')"
+  ]
+ },
+ "2.4": {
+  "solution": "SELECT id, prenom, nom, pointure FROM suspects WHERE sexe = 'H' AND cicatrices = 'Oui' AND (cheveux = 'Noirs' OR cheveux = 'Bruns') AND pointure >= 44;",
+  "hints": [
+   "Ajoute une comparaison numérique avec >= à la condition précédente.",
+   "Structure : ... AND (cheveux = 'Noirs' OR cheveux = 'Bruns') AND pointure >= 44"
+  ]
+ },
+ "2.5": {
+  "solution": "SELECT id, prenom, nom, age, lunettes FROM suspects WHERE sexe = 'H' AND cicatrices = 'Oui' AND (cheveux = 'Noirs' OR cheveux = 'Bruns') AND pointure >= 44 AND age BETWEEN 50 AND 59;",
+  "hints": [
+   "BETWEEN a AND b inclut les deux bornes.",
+   "Structure : ... AND pointure >= 44 AND age BETWEEN 50 AND 59"
+  ]
+ },
+ "2.6": {
+  "solution": "SELECT * FROM suspects WHERE sexe = 'H' AND cicatrices = 'Oui' AND (cheveux = 'Noirs' OR cheveux = 'Bruns') AND pointure >= 44 AND age BETWEEN 50 AND 59 AND lunettes = 'Oui';",
+  "hints": [
+   "Reprends toutes les conditions et ajoute celle sur les lunettes.",
+   "Structure : SELECT * FROM suspects WHERE ... AND age BETWEEN 50 AND 59 AND lunettes = 'Oui';"
+  ]
+ },
+ "2.A": {
+  "solution": "SELECT immatriculation, marque, annee, suspect_id FROM vehicules WHERE marque IN ('Peugeot', N'Citroën') AND couleur = 'Grise' AND annee BETWEEN 2010 AND 2020;",
+  "hints": [
+   "Pour une chaîne accentuée, préfixe-la par N (N'Citroën') : c'est un littéral Unicode en SQL Server.",
+   "Structure : WHERE (marque = 'Peugeot' OR marque = N'Citroën') AND couleur = 'Grise' AND annee BETWEEN 2010 AND 2020"
+  ],
+  "note": "Le préfixe N'...' indique un littéral Unicode (NVARCHAR), recommandé pour les textes accentués."
+ },
+ "2.S": {
+  "solution": "SELECT horodatage, lieu, immatriculation FROM cameras WHERE immatriculation IN ('FB-221-TR', 'NC-406-DR') AND horodatage > '2026-11-14 06:12:00' ORDER BY horodatage;",
+  "hints": [
+   "horodatage est un DATETIME2 : SQL Server convertit la chaîne 'AAAA-MM-JJ HH:MM:SS' en date pour la comparer.",
+   "Structure : WHERE (immatriculation = '...' OR immatriculation = '...') AND horodatage > '2026-11-14 06:12:00' ORDER BY horodatage"
+  ],
+  "note": "horodatage est de type DATETIME2 : la chaîne est convertie implicitement en date et heure pour la comparaison."
+ },
+ "2.7": {
+  "solution": "SELECT id, prenom, nom, age, pointure FROM suspects WHERE sexe = 'H' AND age BETWEEN 20 AND 35 AND taille = 'Petite' AND tatouages = 'Oui' AND cheveux IN ('Noirs', 'Bruns') AND lunettes = 'Non';",
+  "hints": [
+   "Traduis chaque élément du signalement en une condition, reliées par AND.",
+   "Structure : WHERE sexe = 'H' AND age BETWEEN 20 AND 35 AND taille = 'Petite' AND tatouages = 'Oui' AND cheveux IN (...) AND lunettes = 'Non'"
+  ]
+ },
+ "3.1": {
+  "solution": "SELECT id, prenom, nom, cheveux FROM suspects WHERE sexe = 'F' AND taille = 'Grande' AND cheveux IN ('Roux', 'Blonds');",
+  "hints": [
+   "IN ('a', 'b') remplace une suite de OR sur la même colonne.",
+   "Structure : WHERE sexe = 'F' AND taille = 'Grande' AND cheveux IN ('Roux', 'Blonds')"
+  ]
+ },
+ "3.2": {
+  "solution": "SELECT id, prenom, nom, telephone FROM suspects WHERE sexe = 'F' AND taille = 'Grande' AND cheveux IN ('Roux', 'Blonds') AND tatouages = 'Oui' AND nom LIKE 'Le%';",
+  "hints": [
+   "Avec LIKE, % remplace n'importe quelle suite de caractères. Ici LIKE est sensible à la casse (collation CS).",
+   "Structure : ... AND tatouages = 'Oui' AND nom LIKE 'Le%'"
+  ],
+  "note": "La base SQL Server utilise une collation sensible à la casse : LIKE 'Le%' ne trouve pas 'le...'."
+ },
+ "3.3": {
+  "solution": "SELECT * FROM suspects WHERE sexe = 'F' AND taille = 'Grande' AND cheveux IN ('Roux', 'Blonds') AND tatouages = 'Oui' AND nom LIKE 'Le%' AND telephone IS NULL;",
+  "hints": [
+   "On ne compare jamais à NULL avec = : il faut un opérateur dédié.",
+   "Structure : ... AND nom LIKE 'Le%' AND telephone IS NULL"
+  ]
+ },
+ "3.4": {
+  "solution": "SELECT id, prenom, nom, cheveux FROM suspects WHERE cheveux IS NOT NULL AND cheveux NOT IN ('Noirs', 'Bruns', 'Chauve');",
+  "hints": [
+   "Combine IS NOT NULL et NOT IN (...).",
+   "Structure : WHERE cheveux IS NOT NULL AND cheveux NOT IN ('Noirs', 'Bruns', 'Chauve')"
+  ]
+ },
+ "3.5": {
+  "solution": "SELECT * FROM vehicules WHERE immatriculation LIKE 'G_-7__-K_';",
+  "hints": [
+   "Avec LIKE, le caractère _ remplace exactement un caractère.",
+   "Structure : WHERE immatriculation LIKE 'G_-7__-K_'"
+  ],
+  "note": "En SQL Server, LIKE accepte aussi les classes entre crochets ([A-Z]) ; ici _ suffit."
+ },
+ "3.A": {
+  "solution": "SELECT numero, banque, ouverture FROM comptes WHERE titulaire_id IS NULL AND numero NOT LIKE 'HEL%' ORDER BY ouverture, numero;",
+  "hints": [
+   "Combine IS NULL et NOT LIKE, puis trie sur deux colonnes.",
+   "Structure : WHERE titulaire_id IS NULL AND numero NOT LIKE 'HEL%' ORDER BY ouverture, numero"
+  ]
+ },
+ "3.S": {
+  "solution": "SELECT horodatage, appelant, appele, duree_s FROM appels WHERE appelant NOT LIKE '06%' OR appele NOT LIKE '06%' ORDER BY horodatage;",
+  "hints": [
+   "NOT LIKE '06%' repère les numéros qui ne commencent pas par 06.",
+   "Structure : WHERE appelant NOT LIKE '06%' OR appele NOT LIKE '06%' ORDER BY horodatage"
+  ]
+ },
+ "3.6": {
+  "solution": "SELECT id, prenom, nom, ville, cheveux, telephone FROM suspects WHERE prenom LIKE '%e' AND ville IN ('Lille', 'Marseille') AND (cheveux IS NULL OR telephone IS NULL);",
+  "hints": [
+   "'%e' signifie « se termine par e ». Mets les deux IS NULL entre parenthèses.",
+   "Structure : WHERE prenom LIKE '%e' AND ville IN (...) AND (cheveux IS NULL OR telephone IS NULL)"
+  ]
+ },
+ "4.1": {
+  "solution": "SELECT CONCAT(UPPER(nom), ', ', prenom) AS avis, ville FROM suspects WHERE id IN (217, 388);",
+  "hints": [
+   "UPPER() met en majuscules ; pour assembler les morceaux, utilise CONCAT() ou +.",
+   "Structure : SELECT CONCAT(UPPER(nom), ', ', prenom) AS avis, ville FROM suspects WHERE id IN (217, 388);"
+  ],
+  "note": "Concaténation avec CONCAT() ou + au lieu de ||."
+ },
+ "4.2": {
+  "solution": "SELECT immatriculation, REPLACE(immatriculation, '-', '') AS plaque_brute, LEN(REPLACE(immatriculation, '-', '')) AS longueur FROM vehicules WHERE suspect_id IN (217, 388);",
+  "hints": [
+   "En SQL Server, la longueur d'une chaîne se calcule avec LEN() (LENGTH n'existe pas).",
+   "Structure : REPLACE(immatriculation, '-', '') AS plaque_brute, LEN(REPLACE(...)) AS longueur"
+  ],
+  "note": "LENGTH() s'appelle LEN() en T-SQL (attention : LEN ignore les espaces de fin ; DATALENGTH compte les octets)."
+ },
+ "4.3": {
+  "solution": "SELECT type, date_faits, YEAR(date_faits) AS annee, DATEDIFF(day, debut_peine, fin_peine) AS jours FROM delits WHERE suspect_id = 217 ORDER BY date_faits;",
+  "hints": [
+   "SQL Server a des fonctions de date dédiées : YEAR() pour l'année, DATEDIFF(day, debut, fin) pour un écart en jours.",
+   "Structure : SELECT type, date_faits, YEAR(date_faits) AS annee, DATEDIFF(day, debut_peine, fin_peine) AS jours FROM delits WHERE suspect_id = 217 ORDER BY date_faits;"
+  ],
+  "note": "Les colonnes sont de vrais DATE : YEAR() remplace strftime('%Y') et DATEDIFF(day, a, b) remplace la différence de julianday()."
+ },
+ "4.4": {
+  "solution": "SELECT horodatage, immatriculation FROM cameras WHERE lieu = N'Esplanade La Défense' AND horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 00:30:00' ORDER BY horodatage;",
+  "hints": [
+   "BETWEEN fonctionne sur un DATETIME2 avec des bornes écrites 'AAAA-MM-JJ HH:MM:SS'. Préfixe le lieu accentué par N.",
+   "Structure : WHERE lieu = N'Esplanade La Défense' AND horodatage BETWEEN '...' AND '...' ORDER BY horodatage"
+  ]
+ },
+ "4.5": {
+  "solution": "SELECT id, type, prejudice, CASE WHEN prejudice IS NULL THEN 'Inconnu' WHEN prejudice < 1000 THEN 'Mineur' WHEN prejudice < 20000 THEN 'Moyen' ELSE 'Majeur' END AS gravite FROM delits WHERE suspect_id IN (217, 388);",
+  "hints": [
+   "CASE WHEN ... THEN ... ELSE ... END évalue les conditions dans l'ordre : teste NULL en premier.",
+   "Structure : CASE WHEN prejudice IS NULL THEN 'Inconnu' WHEN prejudice < 1000 THEN 'Mineur' WHEN ... ELSE 'Majeur' END AS gravite"
+  ]
+ },
+ "4.6": {
+  "solution": "SELECT prenom, nom, ISNULL(telephone, N'non renseigné') AS tel FROM suspects WHERE ville = 'Nanterre';",
+  "hints": [
+   "SQL Server propose COALESCE() (standard) et ISNULL() pour remplacer un NULL.",
+   "Structure : SELECT prenom, nom, ISNULL(telephone, N'non renseigné') AS tel FROM suspects WHERE ville = 'Nanterre';"
+  ],
+  "note": "ISNULL(x, y) est la variante T-SQL à deux arguments de COALESCE()."
+ },
+ "4.A": {
+  "solution": "SELECT lieu, FORMAT(horodatage, 'HH:mm') AS heure, ROUND(DATEDIFF(second, '2026-11-13 23:40:00', horodatage) / 60.0, 0) AS minutes FROM cameras WHERE immatriculation = 'GH-713-KZ' AND horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 01:00:00' ORDER BY horodatage;",
+  "hints": [
+   "FORMAT(horodatage, 'HH:mm') donne l'heure ; DATEDIFF(second, debut, fin) donne un écart en secondes, à diviser par 60.0.",
+   "Structure : FORMAT(horodatage, 'HH:mm') AS heure, ROUND(DATEDIFF(second, '2026-11-13 23:40:00', horodatage) / 60.0, 0) AS minutes"
+  ],
+  "note": "FORMAT() (ou CONVERT(char(5), horodatage, 108)) remplace strftime ; DATEDIFF compte des frontières d'unité, d'où le calcul en secondes divisé par 60.0 puis arrondi."
+ },
+ "4.S": {
+  "solution": "SELECT CAST(horodatage AS DATE) AS jour, FORMAT(horodatage, 'HH:mm') AS heure, lieu, DATEDIFF(day, CAST(horodatage AS DATE), '2026-11-13') AS jours_avant, CASE WHEN lieu = N'Esplanade La Défense' THEN N'Repérage' ELSE 'Trajet' END AS nature FROM cameras WHERE immatriculation = 'GH-713-KZ' AND horodatage < '2026-11-13 23:00:00' ORDER BY horodatage;",
+  "hints": [
+   "CAST(horodatage AS DATE) garde la date seule ; DATEDIFF(day, a, b) donne un nombre entier de jours.",
+   "Structure : CAST(horodatage AS DATE) AS jour, FORMAT(horodatage, 'HH:mm') AS heure, lieu, DATEDIFF(day, CAST(horodatage AS DATE), '2026-11-13') AS jours_avant, CASE ... END AS nature"
+  ],
+  "note": "CAST(... AS DATE) remplace date() et DATEDIFF(day, ...) renvoie directement un entier."
+ },
+ "4.7": {
+  "solution": "SELECT id, date_faits, MONTH(date_faits) AS mois, DATEPART(quarter, date_faits) AS trimestre, CASE WHEN prejudice IS NULL THEN 'Inconnu' WHEN prejudice < 1000 THEN 'Mineur' WHEN prejudice < 20000 THEN 'Moyen' ELSE 'Majeur' END AS gravite FROM delits WHERE YEAR(date_faits) = 2025 ORDER BY date_faits, id;",
+  "hints": [
+   "MONTH() donne le mois et DATEPART(quarter, ...) le trimestre ; filtre l'année avec YEAR() plutôt qu'avec LIKE sur une date.",
+   "Structure : SELECT id, date_faits, MONTH(date_faits) AS mois, DATEPART(quarter, date_faits) AS trimestre, CASE ... END AS gravite FROM delits WHERE YEAR(date_faits) = 2025 ORDER BY date_faits, id;"
+  ],
+  "note": "date_faits est un vrai DATE : MONTH(), DATEPART(quarter, ...) et YEAR() remplacent strftime et LIKE '2025%'."
+ },
+ "5.1": {
+  "solution": "SELECT COUNT(*) AS echecs FROM connexions WHERE succes = 0;",
+  "hints": [
+   "COUNT(*) compte les lignes qui passent le WHERE.",
+   "Structure : SELECT COUNT(*) AS echecs FROM connexions WHERE succes = 0;"
+  ]
+ },
+ "5.2": {
+  "solution": "SELECT COUNT(*) AS total, COUNT(telephone) AS avec_tel, COUNT(DISTINCT ville) AS villes FROM suspects;",
+  "hints": [
+   "COUNT(colonne) ignore les NULL, COUNT(DISTINCT colonne) compte les valeurs différentes.",
+   "Structure : SELECT COUNT(*) AS total, COUNT(telephone) AS avec_tel, COUNT(DISTINCT ville) AS villes FROM suspects;"
+  ]
+ },
+ "5.3": {
+  "solution": "SELECT MIN(prejudice) AS mini, MAX(prejudice) AS maxi, ROUND(AVG(prejudice), 2) AS moyenne FROM delits;",
+  "hints": [
+   "MIN, MAX et AVG s'utilisent ensemble ; arrondis la moyenne avec ROUND(x, 2).",
+   "Structure : SELECT MIN(prejudice) AS mini, MAX(prejudice) AS maxi, ROUND(AVG(prejudice), 2) AS moyenne FROM delits;"
+  ],
+  "note": "prejudice est un FLOAT, donc AVG reste décimal. Sur une colonne entière, AVG de SQL Server renverrait un entier tronqué."
+ },
+ "5.4": {
+  "solution": "SELECT ip, COUNT(*) AS echecs FROM connexions WHERE succes = 0 GROUP BY ip ORDER BY echecs DESC;",
+  "hints": [
+   "GROUP BY ip fait un groupe par adresse, COUNT(*) compte dans chaque groupe.",
+   "Structure : SELECT ip, COUNT(*) AS echecs FROM connexions WHERE succes = 0 GROUP BY ip ORDER BY echecs DESC;"
+  ]
+ },
+ "5.5": {
+  "solution": "SELECT ip, COUNT(*) AS echecs, MAX(pays) AS pays FROM connexions WHERE succes = 0 GROUP BY ip HAVING COUNT(*) >= 10 ORDER BY echecs DESC;",
+  "hints": [
+   "HAVING filtre après le regroupement. En SQL Server, HAVING ne peut pas utiliser l'alias du SELECT : répète COUNT(*).",
+   "Structure : ... GROUP BY ip HAVING COUNT(*) >= 10 ORDER BY echecs DESC"
+  ],
+  "note": "SQL Server refuse les alias du SELECT dans HAVING (et dans GROUP BY) ; il faut répéter l'expression."
+ },
+ "5.6": {
+  "solution": "SELECT login, horodatage FROM connexions WHERE ip = '203.0.113.66' AND succes = 1;",
+  "hints": [
+   "Deux conditions reliées par AND.",
+   "Structure : WHERE ip = '203.0.113.66' AND succes = 1"
+  ]
+ },
+ "5.7": {
+  "solution": "SELECT type, COUNT(*) AS nb, ROUND(SUM(prejudice), 2) AS total FROM delits GROUP BY type HAVING SUM(prejudice) > 1000000 ORDER BY total DESC;",
+  "hints": [
+   "Filtre les groupes avec HAVING en répétant SUM(prejudice) (l'alias n'est pas accepté dans HAVING).",
+   "Structure : ... GROUP BY type HAVING SUM(prejudice) > 1000000 ORDER BY total DESC"
+  ]
+ },
+ "5.A": {
+  "solution": "SELECT ip, COUNT(*) AS tentatives, SUM(succes) AS reussites, MIN(horodatage) AS premiere FROM connexions WHERE login = 'j.ferrand' GROUP BY ip ORDER BY tentatives DESC;",
+  "hints": [
+   "SUM(succes) compte les réussites car succes vaut 0 ou 1 ; MIN(horodatage) donne la plus ancienne.",
+   "Structure : SELECT ip, COUNT(*) AS tentatives, SUM(succes) AS reussites, MIN(horodatage) AS premiere FROM connexions WHERE login = 'j.ferrand' GROUP BY ip ORDER BY tentatives DESC;"
+  ]
+ },
+ "5.S": {
+  "solution": "SELECT COUNT(*) AS tentatives, COUNT(DISTINCT login) AS logins_differents, COUNT(DISTINCT CASE WHEN login LIKE '_.%' THEN login END) AS logins_internes FROM connexions WHERE ip = '203.0.113.66';",
+  "hints": [
+   "COUNT(DISTINCT CASE WHEN ... THEN login END) ne compte que les logins qui vérifient la condition.",
+   "Structure : COUNT(DISTINCT CASE WHEN login LIKE '_.%' THEN login END) AS logins_internes"
+  ]
+ },
+ "5.8": {
+  "solution": "SELECT ip, FORMAT(horodatage, 'yyyy-MM-dd HH') AS heure, COUNT(*) AS echecs FROM connexions WHERE succes = 0 GROUP BY ip, FORMAT(horodatage, 'yyyy-MM-dd HH') HAVING COUNT(*) >= 50 ORDER BY echecs DESC;",
+  "hints": [
+   "FORMAT(horodatage, 'yyyy-MM-dd HH') tronque à l'heure. SQL Server n'accepte pas l'alias dans GROUP BY : répète l'expression.",
+   "Structure : SELECT ip, FORMAT(horodatage, 'yyyy-MM-dd HH') AS heure, COUNT(*) AS echecs ... GROUP BY ip, FORMAT(horodatage, 'yyyy-MM-dd HH') HAVING COUNT(*) >= 50 ..."
+  ],
+  "note": "FORMAT() remplace strftime, et le GROUP BY doit répéter l'expression (pas d'alias)."
+ },
+ "6.1": {
+  "solution": "SELECT s.prenom, s.nom, d.type, d.date_faits FROM suspects s JOIN delits d ON d.suspect_id = s.id WHERE s.id = 217 ORDER BY d.date_faits;",
+  "hints": [
+   "Relie suspects et delits par JOIN ... ON d.suspect_id = s.id.",
+   "Structure : FROM suspects s JOIN delits d ON d.suspect_id = s.id WHERE s.id = 217 ORDER BY d.date_faits"
+  ]
+ },
+ "6.2": {
+  "solution": "SELECT s.id, s.prenom, s.nom, COUNT(*) AS nb FROM suspects s JOIN delits d ON d.suspect_id = s.id GROUP BY s.id, s.prenom, s.nom HAVING COUNT(*) >= 6 ORDER BY nb DESC;",
+  "hints": [
+   "SQL Server exige que toutes les colonnes non agrégées du SELECT figurent dans le GROUP BY.",
+   "Structure : ... GROUP BY s.id, s.prenom, s.nom HAVING COUNT(*) >= 6 ORDER BY nb DESC"
+  ],
+  "note": "Contrairement à SQLite, SQL Server refuse une colonne du SELECT absente du GROUP BY."
+ },
+ "6.3": {
+  "solution": "SELECT g.nom AS gang, m.role, m.depuis FROM suspects s JOIN membres m ON m.suspect_id = s.id JOIN gangs g ON g.id = m.gang_id WHERE s.id = 217;",
+  "hints": [
+   "Enchaîne deux JOIN : suspects vers membres, puis membres vers gangs.",
+   "Structure : FROM suspects s JOIN membres m ON m.suspect_id = s.id JOIN gangs g ON g.id = m.gang_id WHERE s.id = 217"
+  ]
+ },
+ "6.4": {
+  "solution": "SELECT c.horodatage, c.immatriculation, s.prenom, s.nom FROM cameras c JOIN vehicules v ON v.immatriculation = c.immatriculation JOIN suspects s ON s.id = v.suspect_id WHERE c.lieu = N'Esplanade La Défense' AND c.horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 00:30:00';",
+  "hints": [
+   "cameras mène à vehicules par la plaque, puis vehicules à suspects par suspect_id.",
+   "Structure : FROM cameras c JOIN vehicules v ON v.immatriculation = c.immatriculation JOIN suspects s ON s.id = v.suspect_id WHERE ..."
+  ]
+ },
+ "6.5": {
+  "solution": "SELECT c.horodatage, c.immatriculation, v.suspect_id FROM cameras c LEFT JOIN vehicules v ON v.immatriculation = c.immatriculation WHERE c.lieu = N'Esplanade La Défense' AND c.horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 00:30:00';",
+  "hints": [
+   "LEFT JOIN garde toutes les lignes de gauche même sans correspondance.",
+   "Structure : FROM cameras c LEFT JOIN vehicules v ON v.immatriculation = c.immatriculation WHERE ..."
+  ]
+ },
+ "6.6": {
+  "solution": "SELECT s.id, s.prenom, s.nom, m.role FROM membres m JOIN suspects s ON s.id = m.suspect_id LEFT JOIN delits d ON d.suspect_id = s.id WHERE m.gang_id = 2 AND d.id IS NULL;",
+  "hints": [
+   "Un LEFT JOIN suivi de WHERE d.id IS NULL garde les lignes sans correspondance.",
+   "Structure : ... LEFT JOIN delits d ON d.suspect_id = s.id WHERE m.gang_id = 2 AND d.id IS NULL"
+  ]
+ },
+ "6.7": {
+  "solution": "SELECT e.prenom, e.nom, e.poste, m.prenom + ' ' + m.nom AS manager FROM employes e LEFT JOIN employes m ON m.id = e.manager_id WHERE e.agence_id = 1;",
+  "hints": [
+   "Joins employes avec elle-même (alias e et m). Pour que manager reste NULL sans responsable, concatène avec + (CONCAT renverrait ' ').",
+   "Structure : SELECT e.prenom, e.nom, e.poste, m.prenom + ' ' + m.nom AS manager FROM employes e LEFT JOIN employes m ON m.id = e.manager_id WHERE e.agence_id = 1;"
+  ],
+  "note": "Avec +, un NULL rend le résultat NULL (comme || en SQLite) ; CONCAT() remplacerait NULL par une chaîne vide."
+ },
+ "6.8": {
+  "solution": "SELECT a.horodatage, e.prenom, e.nom, a.duree_s FROM appels a JOIN employes e ON e.telephone = a.appelant WHERE a.appele = '0611223344';",
+  "hints": [
+   "La jointure se fait sur le numéro : employes.telephone = appels.appelant.",
+   "Structure : FROM appels a JOIN employes e ON e.telephone = a.appelant WHERE a.appele = '0611223344'"
+  ]
+ },
+ "6.A": {
+  "solution": "SELECT c.horodatage, c.ip, c.pays, e.prenom, e.nom, a.nom AS agence FROM connexions c JOIN employes e ON e.login = c.login JOIN agences a ON a.id = e.agence_id WHERE c.succes = 1 AND c.pays <> 'FR' ORDER BY c.horodatage;",
+  "hints": [
+   "connexions mène à employes par le login, puis employes à agences par agence_id.",
+   "Structure : FROM connexions c JOIN employes e ON e.login = c.login JOIN agences a ON a.id = e.agence_id WHERE c.succes = 1 AND c.pays <> 'FR' ORDER BY c.horodatage"
+  ]
+ },
+ "6.S": {
+  "solution": "SELECT b.badge, b.horodatage, e.prenom + ' ' + e.nom AS titulaire, e.poste, m.prenom + ' ' + m.nom AS responsable, m.poste AS poste_responsable FROM acces_badges b JOIN employes e ON e.id = b.employe_id LEFT JOIN employes m ON m.id = e.manager_id WHERE b.resultat = 'REFUSE' AND b.porte = 'Salle des coffres' AND b.horodatage BETWEEN '2026-11-13 22:00:00' AND '2026-11-14 01:00:00';",
+  "hints": [
+   "Deux alias de employes : le titulaire (JOIN) et son responsable (LEFT JOIN). Concatène avec + pour garder NULL sans responsable.",
+   "Structure : FROM acces_badges b JOIN employes e ON e.id = b.employe_id LEFT JOIN employes m ON m.id = e.manager_id WHERE ..."
+  ],
+  "note": "+ propage NULL comme || ; CONCAT() le remplacerait par une chaîne vide."
+ },
+ "6.9": {
+  "solution": "SELECT c.horodatage, c.immatriculation, s.prenom + ' ' + s.nom AS proprietaire, g.nom AS gang FROM cameras c LEFT JOIN vehicules v ON v.immatriculation = c.immatriculation LEFT JOIN suspects s ON s.id = v.suspect_id LEFT JOIN membres m ON m.suspect_id = s.id LEFT JOIN gangs g ON g.id = m.gang_id WHERE c.lieu = N'Esplanade La Défense' AND c.horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 00:30:00';",
+  "hints": [
+   "Enchaîne des LEFT JOIN jusqu'à gangs pour garder les plaques inconnues ; concatène avec + pour que le propriétaire inconnu reste NULL.",
+   "Structure : FROM cameras c LEFT JOIN vehicules v ... LEFT JOIN suspects s ... LEFT JOIN membres m ... LEFT JOIN gangs g ... WHERE ..."
+  ],
+  "note": "+ propage NULL comme || ; avec CONCAT(), un propriétaire inconnu deviendrait ' '."
+ },
+ "7.1": {
+  "solution": "SELECT id, type, prejudice FROM delits WHERE prejudice > (SELECT AVG(prejudice) FROM delits);",
+  "hints": [
+   "Une sous-requête scalaire entre parenthèses peut servir de valeur de comparaison.",
+   "Structure : WHERE prejudice > (SELECT AVG(prejudice) FROM delits)"
+  ]
+ },
+ "7.2": {
+  "solution": "SELECT id, prenom, nom FROM suspects WHERE id IN (SELECT suspect_id FROM membres WHERE gang_id = (SELECT id FROM gangs WHERE nom = 'Le Cercle'));",
+  "hints": [
+   "Imbrique deux sous-requêtes : l'id du gang, puis les suspect_id de ce gang.",
+   "Structure : WHERE id IN (SELECT suspect_id FROM membres WHERE gang_id = (SELECT id FROM gangs WHERE nom = 'Le Cercle'))"
+  ]
+ },
+ "7.3": {
+  "solution": "SELECT e.id, e.prenom, e.nom, e.poste FROM employes e WHERE EXISTS (SELECT 1 FROM acces_badges b WHERE b.employe_id = e.id AND b.porte = 'Salle des coffres' AND b.resultat = 'OK' AND b.horodatage BETWEEN '2026-11-13 22:00:00' AND '2026-11-14 01:00:00');",
+  "hints": [
+   "EXISTS (SELECT 1 FROM ... WHERE lien avec la ligne extérieure) est vrai dès qu'une ligne existe.",
+   "Structure : WHERE EXISTS (SELECT 1 FROM acces_badges b WHERE b.employe_id = e.id AND ...)"
+  ]
+ },
+ "7.4": {
+  "solution": "SELECT s.id, s.prenom, s.nom FROM suspects s JOIN membres m ON m.suspect_id = s.id WHERE m.gang_id = 2 AND NOT EXISTS (SELECT 1 FROM vehicules v WHERE v.suspect_id = s.id);",
+  "hints": [
+   "NOT EXISTS garde les lignes pour lesquelles la sous-requête corrélée ne renvoie rien.",
+   "Structure : ... WHERE m.gang_id = 2 AND NOT EXISTS (SELECT 1 FROM vehicules v WHERE v.suspect_id = s.id)"
+  ]
+ },
+ "7.5": {
+  "solution": "SELECT g.nom AS gang, s.prenom, s.nom, s.age FROM gangs g JOIN membres m ON m.gang_id = g.id JOIN suspects s ON s.id = m.suspect_id WHERE s.age = (SELECT MAX(s2.age) FROM membres m2 JOIN suspects s2 ON s2.id = m2.suspect_id WHERE m2.gang_id = g.id);",
+  "hints": [
+   "La sous-requête corrélée calcule l'âge maximum du gang de la ligne courante.",
+   "Structure : WHERE s.age = (SELECT MAX(s2.age) FROM membres m2 JOIN suspects s2 ON ... WHERE m2.gang_id = g.id)"
+  ]
+ },
+ "7.6": {
+  "solution": "SELECT ROUND(AVG(CAST(nb AS FLOAT)), 2) AS moyenne FROM (SELECT suspect_id, COUNT(*) AS nb FROM delits GROUP BY suspect_id) AS t;",
+  "hints": [
+   "Attention : en SQL Server, AVG d'une colonne entière (COUNT) renvoie un entier tronqué. Convertis en décimal avant.",
+   "Structure : SELECT ROUND(AVG(CAST(nb AS FLOAT)), 2) AS moyenne FROM (SELECT suspect_id, COUNT(*) AS nb FROM delits GROUP BY suspect_id) AS t;"
+  ],
+  "note": "AVG sur un entier renvoie un entier en SQL Server : CAST(nb AS FLOAT) (ou nb * 1.0) est indispensable. La table dérivée doit avoir un alias."
+ },
+ "7.A": {
+  "solution": "SELECT s.id, s.prenom, s.nom, (SELECT COUNT(*) FROM delits d WHERE d.suspect_id = s.id AND d.type = 'Braquage') AS nb_braquages FROM suspects s WHERE s.id IN (SELECT suspect_id FROM membres WHERE gang_id = 2) AND EXISTS (SELECT 1 FROM delits d WHERE d.suspect_id = s.id AND d.type = 'Braquage') ORDER BY s.id;",
+  "hints": [
+   "Une sous-requête corrélée dans le SELECT compte les braquages, une autre dans EXISTS filtre.",
+   "Structure : SELECT s.id, s.prenom, s.nom, (SELECT COUNT(*) FROM delits d WHERE ...) AS nb_braquages FROM suspects s WHERE s.id IN (...) AND EXISTS (...) ORDER BY s.id;"
+  ]
+ },
+ "7.S": {
+  "solution": "SELECT e.id, e.prenom, e.nom, e.poste FROM employes e WHERE EXISTS (SELECT 1 FROM appels a WHERE a.appelant = e.telephone AND a.horodatage >= '2026-11-01' AND a.horodatage < '2026-12-01' AND a.appele IN (SELECT s.telephone FROM suspects s JOIN membres m ON m.suspect_id = s.id WHERE m.gang_id = 2 AND m.depuis >= '2025-01-01'));",
+  "hints": [
+   "horodatage est un DATETIME2 : pour « novembre 2026 », préfère un intervalle >= '2026-11-01' AND < '2026-12-01' à un LIKE.",
+   "Structure : WHERE EXISTS (SELECT 1 FROM appels a WHERE a.appelant = e.telephone AND a.horodatage >= '2026-11-01' AND a.horodatage < '2026-12-01' AND a.appele IN (SELECT ...))"
+  ],
+  "note": "Sur un DATETIME2, LIKE '2026-11%' dépend de la conversion en texte ; un intervalle de dates est plus sûr et peut utiliser un index."
+ },
+ "7.7": {
+  "solution": "SELECT e.id, e.prenom, e.nom FROM employes e WHERE EXISTS (SELECT 1 FROM acces_badges b WHERE b.employe_id = e.id AND b.resultat = 'OK' AND b.horodatage BETWEEN '2026-11-13 20:00:00' AND '2026-11-14 06:00:00') AND NOT EXISTS (SELECT 1 FROM appels a WHERE a.appelant = e.telephone AND a.appele = '0611223344');",
+  "hints": [
+   "Combine un EXISTS (accès OK) et un NOT EXISTS (aucun appel vers Vasseur).",
+   "Structure : WHERE EXISTS (SELECT 1 FROM acces_badges b WHERE ...) AND NOT EXISTS (SELECT 1 FROM appels a WHERE a.appelant = e.telephone AND a.appele = '0611223344')"
+  ]
+ },
+ "8.1": {
+  "solution": "SELECT appele AS numero FROM appels WHERE appelant = '0611223344' UNION SELECT appelant FROM appels WHERE appele = '0611223344';",
+  "hints": [
+   "UNION fusionne deux SELECT de même nombre de colonnes et supprime les doublons.",
+   "Structure : SELECT appele AS numero FROM appels WHERE appelant = '...' UNION SELECT appelant FROM appels WHERE appele = '...';"
+  ]
+ },
+ "8.2": {
+  "solution": "SELECT numero FROM (SELECT appele AS numero FROM appels WHERE appelant = '0611223344' UNION SELECT appelant FROM appels WHERE appele = '0611223344') AS v INTERSECT SELECT numero FROM (SELECT appele AS numero FROM appels WHERE appelant = '0645454545' UNION SELECT appelant FROM appels WHERE appele = '0645454545') AS f;",
+  "hints": [
+   "INTERSECT garde les lignes communes. En SQL Server, chaque sous-requête du FROM doit avoir un alias.",
+   "Structure : SELECT numero FROM (... UNION ...) AS v INTERSECT SELECT numero FROM (... UNION ...) AS f;"
+  ],
+  "note": "SQL Server impose un alias (AS v) à toute table dérivée dans le FROM."
+ },
+ "8.3": {
+  "solution": "WITH contacts_v AS (SELECT appele AS numero FROM appels WHERE appelant = '0611223344' UNION SELECT appelant FROM appels WHERE appele = '0611223344'), contacts_f AS (SELECT appele AS numero FROM appels WHERE appelant = '0645454545' UNION SELECT appelant FROM appels WHERE appele = '0645454545') SELECT s.id, s.prenom, s.nom, s.telephone FROM suspects s WHERE s.telephone IN (SELECT numero FROM contacts_v) AND s.telephone IN (SELECT numero FROM contacts_f);",
+  "hints": [
+   "WITH nom AS (...), nom2 AS (...) définit plusieurs CTE séparées par des virgules.",
+   "Structure : WITH contacts_v AS (... UNION ...), contacts_f AS (... UNION ...) SELECT ... FROM suspects s WHERE s.telephone IN (SELECT numero FROM contacts_v) AND ..."
+  ]
+ },
+ "8.4": {
+  "solution": "WITH piste(compte, etape, montant, quand) AS (SELECT CAST('HEL-COFFRE-01' AS NVARCHAR(32)), 0, CAST(NULL AS FLOAT), CAST('2026-11-13 23:00:00' AS DATETIME2(0)) UNION ALL SELECT v.compte_dest, p.etape + 1, v.montant, v.horodatage FROM virements v JOIN piste p ON v.compte_source = p.compte WHERE v.montant > 100000 AND v.horodatage > p.quand) SELECT * FROM piste;",
+  "hints": [
+   "En SQL Server, une CTE récursive s'écrit WITH (sans RECURSIVE). Les types de la partie de départ doivent être exactement ceux de la partie récursive : utilise CAST.",
+   "Structure : WITH piste(compte, etape, montant, quand) AS (SELECT CAST('HEL-COFFRE-01' AS NVARCHAR(32)), 0, CAST(NULL AS FLOAT), CAST('2026-11-13 23:00:00' AS DATETIME2(0)) UNION ALL SELECT v.compte_dest, p.etape + 1, v.montant, v.horodatage FROM virements v JOIN piste p ON ... WHERE ...) SELECT * FROM piste;"
+  ],
+  "note": "Pas de mot RECURSIVE en T-SQL, et SQL Server refuse une différence de type entre l'ancre et la partie récursive (d'où les CAST en NVARCHAR(32), FLOAT et DATETIME2(0)).",
+  "require": [
+   {
+    "re": "^\\s*WITH",
+    "msg": "Commence ta requête par WITH (en SQL Server, une CTE récursive s'écrit WITH, sans le mot RECURSIVE)."
+   },
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "La partie récursive se rattache au point de départ avec UNION ALL."
+   }
+  ]
+ },
+ "8.5": {
+  "solution": "WITH piste(compte, etape, montant, quand) AS (SELECT CAST('HEL-COFFRE-01' AS NVARCHAR(32)), 0, CAST(NULL AS FLOAT), CAST('2026-11-13 23:00:00' AS DATETIME2(0)) UNION ALL SELECT v.compte_dest, p.etape + 1, v.montant, v.horodatage FROM virements v JOIN piste p ON v.compte_source = p.compte WHERE v.montant > 100000 AND v.horodatage > p.quand) SELECT c.numero, c.banque, s.prenom, s.nom FROM piste p JOIN comptes c ON c.numero = p.compte JOIN suspects s ON s.id = c.titulaire_id WHERE p.etape = (SELECT MAX(etape) FROM piste);",
+  "hints": [
+   "Reprends la CTE récursive de la mission précédente (avec ses CAST), puis joins piste à comptes et suspects.",
+   "Structure : WITH piste(...) AS (...) SELECT c.numero, c.banque, s.prenom, s.nom FROM piste p JOIN comptes c ON ... JOIN suspects s ON ... WHERE p.etape = (SELECT MAX(etape) FROM piste);"
+  ],
+  "note": "CTE récursive sans RECURSIVE, avec les types de l'ancre alignés par CAST.",
+  "require": [
+   {
+    "re": "^\\s*WITH",
+    "msg": "Commence ta requête par WITH (en SQL Server, une CTE récursive s'écrit WITH, sans le mot RECURSIVE)."
+   },
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "La partie récursive se rattache au point de départ avec UNION ALL."
+   }
+  ]
+ },
+ "8.6": {
+  "solution": "WITH chaine(id, prenom, nom, poste, manager_id, niveau) AS (SELECT id, prenom, nom, poste, manager_id, 0 FROM employes WHERE id = 27 UNION ALL SELECT e.id, e.prenom, e.nom, e.poste, e.manager_id, c.niveau + 1 FROM employes e JOIN chaine c ON e.id = c.manager_id) SELECT niveau, prenom, nom, poste FROM chaine ORDER BY niveau;",
+  "hints": [
+   "Une CTE récursive SQL Server : WITH chaine(...) AS (départ UNION ALL étape qui se joint à chaine).",
+   "Structure : WITH chaine(id, prenom, nom, poste, manager_id, niveau) AS (SELECT ..., 0 FROM employes WHERE id = 27 UNION ALL SELECT e.id, ..., c.niveau + 1 FROM employes e JOIN chaine c ON e.id = c.manager_id) SELECT ... ORDER BY niveau;"
+  ],
+  "note": "Pas de mot RECURSIVE en T-SQL ; ici les colonnes de départ viennent de la table, donc les types concordent sans CAST.",
+  "require": [
+   {
+    "re": "^\\s*WITH",
+    "msg": "Commence ta requête par WITH (en SQL Server, une CTE récursive s'écrit WITH, sans le mot RECURSIVE)."
+   },
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "La partie récursive se rattache au point de départ avec UNION ALL."
+   }
+  ]
+ },
+ "8.A": {
+  "solution": "WITH piste AS (SELECT compte_dest AS compte FROM virements WHERE montant > 100000 AND horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 23:59:59'), branches AS (SELECT compte_dest AS compte FROM virements WHERE compte_source IN (SELECT compte FROM piste) EXCEPT SELECT compte FROM piste) SELECT b.compte, s.prenom, s.nom FROM branches b JOIN comptes c ON c.numero = b.compte JOIN suspects s ON s.id = c.titulaire_id ORDER BY b.compte;",
+  "hints": [
+   "EXCEPT retire du premier SELECT les lignes présentes dans le second (Oracle dirait MINUS, SQL Server dit EXCEPT).",
+   "Structure : WITH piste AS (...), branches AS (SELECT compte_dest AS compte FROM virements WHERE compte_source IN (SELECT compte FROM piste) EXCEPT SELECT compte FROM piste) SELECT ... ORDER BY b.compte;"
+  ]
+ },
+ "8.S": {
+  "solution": "WITH mules AS (SELECT s.telephone FROM virements v JOIN comptes c ON c.numero = v.compte_dest JOIN suspects s ON s.id = c.titulaire_id WHERE v.compte_source IN ('FR76-7001', 'LT-4402', 'MT-0913', 'CY-2207') AND v.montant < 100000), contacts AS (SELECT appele AS numero FROM appels WHERE appelant IN (SELECT telephone FROM mules) UNION SELECT appelant FROM appels WHERE appele IN (SELECT telephone FROM mules)), cercle AS (SELECT s.telephone AS numero FROM suspects s JOIN membres m ON m.suspect_id = s.id WHERE m.gang_id = 2), communs AS (SELECT numero FROM contacts INTERSECT SELECT numero FROM cercle) SELECT s.prenom, s.nom, m.role, m.depuis FROM communs c JOIN suspects s ON s.telephone = c.numero JOIN membres m ON m.suspect_id = s.id AND m.gang_id = 2 ORDER BY s.nom;",
+  "hints": [
+   "Enchaîne quatre CTE (mules, contacts, cercle, communs) dans un seul WITH, séparées par des virgules.",
+   "Structure : WITH mules AS (...), contacts AS (... UNION ...), cercle AS (...), communs AS (SELECT numero FROM contacts INTERSECT SELECT numero FROM cercle) SELECT ... ORDER BY s.nom;"
+  ]
+ },
+ "8.7": {
+  "solution": "WITH branches(compte, chemin, quand) AS (SELECT CAST('HEL-COFFRE-01' AS NVARCHAR(32)), CAST('HEL-COFFRE-01' AS NVARCHAR(MAX)), CAST('2026-11-13 23:00:00' AS DATETIME2(0)) UNION ALL SELECT v.compte_dest, b.chemin + ' > ' + v.compte_dest, v.horodatage FROM virements v JOIN branches b ON v.compte_source = b.compte WHERE v.montant > 1000 AND v.horodatage > b.quand) SELECT compte, chemin FROM branches;",
+  "hints": [
+   "Le chemin grandit à chaque étape : dans l'ancre, déclare-le en NVARCHAR(MAX) avec CAST pour que la partie récursive ait le même type.",
+   "Structure : WITH branches(compte, chemin, quand) AS (SELECT CAST('HEL-COFFRE-01' AS NVARCHAR(32)), CAST('HEL-COFFRE-01' AS NVARCHAR(MAX)), CAST('...' AS DATETIME2(0)) UNION ALL SELECT v.compte_dest, b.chemin + ' > ' + v.compte_dest, v.horodatage FROM virements v JOIN branches b ON ... WHERE ...) SELECT compte, chemin FROM branches;"
+  ],
+  "note": "Pas de RECURSIVE en T-SQL ; la concaténation se fait avec + et le type du chemin doit être identique dans l'ancre et la récursion (NVARCHAR(MAX)).",
+  "require": [
+   {
+    "re": "^\\s*WITH",
+    "msg": "Commence ta requête par WITH (en SQL Server, une CTE récursive s'écrit WITH, sans le mot RECURSIVE)."
+   },
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "La partie récursive se rattache au point de départ avec UNION ALL."
+   }
+  ]
+ },
+ "9.1": {
+  "solution": "SELECT ROW_NUMBER() OVER (ORDER BY horodatage) AS n, horodatage, porte FROM acces_badges WHERE employe_id = 27 AND horodatage BETWEEN '2026-11-13 20:00:00' AND '2026-11-14 06:00:00' ORDER BY horodatage;",
+  "hints": [
+   "ROW_NUMBER() OVER (ORDER BY ...) numérote les lignes dans l'ordre indiqué.",
+   "Structure : SELECT ROW_NUMBER() OVER (ORDER BY horodatage) AS n, horodatage, porte FROM acces_badges WHERE ... ORDER BY horodatage;"
+  ]
+ },
+ "9.2": {
+  "solution": "SELECT horodatage, porte, ROUND(DATEDIFF(second, LAG(horodatage) OVER (ORDER BY horodatage), horodatage) / 60.0, 0) AS minutes FROM acces_badges WHERE employe_id = 27 AND horodatage BETWEEN '2026-11-13 20:00:00' AND '2026-11-14 06:00:00' ORDER BY horodatage;",
+  "hints": [
+   "LAG(horodatage) OVER (ORDER BY horodatage) donne l'horodatage précédent ; DATEDIFF(second, a, b) / 60.0 donne l'écart en minutes.",
+   "Structure : ROUND(DATEDIFF(second, LAG(horodatage) OVER (ORDER BY horodatage), horodatage) / 60.0, 0) AS minutes"
+  ],
+  "note": "DATEDIFF(second, ...) / 60.0 remplace (julianday(a) - julianday(b)) * 1440 ; diviser par 60.0 évite la division entière."
+ },
+ "9.3": {
+  "solution": "WITH nb AS (SELECT s.id AS suspect_id, COUNT(d.id) AS nb_delits FROM suspects s LEFT JOIN delits d ON d.suspect_id = s.id GROUP BY s.id) SELECT g.nom AS gang, s.nom, nb.nb_delits, RANK() OVER (PARTITION BY g.id ORDER BY nb.nb_delits DESC) AS rang FROM membres m JOIN gangs g ON g.id = m.gang_id JOIN suspects s ON s.id = m.suspect_id JOIN nb ON nb.suspect_id = s.id;",
+  "hints": [
+   "COUNT(d.id) avec un LEFT JOIN compte 0 pour les suspects sans délit ; RANK() OVER (PARTITION BY ...) classe dans chaque gang.",
+   "Structure : WITH nb AS (SELECT s.id AS suspect_id, COUNT(d.id) AS nb_delits FROM suspects s LEFT JOIN delits d ... GROUP BY s.id) SELECT g.nom AS gang, s.nom, nb.nb_delits, RANK() OVER (PARTITION BY g.id ORDER BY nb.nb_delits DESC) AS rang FROM ...;"
+  ]
+ },
+ "9.4": {
+  "solution": "WITH nb AS (SELECT s.id AS suspect_id, COUNT(d.id) AS nb_delits FROM suspects s LEFT JOIN delits d ON d.suspect_id = s.id GROUP BY s.id), classes AS (SELECT g.nom AS gang, s.nom, nb.nb_delits, RANK() OVER (PARTITION BY g.id ORDER BY nb.nb_delits DESC) AS rang FROM membres m JOIN gangs g ON g.id = m.gang_id JOIN suspects s ON s.id = m.suspect_id JOIN nb ON nb.suspect_id = s.id) SELECT gang, nom, nb_delits FROM classes WHERE rang = 1;",
+  "hints": [
+   "Une fonction de fenêtrage ne peut pas aller dans le WHERE : calcule le rang dans une CTE, puis filtre dessus.",
+   "Structure : WITH nb AS (...), classes AS (SELECT ..., RANK() OVER (...) AS rang FROM ...) SELECT gang, nom, nb_delits FROM classes WHERE rang = 1;"
+  ]
+ },
+ "9.5": {
+  "solution": "SELECT horodatage, compte_dest, montant, ROUND(SUM(montant) OVER (ORDER BY horodatage), 2) AS cumul FROM virements WHERE compte_source = 'HEL-COFFRE-01' AND horodatage >= '2026-11-01' AND horodatage < '2026-12-01' ORDER BY horodatage;",
+  "hints": [
+   "SUM(montant) OVER (ORDER BY horodatage) calcule un cumul. Pour novembre 2026, utilise un intervalle de dates sur le DATETIME2.",
+   "Structure : ROUND(SUM(montant) OVER (ORDER BY horodatage), 2) AS cumul ... WHERE compte_source = 'HEL-COFFRE-01' AND horodatage >= '2026-11-01' AND horodatage < '2026-12-01'"
+  ],
+  "note": "Un intervalle de dates remplace horodatage LIKE '2026-11%' sur une colonne DATETIME2."
+ },
+ "9.A": {
+  "solution": "SELECT horodatage, compte_source, compte_dest, montant, LAG(montant) OVER (ORDER BY horodatage) - montant AS commission, ROUND(DATEDIFF(second, LAG(horodatage) OVER (ORDER BY horodatage), horodatage) / 60.0, 0) AS delai_min FROM virements WHERE montant > 100000 AND horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 23:59:59' ORDER BY horodatage;",
+  "hints": [
+   "Deux LAG() : l'un sur montant pour la commission, l'autre sur horodatage pour le délai (DATEDIFF en secondes / 60.0).",
+   "Structure : LAG(montant) OVER (ORDER BY horodatage) - montant AS commission, ROUND(DATEDIFF(second, LAG(horodatage) OVER (ORDER BY horodatage), horodatage) / 60.0, 0) AS delai_min"
+  ],
+  "note": "DATEDIFF(second, ...) / 60.0 remplace la différence de julianday() multipliée par 1440. Résultat calculé sur SQL Server : 225,5 minutes s'arrondit à 226 ici, alors que l'erreur de virgule flottante de julianday() donne 225 en SQLite.",
+  "expected_from_solution": true
+ },
+ "9.S": {
+  "solution": "WITH t AS (SELECT horodatage, login, succes, DATEDIFF(second, LAG(horodatage) OVER (ORDER BY horodatage), horodatage) AS ecart_s FROM connexions WHERE ip = '203.0.113.66') SELECT TOP (3) horodatage, login, succes, ecart_s FROM t ORDER BY ecart_s DESC;",
+  "hints": [
+   "DATEDIFF(second, precedent, courant) renvoie directement un entier de secondes ; garde les 3 plus grands avec TOP (3).",
+   "Structure : WITH t AS (SELECT horodatage, login, succes, DATEDIFF(second, LAG(horodatage) OVER (ORDER BY horodatage), horodatage) AS ecart_s FROM connexions WHERE ip = '...') SELECT TOP (3) ... FROM t ORDER BY ecart_s DESC;"
+  ],
+  "note": "DATEDIFF(second, ...) est déjà un entier (pas besoin de ROUND ni CAST) et TOP (3) remplace LIMIT 3."
+ },
+ "9.6": {
+  "solution": "WITH r AS (SELECT g.nom AS gang, s.nom, s.age, DENSE_RANK() OVER (PARTITION BY g.id ORDER BY s.age DESC) AS rang FROM membres m JOIN gangs g ON g.id = m.gang_id JOIN suspects s ON s.id = m.suspect_id) SELECT gang, nom, age, rang FROM r WHERE rang <= 3;",
+  "hints": [
+   "DENSE_RANK() ne laisse pas de trou après les ex aequo ; filtre le rang dans une requête englobante.",
+   "Structure : WITH r AS (SELECT g.nom AS gang, s.nom, s.age, DENSE_RANK() OVER (PARTITION BY g.id ORDER BY s.age DESC) AS rang FROM ...) SELECT gang, nom, age, rang FROM r WHERE rang <= 3;"
+  ]
+ },
+ "10.1": {
+  "solution": "SET IDENTITY_INSERT delits ON;\nINSERT INTO delits (id, suspect_id, type, date_faits, ville) VALUES (9001, 217, 'Braquage', '2026-11-13', 'Puteaux');\nSET IDENTITY_INSERT delits OFF;",
+  "hints": [
+   "La colonne id de delits est une IDENTITY : SQL Server refuse d'y écrire une valeur sans SET IDENTITY_INSERT delits ON.",
+   "Structure : SET IDENTITY_INSERT delits ON; INSERT INTO delits (id, suspect_id, type, date_faits, ville) VALUES (9001, ...); SET IDENTITY_INSERT delits OFF;"
+  ],
+  "note": "id est une colonne IDENTITY : pour imposer la valeur 9001, il faut encadrer l'INSERT par SET IDENTITY_INSERT delits ON / OFF (et lister les colonnes).",
+  "verify": [
+   "SELECT id, suspect_id, type, date_faits, ville FROM delits WHERE id >= 9000",
+   "SELECT COUNT(*) FROM delits"
+  ]
+ },
+ "10.2": {
+  "solution": "SET IDENTITY_INSERT delits ON;\nINSERT INTO delits (id, suspect_id, type, date_faits, ville) VALUES (9002, 388, 'Braquage', '2026-11-13', 'Puteaux'), (9003, 131, 'Blanchiment', '2026-11-14', 'Neuilly-sur-Seine');\nSET IDENTITY_INSERT delits OFF;",
+  "hints": [
+   "Un seul INSERT peut prendre plusieurs tuples après VALUES, séparés par des virgules. N'oublie pas IDENTITY_INSERT pour imposer les id.",
+   "Structure : SET IDENTITY_INSERT delits ON; INSERT INTO delits (...) VALUES (9002, ...), (9003, ...); SET IDENTITY_INSERT delits OFF;"
+  ],
+  "note": "Même contrainte qu'en 10.1 : id est IDENTITY, d'où SET IDENTITY_INSERT.",
+  "verify": [
+   "SELECT id, suspect_id, type, date_faits, ville FROM delits WHERE id >= 9000",
+   "SELECT COUNT(*) FROM delits"
+  ]
+ },
+ "10.3": {
+  "solution": "UPDATE suspects SET telephone = '0700000713' WHERE id = 388;",
+  "hints": [
+   "UPDATE table SET colonne = valeur WHERE condition. Sans WHERE, toutes les lignes changent.",
+   "Structure : UPDATE suspects SET telephone = '0700000713' WHERE id = 388;"
+  ],
+  "verify": [
+   "SELECT id, telephone FROM suspects WHERE telephone = '0700000713' OR id = 388",
+   "SELECT COUNT(*) FROM suspects WHERE telephone IS NULL"
+  ]
+ },
+ "10.4": {
+  "solution": "UPDATE membres SET role = 'Cible : ' + role WHERE gang_id = 2;",
+  "hints": [
+   "En SQL Server, on concatène avec + (ou CONCAT) : la nouvelle valeur peut utiliser l'ancienne.",
+   "Structure : UPDATE membres SET role = 'Cible : ' + role WHERE gang_id = 2;"
+  ],
+  "note": "+ remplace ||. Un role NULL reste NULL avec +, comme en SQLite.",
+  "verify": [
+   "SELECT suspect_id, gang_id, role FROM membres ORDER BY suspect_id, gang_id"
+  ]
+ },
+ "10.5": {
+  "solution": "DELETE FROM cameras WHERE immatriculation = 'XX-000-XX';",
+  "hints": [
+   "DELETE FROM table WHERE condition supprime les lignes visées.",
+   "Structure : DELETE FROM cameras WHERE immatriculation = 'XX-000-XX';"
+  ],
+  "verify": [
+   "SELECT COUNT(*) FROM cameras",
+   "SELECT COUNT(*) FROM cameras WHERE immatriculation = 'XX-000-XX'"
+  ]
+ },
+ "10.6": {
+  "solution": "INSERT INTO interpellations (suspect_id, motif, date_prevue) SELECT suspect_id, 'Association de malfaiteurs', '2026-11-16' FROM membres WHERE gang_id = 2;",
+  "hints": [
+   "INSERT INTO ... SELECT insère d'un coup le résultat d'une requête ; les valeurs fixes s'écrivent comme des colonnes.",
+   "Structure : INSERT INTO interpellations (suspect_id, motif, date_prevue) SELECT suspect_id, 'Association de malfaiteurs', '2026-11-16' FROM membres WHERE gang_id = 2;"
+  ],
+  "note": "La table interpellations est créée avec une colonne date_prevue de type DATE : la chaîne '2026-11-16' est convertie automatiquement.",
+  "setup": "CREATE TABLE interpellations (suspect_id BIGINT, motif NVARCHAR(100), date_prevue DATE);",
+  "verify": [
+   "SELECT suspect_id, motif, date_prevue FROM interpellations ORDER BY suspect_id"
+  ]
+ },
+ "10.7": {
+  "solution": "BEGIN TRANSACTION;\nUPDATE employes SET salaire = 0;\nSELECT SUM(salaire) FROM employes;\nROLLBACK;",
+  "hints": [
+   "En SQL Server, une transaction explicite s'ouvre avec BEGIN TRANSACTION (ou BEGIN TRAN) et s'annule avec ROLLBACK.",
+   "Structure : BEGIN TRANSACTION; UPDATE employes SET salaire = 0; SELECT SUM(salaire) FROM employes; ROLLBACK;"
+  ],
+  "note": "BEGIN seul ouvre un bloc d'instructions en T-SQL : la transaction s'écrit BEGIN TRANSACTION (ou BEGIN TRAN).",
+  "verify": [
+   "SELECT SUM(salaire) FROM employes"
+  ],
+  "require": [
+   {
+    "re": "BEGIN\\s+TRAN(SACTION)?[\\s\\S]*UPDATE\\s+employes\\s+SET\\s+salaire\\s*=\\s*0[\\s\\S]*SUM\\s*\\(\\s*salaire\\s*\\)[\\s\\S]*ROLLBACK",
+    "msg": "Dans l'ordre : BEGIN TRANSACTION, UPDATE employes SET salaire = 0, SELECT SUM(salaire), puis ROLLBACK."
+   }
+  ]
+ },
+ "10.A": {
+  "solution": "UPDATE comptes SET banque = banque + N' (gelé)' WHERE numero IN (SELECT compte_dest FROM virements WHERE montant > 100000 AND horodatage BETWEEN '2026-11-13 23:00:00' AND '2026-11-14 23:59:59');",
+  "hints": [
+   "Un UPDATE peut filtrer avec WHERE ... IN (SELECT ...). Concatène avec + et préfixe le texte accentué par N.",
+   "Structure : UPDATE comptes SET banque = banque + N' (gelé)' WHERE numero IN (SELECT compte_dest FROM virements WHERE ...);"
+  ],
+  "note": "+ remplace || ; N'...' est le littéral Unicode.",
+  "verify": [
+   "SELECT numero, banque FROM comptes WHERE banque LIKE N'%gelé%' ORDER BY numero",
+   "SELECT numero, banque FROM comptes ORDER BY numero"
+  ]
+ },
+ "10.S": {
+  "solution": "BEGIN TRANSACTION;\nINSERT INTO violations (badge, horodatage, employe) SELECT b.badge, b.horodatage, e.prenom + ' ' + e.nom FROM acces_badges b JOIN employes e ON e.id = b.employe_id WHERE b.porte = 'Salle des coffres' AND b.agence_id = 1 AND b.resultat = 'OK' AND b.horodatage > '2026-11-14 00:30:00';\nCOMMIT;",
+  "hints": [
+   "Ouvre la transaction avec BEGIN TRANSACTION, remplis la table avec INSERT ... SELECT, puis valide avec COMMIT.",
+   "Structure : BEGIN TRANSACTION; INSERT INTO violations (badge, horodatage, employe) SELECT b.badge, b.horodatage, e.prenom + ' ' + e.nom FROM acces_badges b JOIN employes e ON ... WHERE ...; COMMIT;"
+  ],
+  "note": "Transaction T-SQL : BEGIN TRANSACTION ... COMMIT ; concaténation avec +.",
+  "setup": "CREATE TABLE violations (badge NVARCHAR(32), horodatage DATETIME2(0), employe NVARCHAR(80));",
+  "verify": [
+   "SELECT badge, horodatage, employe FROM violations ORDER BY horodatage"
+  ],
+  "require": [
+   {
+    "re": "BEGIN\\s+TRAN",
+    "msg": "Ouvre une transaction avec BEGIN TRANSACTION."
+   },
+   {
+    "re": "COMMIT",
+    "msg": "Valide avec COMMIT."
+   },
+   {
+    "re": "INSERT[\\s\\S]*SELECT",
+    "msg": "Remplis la table avec INSERT ... SELECT."
+   }
+  ]
+ },
+ "10.8": {
+  "solution": "BEGIN TRANSACTION;\nCREATE TABLE gardes_a_vue (suspect_id INT, debut NVARCHAR(16));\nINSERT INTO gardes_a_vue VALUES (217, '2026-11-16 06:00'), (388, '2026-11-16 06:00');\nUPDATE membres SET role = N'Interpellé' WHERE gang_id = 2 AND suspect_id IN (217, 388);\nCOMMIT;",
+  "hints": [
+   "SQL Server accepte CREATE TABLE dans une transaction. Le type TEXT y est obsolète : utilise INT et NVARCHAR(n).",
+   "Structure : BEGIN TRANSACTION; CREATE TABLE gardes_a_vue (suspect_id INT, debut NVARCHAR(16)); INSERT INTO gardes_a_vue VALUES (...), (...); UPDATE membres SET role = N'Interpellé' WHERE ...; COMMIT;"
+  ],
+  "note": "TEXT est un type déprécié en SQL Server : on écrit NVARCHAR(n). Le DDL est transactionnel, il serait annulé par un ROLLBACK.",
+  "verify": [
+   "SELECT suspect_id, debut FROM gardes_a_vue",
+   "SELECT suspect_id, gang_id, role FROM membres WHERE role = N'Interpellé'"
+  ],
+  "require": [
+   {
+    "re": "BEGIN\\s+TRAN",
+    "msg": "Ouvre une transaction avec BEGIN TRANSACTION."
+   },
+   {
+    "re": "COMMIT",
+    "msg": "Valide avec COMMIT."
+   }
+  ]
+ },
+ "11.1": {
+  "solution": "CREATE TABLE preuves (id INT IDENTITY(1,1) PRIMARY KEY, affaire NVARCHAR(100) NOT NULL, description NVARCHAR(200) NOT NULL, type NVARCHAR(20) CHECK (type IN (N'Physique', N'Numérique', N'Témoignage')), suspect_id BIGINT REFERENCES suspects(id));",
+  "hints": [
+   "En SQL Server, un id auto-incrémenté s'écrit INT IDENTITY(1,1) PRIMARY KEY ; le texte se déclare en NVARCHAR(n). La clé étrangère doit avoir le même type que suspects.id (BIGINT).",
+   "Structure : CREATE TABLE preuves (id INT IDENTITY(1,1) PRIMARY KEY, affaire NVARCHAR(100) NOT NULL, description NVARCHAR(200) NOT NULL, type NVARCHAR(20) CHECK (type IN (...)), suspect_id BIGINT REFERENCES suspects(id));"
+  ],
+  "note": "IDENTITY remplace l'auto-incrément implicite de INTEGER PRIMARY KEY ; la structure est vérifiée dans sys.columns, sys.foreign_key_columns et sys.check_constraints.",
+  "verify": [
+   "SELECT c.name, COALESCE((SELECT ic.key_ordinal FROM sys.indexes i JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id WHERE i.object_id = c.object_id AND i.is_primary_key = 1 AND ic.column_id = c.column_id), 0) AS pk, CASE WHEN c.name IN ('affaire', 'description') THEN CAST(1 - c.is_nullable AS INT) ELSE 0 END AS nn FROM sys.columns c WHERE c.object_id = OBJECT_ID('preuves') ORDER BY c.column_id",
+   "SELECT OBJECT_NAME(fkc.referenced_object_id) AS [table], COL_NAME(fkc.parent_object_id, fkc.parent_column_id) AS [from], COL_NAME(fkc.referenced_object_id, fkc.referenced_column_id) AS [to] FROM sys.foreign_key_columns fkc WHERE fkc.parent_object_id = OBJECT_ID('preuves')",
+   "SELECT CASE WHEN EXISTS (SELECT 1 FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('preuves') AND definition LIKE N'%Physique%' AND definition LIKE N'%Numérique%' AND definition LIKE N'%Témoignage%') THEN 1 ELSE 0 END AS ok"
+  ]
+ },
+ "11.2": {
+  "solution": "INSERT INTO preuves (affaire, description, type, suspect_id) VALUES ('Minuit', 'Empreinte de chaussure pointure 45', 'Physique', 217), ('Minuit', 'Journal de connexion 203.0.113.66', N'Numérique', NULL);",
+  "hints": [
+   "Ne donne pas l'id : la colonne IDENTITY le remplit toute seule. Préfixe les textes accentués par N.",
+   "Structure : INSERT INTO preuves (affaire, description, type, suspect_id) VALUES ('Minuit', '...', 'Physique', 217), ('Minuit', '...', N'Numérique', NULL);"
+  ],
+  "note": "L'id IDENTITY est généré automatiquement ; écrire N'Numérique' garantit le bon accent pour passer le CHECK.",
+  "setup": "CREATE TABLE preuves (id INT IDENTITY(1,1) PRIMARY KEY, affaire NVARCHAR(100) NOT NULL, description NVARCHAR(200) NOT NULL, type NVARCHAR(20) CHECK (type IN (N'Physique', N'Numérique', N'Témoignage')), suspect_id BIGINT REFERENCES suspects(id));",
+  "verify": [
+   "SELECT affaire, description, type, suspect_id FROM preuves"
+  ]
+ },
+ "11.3": {
+  "solution": "ALTER TABLE preuves ADD scellee INT DEFAULT 0;",
+  "hints": [
+   "En T-SQL, on ajoute une colonne avec ALTER TABLE ... ADD (sans le mot COLUMN).",
+   "Structure : ALTER TABLE preuves ADD scellee INT DEFAULT 0;"
+  ],
+  "note": "SQL Server écrit ALTER TABLE t ADD col (pas ADD COLUMN) ; le DEFAULT devient une contrainte visible dans sys.default_constraints.",
+  "setup": "CREATE TABLE preuves (id INT IDENTITY(1,1) PRIMARY KEY, affaire NVARCHAR(100) NOT NULL, description NVARCHAR(200) NOT NULL, type NVARCHAR(20) CHECK (type IN (N'Physique', N'Numérique', N'Témoignage')), suspect_id BIGINT REFERENCES suspects(id));",
+  "verify": [
+   "SELECT c.name, REPLACE(REPLACE(dc.definition, '(', ''), ')', '') AS dflt_value FROM sys.columns c LEFT JOIN sys.default_constraints dc ON dc.parent_object_id = c.object_id AND dc.parent_column_id = c.column_id WHERE c.object_id = OBJECT_ID('preuves') ORDER BY c.column_id"
+  ]
+ },
+ "11.4": {
+  "solution": "CREATE VIEW v_casiers AS SELECT s.id, s.prenom, s.nom, COUNT(d.id) AS nb_delits FROM suspects s LEFT JOIN delits d ON d.suspect_id = s.id GROUP BY s.id, s.prenom, s.nom;",
+  "hints": [
+   "CREATE VIEW nom AS SELECT ... ; le LEFT JOIN et COUNT(d.id) gardent les suspects sans délit. En SQL Server, CREATE VIEW doit être seul dans son lot.",
+   "Structure : CREATE VIEW v_casiers AS SELECT s.id, s.prenom, s.nom, COUNT(d.id) AS nb_delits FROM suspects s LEFT JOIN delits d ON ... GROUP BY s.id, s.prenom, s.nom;"
+  ],
+  "note": "CREATE VIEW doit être la première instruction de son lot : s'il y a d'autres instructions, sépare-les par une ligne GO.",
+  "verify": [
+   "SELECT id, prenom, nom, nb_delits FROM v_casiers ORDER BY id"
+  ]
+ },
+ "11.5": {
+  "solution": "CREATE INDEX idx_cameras_immat ON cameras(immatriculation);",
+  "hints": [
+   "CREATE INDEX nom ON table(colonne) crée un index non cluster en SQL Server.",
+   "Structure : CREATE INDEX idx_cameras_immat ON cameras(immatriculation);"
+  ],
+  "note": "Bonus SQL Server : SET SHOWPLAN_TEXT ON (seul dans son lot, puis GO) affiche le plan au lieu d'exécuter la requête.",
+  "verify": [
+   "SELECT c.name FROM sys.indexes i JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id WHERE i.object_id = OBJECT_ID('cameras') AND i.is_primary_key = 0"
+  ]
+ },
+ "11.6": {
+  "solution": "CREATE TABLE temoins (id INT IDENTITY(1,1) PRIMARY KEY, nom NVARCHAR(100) NOT NULL, telephone NVARCHAR(20));\nCREATE TABLE temoignages (id INT IDENTITY(1,1) PRIMARY KEY, temoin_id INT NOT NULL REFERENCES temoins(id), date DATE, texte NVARCHAR(MAX) NOT NULL);",
+  "hints": [
+   "Crée d'abord temoins, puis temoignages qui y fait référence ; le type de temoin_id doit être celui de temoins.id.",
+   "Structure : CREATE TABLE temoins (id INT IDENTITY(1,1) PRIMARY KEY, ...); CREATE TABLE temoignages (id INT IDENTITY(1,1) PRIMARY KEY, temoin_id INT NOT NULL REFERENCES temoins(id), date DATE, texte NVARCHAR(MAX) NOT NULL);"
+  ],
+  "note": "NVARCHAR(MAX) remplace TEXT pour un texte long ; date peut servir de nom de colonne en T-SQL.",
+  "verify": [
+   "SELECT c.name, CAST(1 - c.is_nullable AS INT) AS nn, COALESCE((SELECT ic.key_ordinal FROM sys.indexes i JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id WHERE i.object_id = c.object_id AND i.is_primary_key = 1 AND ic.column_id = c.column_id), 0) AS pk FROM sys.columns c WHERE c.object_id = OBJECT_ID('temoins') ORDER BY c.column_id",
+   "SELECT c.name, CAST(1 - c.is_nullable AS INT) AS nn, COALESCE((SELECT ic.key_ordinal FROM sys.indexes i JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id WHERE i.object_id = c.object_id AND i.is_primary_key = 1 AND ic.column_id = c.column_id), 0) AS pk FROM sys.columns c WHERE c.object_id = OBJECT_ID('temoignages') ORDER BY c.column_id",
+   "SELECT OBJECT_NAME(fkc.referenced_object_id) AS [table], COL_NAME(fkc.parent_object_id, fkc.parent_column_id) AS [from], COL_NAME(fkc.referenced_object_id, fkc.referenced_column_id) AS [to] FROM sys.foreign_key_columns fkc WHERE fkc.parent_object_id = OBJECT_ID('temoignages')"
+  ]
+ },
+ "11.A": {
+  "solution": "CREATE TABLE vehicules_surveilles (immatriculation NVARCHAR(32) PRIMARY KEY REFERENCES vehicules(immatriculation), motif NVARCHAR(100) NOT NULL, depuis DATE DEFAULT '2026-11-14');\nINSERT INTO vehicules_surveilles (immatriculation, motif) SELECT immatriculation, N'Véhicule de suspect' FROM vehicules WHERE suspect_id IN (217, 388);",
+  "hints": [
+   "La clé primaire doit avoir exactement le type de vehicules.immatriculation (NVARCHAR(32)) pour porter la clé étrangère. depuis peut être un vrai DATE avec DEFAULT.",
+   "Structure : CREATE TABLE vehicules_surveilles (immatriculation NVARCHAR(32) PRIMARY KEY REFERENCES vehicules(immatriculation), motif NVARCHAR(100) NOT NULL, depuis DATE DEFAULT '2026-11-14'); INSERT INTO vehicules_surveilles (immatriculation, motif) SELECT ...;"
+  ],
+  "note": "SQL Server exige le même type (et la même longueur) des deux côtés d'une clé étrangère ; le DEFAULT est lu dans sys.default_constraints.",
+  "verify": [
+   "SELECT c.name, CAST(1 - c.is_nullable AS INT) AS nn, COALESCE((SELECT ic.key_ordinal FROM sys.indexes i JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id WHERE i.object_id = c.object_id AND i.is_primary_key = 1 AND ic.column_id = c.column_id), 0) AS pk, REPLACE(REPLACE(dc.definition, '(', ''), ')', '') AS dflt_value FROM sys.columns c LEFT JOIN sys.default_constraints dc ON dc.parent_object_id = c.object_id AND dc.parent_column_id = c.column_id WHERE c.object_id = OBJECT_ID('vehicules_surveilles') ORDER BY c.column_id",
+   "SELECT OBJECT_NAME(fkc.referenced_object_id) AS [table], COL_NAME(fkc.parent_object_id, fkc.parent_column_id) AS [from], COL_NAME(fkc.referenced_object_id, fkc.referenced_column_id) AS [to] FROM sys.foreign_key_columns fkc WHERE fkc.parent_object_id = OBJECT_ID('vehicules_surveilles')",
+   "SELECT immatriculation, motif, depuis FROM vehicules_surveilles ORDER BY immatriculation"
+  ]
+ },
+ "11.S": {
+  "solution": "CREATE VIEW v_annuaire AS SELECT telephone AS numero, prenom + ' ' + nom AS identite, 'suspect' AS categorie FROM suspects WHERE telephone IS NOT NULL UNION ALL SELECT telephone, prenom + ' ' + nom, N'employé' FROM employes;\nGO\nSELECT a.horodatage, v.identite, v.categorie FROM appels a JOIN employes e ON e.telephone = a.appelant LEFT JOIN v_annuaire v ON v.numero = a.appele WHERE e.login = 'f.ouali' ORDER BY a.horodatage;",
+  "hints": [
+   "CREATE VIEW doit être seul dans son lot : termine-le par une ligne contenant seulement GO avant ta requête.",
+   "Structure : CREATE VIEW v_annuaire AS SELECT ... UNION ALL SELECT ...; puis une ligne GO, puis SELECT a.horodatage, v.identite, v.categorie FROM appels a JOIN employes e ON ... LEFT JOIN v_annuaire v ON ... WHERE e.login = 'f.ouali' ORDER BY a.horodatage;"
+  ],
+  "note": "En T-SQL, CREATE VIEW ouvre obligatoirement un lot : la ligne GO sépare la vue de la requête qui l'utilise. Concaténation avec +.",
+  "verify": [
+   "SELECT numero, identite, categorie FROM v_annuaire ORDER BY numero",
+   "SELECT a.horodatage, v.identite, v.categorie FROM appels a JOIN employes e ON e.telephone = a.appelant LEFT JOIN v_annuaire v ON v.numero = a.appele WHERE e.login = 'f.ouali' ORDER BY a.horodatage"
+  ]
+ },
+ "11.7": {
+  "solution": "CREATE TABLE mandats (id INT IDENTITY(1,1) PRIMARY KEY, suspect_id BIGINT NOT NULL REFERENCES suspects(id), type NVARCHAR(20) CHECK (type IN (N'Arrêt', 'Perquisition', 'Amener')), emis_le DATE, UNIQUE (suspect_id, type));\nINSERT INTO mandats (suspect_id, type, emis_le) VALUES (217, N'Arrêt', '2026-11-15'), (388, N'Arrêt', '2026-11-15');\nGO\nCREATE VIEW v_mandats AS SELECT s.nom, s.prenom, m.type FROM mandats m JOIN suspects s ON s.id = m.suspect_id;",
+  "hints": [
+   "Table, INSERT puis vue : la vue doit commencer un nouveau lot, donc place une ligne GO juste avant CREATE VIEW.",
+   "Structure : CREATE TABLE mandats (id INT IDENTITY(1,1) PRIMARY KEY, suspect_id BIGINT NOT NULL REFERENCES suspects(id), type NVARCHAR(20) CHECK (...), emis_le DATE, UNIQUE (suspect_id, type)); INSERT INTO mandats (...) VALUES (...), (...); puis GO, puis CREATE VIEW v_mandats AS SELECT ...;"
+  ],
+  "note": "CREATE VIEW doit ouvrir son lot (ligne GO avant). La contrainte UNIQUE se lit dans sys.indexes (is_unique_constraint).",
+  "verify": [
+   "SELECT nom, prenom, type FROM v_mandats",
+   "SELECT OBJECT_NAME(fkc.referenced_object_id) AS [table], COL_NAME(fkc.parent_object_id, fkc.parent_column_id) AS [from] FROM sys.foreign_key_columns fkc WHERE fkc.parent_object_id = OBJECT_ID('mandats')",
+   "SELECT STRING_AGG(c.name, ',') WITHIN GROUP (ORDER BY ic.key_ordinal) FROM sys.indexes i JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id WHERE i.object_id = OBJECT_ID('mandats') AND i.is_unique_constraint = 1",
+   "SELECT CAST(1 - is_nullable AS INT) AS notnull FROM sys.columns WHERE object_id = OBJECT_ID('mandats') AND name = 'suspect_id'",
+   "SELECT CASE WHEN EXISTS (SELECT 1 FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('mandats') AND definition LIKE N'%Arrêt%' AND definition LIKE N'%Perquisition%' AND definition LIKE N'%Amener%') THEN 1 ELSE 0 END AS ok"
+  ]
+ },
+ "12.1": {
+  "solution": "SELECT * FROM utilisateurs_portail WHERE login = 'admin' --' AND hash_mdp = 'x'",
+  "hints": [
+   "Colle la saisie telle quelle entre les apostrophes de la requête : -- transforme la fin en commentaire, aussi en SQL Server.",
+   "Structure : SELECT * FROM utilisateurs_portail WHERE login = 'admin' --' AND hash_mdp = 'x'"
+  ]
+ },
+ "12.2": {
+  "solution": "SELECT * FROM utilisateurs_portail WHERE login = '' OR '1'='1' --' AND hash_mdp = 'x'",
+  "hints": [
+   "La tautologie '1'='1' rend la condition toujours vraie ; le commentaire -- neutralise le reste.",
+   "Structure : SELECT * FROM utilisateurs_portail WHERE login = '' OR '1'='1' --' AND hash_mdp = 'x'"
+  ]
+ },
+ "12.3": {
+  "solution": "SELECT nom, ville FROM agences WHERE ville = 'x' UNION SELECT login, hash_mdp FROM utilisateurs_portail --'",
+  "hints": [
+   "UNION accole un second SELECT avec le même nombre de colonnes et des types compatibles.",
+   "Structure : SELECT nom, ville FROM agences WHERE ville = 'x' UNION SELECT login, hash_mdp FROM utilisateurs_portail --'"
+  ]
+ },
+ "12.4": {
+  "solution": "SELECT horodatage, ip, login FROM connexions WHERE login LIKE '%''%' ORDER BY horodatage;",
+  "hints": [
+   "Dans une chaîne SQL, une apostrophe s'écrit en la doublant : ''.",
+   "Structure : WHERE login LIKE '%''%' ORDER BY horodatage"
+  ],
+  "note": "Comme en SQLite, l'apostrophe se double ; on pourrait aussi écrire CHARINDEX('''', login) > 0."
+ },
+ "12.A": {
+  "solution": "SELECT horodatage, login, CASE WHEN login LIKE '%UNION%' THEN 'UNION' WHEN login LIKE '%''1''=''1''%' THEN 'Tautologie' WHEN login LIKE '%--%' THEN 'Commentaire' WHEN login LIKE '%/*%' THEN 'Commentaire bloc' END AS technique FROM connexions WHERE login LIKE '%''%' ORDER BY horodatage;",
+  "hints": [
+   "CASE teste les motifs dans l'ordre ; double chaque apostrophe à l'intérieur des motifs LIKE.",
+   "Structure : CASE WHEN login LIKE '%UNION%' THEN 'UNION' WHEN login LIKE '%''1''=''1''%' THEN 'Tautologie' WHEN ... END AS technique"
+  ],
+  "note": "Attention, la collation de la base est sensible à la casse : LIKE '%UNION%' ne trouverait pas 'union'."
+ },
+ "12.S": {
+  "solution": "WITH dico(mot, empreinte) AS (SELECT * FROM (VALUES ('123456', '8d969eef6ecad3c2'), ('azerty', 'f2d81a260dea8a10'), ('password', '5e884898da280471'), ('admin', '8c6976e5b5410415'), ('test', '9f86d081884c7d65'), ('foo', '2c26b46b68ffc68f'), ('bar', 'fcde2b2edba56bf4'), ('helios', '48582bd628b7c800'), ('soleil', 'e93e24c1b877a15d')) AS v(mot, empreinte)) SELECT u.login, u.profil, d.mot AS mot_de_passe FROM utilisateurs_portail u JOIN dico d ON d.empreinte = u.hash_mdp ORDER BY u.login;",
+  "hints": [
+   "En SQL Server, VALUES ne peut pas former une requête seule : on l'emploie comme table dérivée, (VALUES (...), (...)) AS v(col1, col2).",
+   "Structure : WITH dico(mot, empreinte) AS (SELECT * FROM (VALUES ('123456', '...'), ...) AS v(mot, empreinte)) SELECT u.login, u.profil, d.mot AS mot_de_passe FROM utilisateurs_portail u JOIN dico d ON d.empreinte = u.hash_mdp ORDER BY u.login;"
+  ],
+  "note": "Le constructeur de table VALUES s'utilise dans un FROM avec un alias et des noms de colonnes."
+ },
+ "12.5": {
+  "solution": "SELECT ip, COUNT(*) AS tentatives, MIN(horodatage) AS premiere, MAX(horodatage) AS derniere FROM connexions WHERE (login LIKE '%''%' OR login LIKE '%--%' OR login LIKE '%UNION%') GROUP BY ip;",
+  "hints": [
+   "Regroupe par ip et combine les trois motifs LIKE avec OR, entre parenthèses.",
+   "Structure : SELECT ip, COUNT(*) AS tentatives, MIN(horodatage) AS premiere, MAX(horodatage) AS derniere FROM connexions WHERE (login LIKE '%''%' OR login LIKE '%--%' OR login LIKE '%UNION%') GROUP BY ip;"
+  ]
+ },
+ "13.1": {
+  "solution": "WITH piste(compte, etape, quand) AS (SELECT CAST('HEL-COFFRE-01' AS NVARCHAR(32)), 0, CAST('2026-11-13 23:00:00' AS DATETIME2(0)) UNION ALL SELECT v.compte_dest, p.etape + 1, v.horodatage FROM virements v JOIN piste p ON v.compte_source = p.compte WHERE v.montant > 100000 AND v.horodatage > p.quand), compte_final AS (SELECT compte FROM piste WHERE etape = (SELECT MAX(etape) FROM piste)), contacts_ferrand AS (SELECT appele AS numero FROM appels WHERE appelant = (SELECT telephone FROM employes WHERE nom = 'Ferrand' AND prenom = 'Julien') UNION SELECT appelant FROM appels WHERE appele = (SELECT telephone FROM employes WHERE nom = 'Ferrand' AND prenom = 'Julien')) SELECT s.prenom, s.nom FROM suspects s WHERE s.id IN (SELECT chef_id FROM gangs) AND s.id IN (SELECT titulaire_id FROM comptes WHERE numero IN (SELECT compte FROM compte_final)) AND s.telephone IN (SELECT numero FROM contacts_ferrand);",
+  "hints": [
+   "Dans un WITH de SQL Server, la CTE récursive (sans le mot RECURSIVE) et les CTE ordinaires se suivent, séparées par des virgules. Aligne les types de l'ancre avec CAST.",
+   "Structure : WITH piste(compte, etape, quand) AS (SELECT CAST(... AS NVARCHAR(32)), 0, CAST(... AS DATETIME2(0)) UNION ALL ...), compte_final AS (...), contacts_ferrand AS (...) SELECT s.prenom, s.nom FROM suspects s WHERE s.id IN (SELECT chef_id FROM gangs) AND ... ;"
+  ],
+  "note": "CTE récursive T-SQL : pas de RECURSIVE, types de l'ancre fixés par CAST.",
+  "require": [
+   {
+    "re": "^\\s*WITH",
+    "msg": "Commence ta requête par WITH (en SQL Server, une CTE récursive s'écrit WITH, sans le mot RECURSIVE)."
+   },
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "La partie récursive se rattache au point de départ avec UNION ALL."
+   },
+   {
+    "re": "^(?![\\s\\S]*(CH-9131|131|0699887766))",
+    "msg": "Ne recopie pas les valeurs déjà trouvées (compte, id ou téléphone de la suspecte) : la requête doit les retrouver seule."
+   }
+  ]
+ },
+ "13.2": {
+  "solution": "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT 'Minuit', s.prenom + ' ' + s.nom, 'chef du Cercle' FROM suspects s JOIN gangs g ON g.chef_id = s.id WHERE g.nom = 'Le Cercle';",
+  "hints": [
+   "INSERT ... SELECT : le coupable vient d'une jointure entre suspects et gangs. Concatène avec + (ou CONCAT).",
+   "Structure : INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT 'Minuit', s.prenom + ' ' + s.nom, 'chef du Cercle' FROM suspects s JOIN gangs g ON g.chef_id = s.id WHERE g.nom = 'Le Cercle';"
+  ],
+  "note": "+ remplace || pour concaténer.",
+  "setup": "CREATE TABLE proces_verbal (affaire NVARCHAR(50) NOT NULL, coupable NVARCHAR(100) NOT NULL, preuve NVARCHAR(100));",
+  "verify": [
+   "SELECT affaire, coupable FROM proces_verbal"
+  ]
+ },
+ "13.A": {
+  "solution": "WITH piste(compte, etape, quand) AS (SELECT CAST('HEL-COFFRE-01' AS NVARCHAR(32)), 0, CAST('2026-11-13 23:00:00' AS DATETIME2(0)) UNION ALL SELECT v.compte_dest, p.etape + 1, v.horodatage FROM virements v JOIN piste p ON v.compte_source = p.compte WHERE v.montant > 100000 AND v.horodatage > p.quand), entrees AS (SELECT compte_dest AS compte, SUM(montant) AS total FROM virements GROUP BY compte_dest), sorties AS (SELECT compte_source AS compte, SUM(montant) AS total FROM virements GROUP BY compte_source) SELECT p.etape, p.compte, COALESCE(e.total, 0) AS entrees, COALESCE(s.total, 0) AS sorties, COALESCE(e.total, 0) - COALESCE(s.total, 0) AS reste FROM piste p LEFT JOIN entrees e ON e.compte = p.compte LEFT JOIN sorties s ON s.compte = p.compte WHERE p.etape >= 1 ORDER BY p.etape;",
+  "hints": [
+   "Reprends la CTE récursive (WITH sans RECURSIVE, ancre avec CAST), puis ajoute deux CTE d'agrégats entrees et sorties.",
+   "Structure : WITH piste(...) AS (...), entrees AS (SELECT compte_dest AS compte, SUM(montant) AS total FROM virements GROUP BY compte_dest), sorties AS (...) SELECT p.etape, p.compte, COALESCE(e.total, 0) AS entrees, ... FROM piste p LEFT JOIN entrees e ... LEFT JOIN sorties s ... WHERE p.etape >= 1 ORDER BY p.etape;"
+  ],
+  "note": "CTE récursive T-SQL sans RECURSIVE.",
+  "require": [
+   {
+    "re": "^\\s*WITH",
+    "msg": "Commence ta requête par WITH (en SQL Server, une CTE récursive s'écrit WITH, sans le mot RECURSIVE)."
+   },
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "La partie récursive se rattache au point de départ avec UNION ALL."
+   }
+  ]
+ },
+ "13.S": {
+  "solution": "SELECT TOP (1) a.horodatage, a.appele AS numero, a.duree_s, COALESCE((SELECT prenom + ' ' + nom FROM suspects WHERE telephone = a.appele), (SELECT prenom + ' ' + nom FROM employes WHERE telephone = a.appele), 'inconnu') AS titulaire FROM appels a WHERE a.appelant = (SELECT s.telephone FROM suspects s JOIN gangs g ON g.chef_id = s.id WHERE g.nom = 'Le Cercle') ORDER BY a.horodatage DESC;",
+  "hints": [
+   "Le dernier appel : trie par horodatage décroissant et garde une seule ligne avec TOP (1). COALESCE essaie les sous-requêtes dans l'ordre.",
+   "Structure : SELECT TOP (1) a.horodatage, a.appele AS numero, a.duree_s, COALESCE((SELECT prenom + ' ' + nom FROM suspects WHERE ...), (SELECT ... FROM employes WHERE ...), 'inconnu') AS titulaire FROM appels a WHERE a.appelant = (SELECT ... FROM suspects s JOIN gangs g ...) ORDER BY a.horodatage DESC;"
+  ],
+  "note": "TOP (1) remplace LIMIT 1 et + remplace ||."
+ },
+ "14.1": {
+  "solution": "SELECT ligne, COUNT(*) AS nb FROM incidents GROUP BY ligne ORDER BY nb DESC;",
+  "hints": [
+   "GROUP BY ligne puis COUNT(*) ; ORDER BY accepte l'alias nb.",
+   "Structure : SELECT ligne, COUNT(*) AS nb FROM incidents GROUP BY ligne ORDER BY nb DESC;"
+  ]
+ },
+ "14.2": {
+  "solution": "SELECT ligne, SUM(CASE WHEN type = 'Panne' THEN 1 ELSE 0 END) AS pannes, SUM(CASE WHEN type = 'Signalisation' THEN 1 ELSE 0 END) AS signalisation, SUM(CASE WHEN type = 'Cyber' THEN 1 ELSE 0 END) AS cyber, COUNT(*) AS total FROM incidents GROUP BY ligne;",
+  "hints": [
+   "SUM(CASE WHEN condition THEN 1 ELSE 0 END) compte les lignes qui vérifient la condition dans chaque groupe.",
+   "Structure : SELECT ligne, SUM(CASE WHEN type = 'Panne' THEN 1 ELSE 0 END) AS pannes, ... , COUNT(*) AS total FROM incidents GROUP BY ligne;"
+  ],
+  "note": "Agrégation conditionnelle identique ; SQL Server propose aussi l'opérateur PIVOT."
+ },
+ "14.3": {
+  "solution": "SELECT type, COUNT(*) AS nb, ROUND(AVG(DATEDIFF(second, debut, fin) / 60.0), 0) AS duree_moy FROM incidents GROUP BY type ORDER BY duree_moy DESC;",
+  "hints": [
+   "DATEDIFF(second, debut, fin) / 60.0 donne une durée en minutes décimale ; fais-en la moyenne puis arrondis.",
+   "Structure : SELECT type, COUNT(*) AS nb, ROUND(AVG(DATEDIFF(second, debut, fin) / 60.0), 0) AS duree_moy FROM incidents GROUP BY type ORDER BY duree_moy DESC;"
+  ],
+  "note": "DATEDIFF(second, ...) / 60.0 remplace (julianday(fin) - julianday(debut)) * 1440 ; le .0 évite la division entière."
+ },
+ "14.4": {
+  "solution": "SELECT station, MIN(debut) AS premiere_alerte FROM incidents WHERE type = 'Cyber' AND debut BETWEEN '2027-05-12 06:00:00' AND '2027-05-12 07:00:00' GROUP BY station ORDER BY premiere_alerte;",
+  "hints": [
+   "Filtre avant de regrouper, puis MIN(debut) par station.",
+   "Structure : SELECT station, MIN(debut) AS premiere_alerte FROM incidents WHERE type = 'Cyber' AND debut BETWEEN '...' AND '...' GROUP BY station ORDER BY premiere_alerte;"
+  ]
+ },
+ "14.5": {
+  "solution": "SELECT station, COUNT(DISTINCT ligne) AS nb_lignes, MIN(debut) AS premiere_alerte FROM incidents WHERE type = 'Cyber' AND debut BETWEEN '2027-05-12 06:00:00' AND '2027-05-12 07:00:00' GROUP BY station HAVING COUNT(DISTINCT ligne) >= 2 ORDER BY nb_lignes DESC, premiere_alerte;",
+  "hints": [
+   "COUNT(DISTINCT ligne) compte les lignes de transport différentes ; HAVING répète l'expression (pas d'alias en SQL Server).",
+   "Structure : ... GROUP BY station HAVING COUNT(DISTINCT ligne) >= 2 ORDER BY nb_lignes DESC, premiere_alerte;"
+  ]
+ },
+ "14.A": {
+  "solution": "SELECT type, SUM(CASE WHEN MONTH(debut) = 4 THEN 1 ELSE 0 END) AS avril, SUM(CASE WHEN MONTH(debut) = 5 THEN 1 ELSE 0 END) AS mai, COUNT(*) AS total FROM incidents GROUP BY type;",
+  "hints": [
+   "MONTH(debut) renvoie le numéro du mois (un entier) ; combine-le avec SUM(CASE WHEN ...).",
+   "Structure : SELECT type, SUM(CASE WHEN MONTH(debut) = 4 THEN 1 ELSE 0 END) AS avril, SUM(CASE WHEN MONTH(debut) = 5 THEN 1 ELSE 0 END) AS mai, COUNT(*) AS total FROM incidents GROUP BY type;"
+  ],
+  "note": "MONTH() remplace strftime('%m') et renvoie un entier, pas une chaîne '04'."
+ },
+ "14.S": {
+  "solution": "SELECT station, SUM(CASE WHEN type = 'Cyber' AND debut < '2027-05-12' THEN 1 ELSE 0 END) AS reperages, SUM(CASE WHEN type = 'Cyber' AND debut < '2027-05-12' AND (DATEPART(hour, debut) >= 21 OR DATEPART(hour, debut) < 6) THEN 1 ELSE 0 END) AS de_nuit, SUM(CASE WHEN type = 'Cyber' AND CAST(debut AS DATE) = '2027-05-12' THEN 1 ELSE 0 END) AS jour_j FROM incidents GROUP BY station HAVING SUM(CASE WHEN type = 'Cyber' AND CAST(debut AS DATE) = '2027-05-12' THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN type = 'Cyber' AND debut < '2027-05-12' THEN 1 ELSE 0 END) >= 2 ORDER BY reperages DESC, station;",
+  "hints": [
+   "DATEPART(hour, debut) donne l'heure en entier et CAST(debut AS DATE) le jour. SQL Server n'accepte pas les alias dans HAVING : répète les SUM(CASE ...).",
+   "Structure : SELECT station, SUM(CASE ...) AS reperages, SUM(CASE ... AND (DATEPART(hour, debut) >= 21 OR DATEPART(hour, debut) < 6) ...) AS de_nuit, SUM(CASE ... CAST(debut AS DATE) = '2027-05-12' ...) AS jour_j FROM incidents GROUP BY station HAVING SUM(...) > 0 AND SUM(...) >= 2 ORDER BY reperages DESC, station;"
+  ],
+  "note": "DATEPART(hour, ...) et CAST(... AS DATE) remplacent strftime('%H') et date() ; HAVING doit répéter les agrégats (ou passer par une table dérivée)."
+ },
+ "15.1": {
+  "solution": "SELECT id, JSON_VALUE(contenu, '$.type') AS type, JSON_VALUE(contenu, '$.date') AS date FROM saisies ORDER BY date;",
+  "hints": [
+   "En SQL Server, une valeur scalaire d'un document JSON se lit avec JSON_VALUE(colonne, '$.chemin').",
+   "Structure : SELECT id, JSON_VALUE(contenu, '$.type') AS type, JSON_VALUE(contenu, '$.date') AS date FROM saisies ORDER BY date;"
+  ],
+  "note": "JSON_VALUE() remplace json_extract() pour une valeur scalaire (le JSON est stocké en NVARCHAR(MAX)) ; JSON_QUERY() servirait pour un objet ou un tableau.",
+  "require": [
+   {
+    "re": "JSON_VALUE",
+    "msg": "Utilise JSON_VALUE."
+   }
+  ]
+ },
+ "15.2": {
+  "solution": "SELECT JSON_VALUE(contenu, '$.date') AS date, JSON_QUERY(contenu, '$.a') AS destinataires, JSON_VALUE(contenu, '$.texte') AS texte FROM saisies WHERE JSON_VALUE(contenu, '$.type') = 'message' AND JSON_VALUE(contenu, '$.de') = 'solene' ORDER BY date;",
+  "hints": [
+   "JSON_VALUE lit une valeur scalaire ; pour récupérer un tableau entier comme $.a, il faut JSON_QUERY.",
+   "Structure : SELECT JSON_VALUE(contenu, '$.date') AS date, JSON_QUERY(contenu, '$.a') AS destinataires, JSON_VALUE(contenu, '$.texte') AS texte FROM saisies WHERE JSON_VALUE(contenu, '$.type') = 'message' AND JSON_VALUE(contenu, '$.de') = 'solene' ORDER BY date;"
+  ],
+  "note": "JSON_VALUE renvoie NULL pour un tableau : $.a se lit avec JSON_QUERY, qui renvoie le fragment JSON tel qu'il est stocké. SQL Server 2022 n'a pas de type JSON normalisé : le tableau garde ses espaces (\"a\", \"b\"), alors que json_extract de SQLite le réécrit sans espaces ; le résultat attendu est donc celui de SQL Server.",
+  "expected_from_solution": true
+ },
+ "15.3": {
+  "solution": "SELECT j.value AS destinataire, COUNT(*) AS nb FROM saisies s CROSS APPLY OPENJSON(s.contenu, '$.a') j WHERE JSON_VALUE(s.contenu, '$.type') = 'message' GROUP BY j.value ORDER BY nb DESC;",
+  "hints": [
+   "OPENJSON(colonne, '$.a') déplie un tableau en lignes (colonnes key, value, type) ; on l'appelle avec CROSS APPLY pour chaque saisie.",
+   "Structure : SELECT j.value AS destinataire, COUNT(*) AS nb FROM saisies s CROSS APPLY OPENJSON(s.contenu, '$.a') j WHERE JSON_VALUE(s.contenu, '$.type') = 'message' GROUP BY j.value ORDER BY nb DESC;"
+  ],
+  "note": "CROSS APPLY OPENJSON(...) remplace json_each().",
+  "require": [
+   {
+    "re": "OPENJSON",
+    "msg": "Utilise OPENJSON pour déplier le tableau."
+   }
+  ]
+ },
+ "15.4": {
+  "solution": "SELECT JSON_VALUE(contenu, '$.date') AS date, JSON_VALUE(contenu, '$.de') AS de, JSON_VALUE(contenu, '$.texte') AS texte FROM saisies WHERE JSON_VALUE(contenu, '$.type') = 'message' AND (JSON_VALUE(contenu, '$.de') = 'cartographe' OR EXISTS (SELECT 1 FROM OPENJSON(saisies.contenu, '$.a') WHERE value = 'cartographe')) ORDER BY date;",
+  "hints": [
+   "Pour tester si le tableau contient une valeur, utilise EXISTS sur OPENJSON(contenu, '$.a').",
+   "Structure : WHERE JSON_VALUE(contenu, '$.type') = 'message' AND (JSON_VALUE(contenu, '$.de') = 'cartographe' OR EXISTS (SELECT 1 FROM OPENJSON(saisies.contenu, '$.a') WHERE value = 'cartographe'))"
+  ],
+  "note": "OPENJSON remplace json_each dans la sous-requête EXISTS."
+ },
+ "15.5": {
+  "solution": "SELECT JSON_VALUE(contenu, '$.wallet') AS wallet, COUNT(*) AS nb, SUM(CAST(JSON_VALUE(contenu, '$.montant') AS FLOAT)) AS total FROM saisies WHERE JSON_VALUE(contenu, '$.type') = 'paiement' GROUP BY JSON_VALUE(contenu, '$.wallet') ORDER BY total DESC;",
+  "hints": [
+   "JSON_VALUE renvoie du texte : convertis le montant avec CAST(... AS FLOAT) avant SUM. Le GROUP BY doit répéter l'expression.",
+   "Structure : SELECT JSON_VALUE(contenu, '$.wallet') AS wallet, COUNT(*) AS nb, SUM(CAST(JSON_VALUE(contenu, '$.montant') AS FLOAT)) AS total FROM saisies WHERE ... GROUP BY JSON_VALUE(contenu, '$.wallet') ORDER BY total DESC;"
+  ],
+  "note": "JSON_VALUE renvoie NVARCHAR(4000) : il faut CAST pour sommer, et répéter l'expression dans GROUP BY."
+ },
+ "15.A": {
+  "solution": "SELECT JSON_VALUE(s.contenu, '$.type') AS categorie, j.[key] AS cle, COUNT(*) AS nb FROM saisies s CROSS APPLY OPENJSON(s.contenu) j GROUP BY JSON_VALUE(s.contenu, '$.type'), j.[key] ORDER BY categorie, cle;",
+  "hints": [
+   "OPENJSON(contenu) sans chemin renvoie une ligne par clé de l'objet (colonne key, à écrire [key]).",
+   "Structure : SELECT JSON_VALUE(s.contenu, '$.type') AS categorie, j.[key] AS cle, COUNT(*) AS nb FROM saisies s CROSS APPLY OPENJSON(s.contenu) j GROUP BY JSON_VALUE(s.contenu, '$.type'), j.[key] ORDER BY categorie, cle;"
+  ],
+  "note": "OPENJSON remplace json_each ; key est un mot réservé, d'où [key]. SQL Server n'accepte pas GROUP BY 1, 2.",
+  "require": [
+   {
+    "re": "OPENJSON",
+    "msg": "Utilise OPENJSON pour parcourir les clés."
+   }
+  ]
+ },
+ "15.S": {
+  "solution": "SELECT j.value AS complice, su.prenom, su.nom, g.nom AS gang, m.role FROM saisies s CROSS APPLY OPENJSON(s.contenu, '$.a') j JOIN suspects su ON LOWER(su.nom) = j.value JOIN membres m ON m.suspect_id = su.id JOIN gangs g ON g.id = m.gang_id WHERE JSON_VALUE(s.contenu, '$.type') = 'message' AND EXISTS (SELECT 1 FROM OPENJSON(s.contenu, '$.a') k WHERE k.value = 'cartographe') AND j.value <> 'cartographe' AND g.nom = 'Le Cercle';",
+  "hints": [
+   "CROSS APPLY OPENJSON(s.contenu, '$.a') donne une ligne par destinataire, que tu peux ensuite joindre aux suspects.",
+   "Structure : FROM saisies s CROSS APPLY OPENJSON(s.contenu, '$.a') j JOIN suspects su ON LOWER(su.nom) = j.value JOIN membres m ... JOIN gangs g ... WHERE ... AND EXISTS (SELECT 1 FROM OPENJSON(s.contenu, '$.a') k WHERE k.value = 'cartographe') AND j.value <> 'cartographe' AND g.nom = 'Le Cercle';"
+  ],
+  "note": "OPENJSON avec CROSS APPLY remplace json_each ; la collation sensible à la casse rend LOWER(nom) indispensable.",
+  "require": [
+   {
+    "re": "OPENJSON",
+    "msg": "Utilise OPENJSON pour parcourir le tableau des destinataires."
+   }
+  ]
+ },
+ "16.1": {
+  "solution": "SELECT evenement, horodatage, LEAD(horodatage) OVER (ORDER BY horodatage) AS suivant, ROUND(DATEDIFF(second, horodatage, LEAD(horodatage) OVER (ORDER BY horodatage)) / 3600.0, 1) AS heures FROM mouvements_port WHERE conteneur = 'MSCU-449120' ORDER BY horodatage;",
+  "hints": [
+   "LEAD(horodatage) OVER (ORDER BY horodatage) donne le scan suivant ; DATEDIFF(second, a, b) / 3600.0 donne l'écart en heures.",
+   "Structure : LEAD(horodatage) OVER (ORDER BY horodatage) AS suivant, ROUND(DATEDIFF(second, horodatage, LEAD(horodatage) OVER (ORDER BY horodatage)) / 3600.0, 1) AS heures"
+  ],
+  "note": "DATEDIFF(second, ...) / 3600.0 remplace (julianday(b) - julianday(a)) * 24."
+ },
+ "16.2": {
+  "solution": "WITH g AS (SELECT conteneur, horodatage, LAG(horodatage) OVER (PARTITION BY conteneur ORDER BY horodatage) AS precedent FROM mouvements_port WHERE evenement <> 'Inventaire') SELECT conteneur, precedent, horodatage, ROUND(DATEDIFF(second, precedent, horodatage) / 3600.0, 1) AS heures FROM g WHERE DATEDIFF(second, precedent, horodatage) > 48 * 3600;",
+  "hints": [
+   "Calcule le scan précédent avec LAG dans une CTE, puis filtre l'écart (en secondes avec DATEDIFF) dans la requête principale.",
+   "Structure : WITH g AS (SELECT conteneur, horodatage, LAG(horodatage) OVER (PARTITION BY conteneur ORDER BY horodatage) AS precedent FROM mouvements_port WHERE evenement <> 'Inventaire') SELECT conteneur, precedent, horodatage, ROUND(DATEDIFF(second, precedent, horodatage) / 3600.0, 1) AS heures FROM g WHERE DATEDIFF(second, precedent, horodatage) > 48 * 3600;"
+  ],
+  "note": "DATEDIFF(second, ...) remplace la différence de julianday()."
+ },
+ "16.3": {
+  "solution": "SELECT DISTINCT conteneur, FIRST_VALUE(quai) OVER (PARTITION BY conteneur ORDER BY horodatage) AS premier_quai, LAST_VALUE(quai) OVER (PARTITION BY conteneur ORDER BY horodatage ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS dernier_quai FROM mouvements_port WHERE navire = 'Stella Maris' AND evenement <> 'Inventaire';",
+  "hints": [
+   "LAST_VALUE a besoin d'un cadre qui va jusqu'au bout de la partition : ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING.",
+   "Structure : SELECT DISTINCT conteneur, FIRST_VALUE(quai) OVER (PARTITION BY conteneur ORDER BY horodatage) AS premier_quai, LAST_VALUE(quai) OVER (PARTITION BY conteneur ORDER BY horodatage ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS dernier_quai FROM ...;"
+  ]
+ },
+ "16.4": {
+  "solution": "WITH j AS (SELECT CAST(horodatage AS DATE) AS jour, COUNT(*) AS scans FROM mouvements_port WHERE quai = 4 GROUP BY CAST(horodatage AS DATE)) SELECT jour, scans, ROUND(AVG(CAST(scans AS FLOAT)) OVER (ORDER BY jour ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 2) AS moy7 FROM j ORDER BY jour;",
+  "hints": [
+   "CAST(horodatage AS DATE) donne le jour. Attention : AVG d'un entier est tronqué en SQL Server, convertis scans en FLOAT.",
+   "Structure : WITH j AS (SELECT CAST(horodatage AS DATE) AS jour, COUNT(*) AS scans FROM mouvements_port WHERE quai = 4 GROUP BY CAST(horodatage AS DATE)) SELECT jour, scans, ROUND(AVG(CAST(scans AS FLOAT)) OVER (ORDER BY jour ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 2) AS moy7 FROM j ORDER BY jour;"
+  ],
+  "note": "AVG sur un COUNT entier renverrait un entier : CAST(scans AS FLOAT) est nécessaire. CAST(... AS DATE) remplace date()."
+ },
+ "16.5": {
+  "solution": "WITH j AS (SELECT DISTINCT CAST(horodatage AS DATE) AS jour FROM mouvements_port WHERE conteneur = 'MSCU-449120'), n AS (SELECT jour, DATEADD(day, -ROW_NUMBER() OVER (ORDER BY jour), jour) AS ile FROM j) SELECT MIN(jour) AS debut, MAX(jour) AS fin, COUNT(*) AS nb_jours FROM n GROUP BY ile ORDER BY debut;",
+  "hints": [
+   "Technique des îlots : jour moins son numéro de ligne reste constant sur des jours consécutifs. En SQL Server, recule d'un nombre de jours avec DATEADD(day, -n, jour).",
+   "Structure : WITH j AS (SELECT DISTINCT CAST(horodatage AS DATE) AS jour FROM ...), n AS (SELECT jour, DATEADD(day, -ROW_NUMBER() OVER (ORDER BY jour), jour) AS ile FROM j) SELECT MIN(jour) AS debut, MAX(jour) AS fin, COUNT(*) AS nb_jours FROM n GROUP BY ile ORDER BY debut;"
+  ],
+  "note": "DATEADD(day, -ROW_NUMBER() ..., jour) remplace julianday(jour) - ROW_NUMBER()."
+ },
+ "16.A": {
+  "solution": "WITH f AS (SELECT DISTINCT conteneur, FIRST_VALUE(horodatage) OVER (PARTITION BY conteneur ORDER BY horodatage) AS arrivee, LAST_VALUE(horodatage) OVER (PARTITION BY conteneur ORDER BY horodatage ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS depart FROM mouvements_port WHERE navire = 'Stella Maris' AND evenement <> 'Inventaire') SELECT conteneur, arrivee, depart, ROUND(DATEDIFF(second, arrivee, depart) / 86400.0, 1) AS jours FROM f ORDER BY jours DESC;",
+  "hints": [
+   "FIRST_VALUE et LAST_VALUE (avec le cadre complet) dans une CTE, puis l'écart en jours avec DATEDIFF(second, ...) / 86400.0.",
+   "Structure : WITH f AS (SELECT DISTINCT conteneur, FIRST_VALUE(horodatage) OVER (...) AS arrivee, LAST_VALUE(horodatage) OVER (... ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS depart FROM ...) SELECT conteneur, arrivee, depart, ROUND(DATEDIFF(second, arrivee, depart) / 86400.0, 1) AS jours FROM f ORDER BY jours DESC;"
+  ],
+  "note": "DATEDIFF(second, ...) / 86400.0 donne des jours décimaux (DATEDIFF(day, ...) compterait seulement les changements de date)."
+ },
+ "16.S": {
+  "solution": "WITH g AS (SELECT conteneur, ROUND(DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY conteneur ORDER BY horodatage), horodatage) / 60.0, 0) AS minutes FROM mouvements_port WHERE evenement <> 'Inventaire') SELECT g.conteneur, COUNT(*) AS ecarts, SUM(CASE WHEN g.minutes % 60 <> 0 THEN 1 ELSE 0 END) AS irreguliers, s.nom AS importateur FROM g JOIN conteneurs c ON c.code = g.conteneur JOIN societes s ON s.siren = c.importateur_siren WHERE g.minutes IS NOT NULL GROUP BY g.conteneur, s.nom HAVING SUM(CASE WHEN g.minutes % 60 <> 0 THEN 1 ELSE 0 END) > 0;",
+  "hints": [
+   "Calcule l'écart en minutes avec LAG et DATEDIFF dans une CTE ; % donne le reste de la division. HAVING ne connaît pas l'alias irreguliers.",
+   "Structure : WITH g AS (SELECT conteneur, ROUND(DATEDIFF(second, LAG(horodatage) OVER (PARTITION BY conteneur ORDER BY horodatage), horodatage) / 60.0, 0) AS minutes FROM ...) SELECT g.conteneur, COUNT(*) AS ecarts, SUM(CASE WHEN g.minutes % 60 <> 0 THEN 1 ELSE 0 END) AS irreguliers, s.nom AS importateur FROM g JOIN ... WHERE g.minutes IS NOT NULL GROUP BY g.conteneur, s.nom HAVING SUM(CASE ...) > 0;"
+  ],
+  "note": "DATEDIFF(second, ...) / 60.0 remplace julianday ; HAVING doit répéter l'agrégat au lieu de l'alias."
+ },
+ "17.1": {
+  "solution": "WITH t AS (SELECT poste, SUM(octets) AS total FROM trafic GROUP BY poste) SELECT poste, total, NTILE(4) OVER (ORDER BY total) AS quartile FROM t ORDER BY total DESC;",
+  "hints": [
+   "NTILE(4) OVER (ORDER BY total) répartit les lignes en 4 groupes de taille égale.",
+   "Structure : WITH t AS (SELECT poste, SUM(octets) AS total FROM trafic GROUP BY poste) SELECT poste, total, NTILE(4) OVER (ORDER BY total) AS quartile FROM t ORDER BY total DESC;"
+  ]
+ },
+ "17.2": {
+  "solution": "WITH s AS (SELECT AVG(CAST(octets AS FLOAT)) AS m, STDEVP(CAST(octets AS FLOAT)) AS sd FROM trafic) SELECT t.horodatage, t.poste, t.ip_dst, t.octets FROM trafic t CROSS JOIN s WHERE t.octets > s.m + 3 * s.sd ORDER BY t.octets DESC;",
+  "hints": [
+   "SQL Server fournit l'écart-type : STDEVP() pour la population (STDEV() pour l'échantillon). Convertis octets en FLOAT pour éviter les calculs entiers.",
+   "Structure : WITH s AS (SELECT AVG(CAST(octets AS FLOAT)) AS m, STDEVP(CAST(octets AS FLOAT)) AS sd FROM trafic) SELECT t.horodatage, t.poste, t.ip_dst, t.octets FROM trafic t CROSS JOIN s WHERE t.octets > s.m + 3 * s.sd ORDER BY t.octets DESC;"
+  ],
+  "note": "STDEVP() remplace le calcul manuel sqrt(AVG(x*x) - AVG(x)*AVG(x)) ; AVG sur BIGINT serait tronqué, d'où CAST AS FLOAT."
+ },
+ "17.3": {
+  "solution": "SELECT TOP (1) poste, horodatage FROM trafic WHERE ip_dst = '198.51.100.200' ORDER BY horodatage;",
+  "hints": [
+   "La première connexion : trie par horodatage et garde une ligne avec TOP (1).",
+   "Structure : SELECT TOP (1) poste, horodatage FROM trafic WHERE ip_dst = '198.51.100.200' ORDER BY horodatage;"
+  ],
+  "note": "TOP (1) remplace LIMIT 1."
+ },
+ "17.4": {
+  "solution": "WITH p AS (SELECT poste, MIN(horodatage) AS premier_contact FROM trafic WHERE ip_dst = '198.51.100.200' GROUP BY poste) SELECT ROW_NUMBER() OVER (ORDER BY premier_contact) AS rang, poste, premier_contact, ROUND(DATEDIFF(second, MIN(premier_contact) OVER (), premier_contact) / 60.0, 0) AS minutes FROM p ORDER BY rang;",
+  "hints": [
+   "MIN(premier_contact) OVER () donne le premier contact global sur toutes les lignes ; l'écart se calcule avec DATEDIFF(second, ...) / 60.0.",
+   "Structure : WITH p AS (SELECT poste, MIN(horodatage) AS premier_contact FROM trafic WHERE ... GROUP BY poste) SELECT ROW_NUMBER() OVER (ORDER BY premier_contact) AS rang, poste, premier_contact, ROUND(DATEDIFF(second, MIN(premier_contact) OVER (), premier_contact) / 60.0, 0) AS minutes FROM p ORDER BY rang;"
+  ],
+  "note": "DATEDIFF(second, ...) / 60.0 remplace la différence de julianday() multipliée par 1440."
+ },
+ "17.5": {
+  "solution": "WITH p AS (SELECT TOP (1) poste, horodatage AS instant FROM trafic WHERE ip_dst = '198.51.100.200' ORDER BY horodatage) SELECT p.poste, p.instant, s.login FROM p JOIN sessions_postes s ON s.poste = p.poste AND p.instant BETWEEN s.debut AND s.fin;",
+  "hints": [
+   "En SQL Server, une CTE peut contenir ORDER BY seulement avec TOP : SELECT TOP (1) ... ORDER BY horodatage.",
+   "Structure : WITH p AS (SELECT TOP (1) poste, horodatage AS instant FROM trafic WHERE ip_dst = '198.51.100.200' ORDER BY horodatage) SELECT p.poste, p.instant, s.login FROM p JOIN sessions_postes s ON s.poste = p.poste AND p.instant BETWEEN s.debut AND s.fin;"
+  ],
+  "note": "ORDER BY est interdit dans une CTE sauf avec TOP (ou OFFSET) : TOP (1) remplace LIMIT 1."
+ },
+ "17.A": {
+  "solution": "WITH p AS (SELECT poste, MIN(horodatage) AS premier_contact FROM trafic WHERE ip_dst = '198.51.100.200' GROUP BY poste) SELECT p.poste, p.premier_contact FROM p LEFT JOIN sessions_postes s ON s.poste = p.poste AND p.premier_contact BETWEEN s.debut AND s.fin WHERE s.id IS NULL ORDER BY p.premier_contact;",
+  "hints": [
+   "Un LEFT JOIN avec la condition d'intervalle dans le ON, puis WHERE s.id IS NULL, garde les postes sans session ouverte.",
+   "Structure : WITH p AS (...) SELECT p.poste, p.premier_contact FROM p LEFT JOIN sessions_postes s ON s.poste = p.poste AND p.premier_contact BETWEEN s.debut AND s.fin WHERE s.id IS NULL ORDER BY p.premier_contact;"
+  ]
+ },
+ "17.S": {
+  "solution": "SELECT a.poste, a.login AS premier, b.login AS second, b.debut AS ouverture, a.fin AS fermeture, ROUND(DATEDIFF(second, b.debut, a.fin) / 60.0, 1) AS minutes FROM sessions_postes a JOIN sessions_postes b ON b.poste = a.poste AND b.debut > a.debut AND b.debut < a.fin;",
+  "hints": [
+   "Auto-jointure de sessions_postes : la seconde session commence après la première et avant sa fin.",
+   "Structure : SELECT a.poste, a.login AS premier, b.login AS second, b.debut AS ouverture, a.fin AS fermeture, ROUND(DATEDIFF(second, b.debut, a.fin) / 60.0, 1) AS minutes FROM sessions_postes a JOIN sessions_postes b ON b.poste = a.poste AND b.debut > a.debut AND b.debut < a.fin;"
+  ],
+  "note": "DATEDIFF(second, ...) / 60.0 remplace julianday."
+ },
+ "18.1": {
+  "solution": "SELECT t.vers, w.type, t.montant, t.horodatage FROM tx_crypto t JOIN wallets w ON w.adresse = t.vers WHERE t.de = 'bc1q-eclipse-7f3a' ORDER BY t.horodatage;",
+  "hints": [
+   "Joins tx_crypto à wallets sur l'adresse de destination.",
+   "Structure : SELECT t.vers, w.type, t.montant, t.horodatage FROM tx_crypto t JOIN wallets w ON w.adresse = t.vers WHERE t.de = '...' ORDER BY t.horodatage;"
+  ]
+ },
+ "18.2": {
+  "solution": "WITH suivi(adresse, saut, chemin, quand) AS (SELECT CAST('bc1q-eclipse-7f3a' AS NVARCHAR(32)), 0, CAST('bc1q-eclipse-7f3a' AS NVARCHAR(MAX)), CAST('2027-05-12 00:00:00' AS DATETIME2(0)) UNION ALL SELECT t.vers, c.saut + 1, c.chemin + ' > ' + t.vers, t.horodatage FROM tx_crypto t JOIN suivi c ON t.de = c.adresse WHERE c.saut < 8 AND t.horodatage > c.quand AND CHARINDEX(t.vers, c.chemin) = 0) SELECT adresse, saut, chemin FROM suivi;",
+  "hints": [
+   "En SQL Server, instr() s'appelle CHARINDEX(cherche, dans) ; la CTE récursive s'écrit WITH sans RECURSIVE, avec les types de l'ancre fixés par CAST (chemin en NVARCHAR(MAX)).",
+   "Structure : WITH suivi(adresse, saut, chemin, quand) AS (SELECT CAST('bc1q-eclipse-7f3a' AS NVARCHAR(32)), 0, CAST('bc1q-eclipse-7f3a' AS NVARCHAR(MAX)), CAST('2027-05-12 00:00:00' AS DATETIME2(0)) UNION ALL SELECT t.vers, c.saut + 1, c.chemin + ' > ' + t.vers, t.horodatage FROM tx_crypto t JOIN suivi c ON t.de = c.adresse WHERE c.saut < 8 AND t.horodatage > c.quand AND CHARINDEX(t.vers, c.chemin) = 0) SELECT adresse, saut, chemin FROM suivi;"
+  ],
+  "note": "CHARINDEX(sous_chaine, chaine) remplace instr(chaine, sous_chaine) (arguments inversés) ; + remplace || et l'ancre doit avoir les mêmes types que la récursion.",
+  "require": [
+   {
+    "re": "^\\s*WITH",
+    "msg": "Commence ta requête par WITH (en SQL Server, une CTE récursive s'écrit WITH, sans le mot RECURSIVE)."
+   },
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "La partie récursive se rattache au point de départ avec UNION ALL."
+   },
+   {
+    "re": "CHARINDEX",
+    "msg": "Évite les boucles avec CHARINDEX(adresse, chemin) = 0."
+   }
+  ]
+ },
+ "18.3": {
+  "solution": "WITH suivi(adresse, saut, chemin, quand) AS (SELECT CAST('bc1q-eclipse-7f3a' AS NVARCHAR(32)), 0, CAST('bc1q-eclipse-7f3a' AS NVARCHAR(MAX)), CAST('2027-05-12 00:00:00' AS DATETIME2(0)) UNION ALL SELECT t.vers, c.saut + 1, c.chemin + ' > ' + t.vers, t.horodatage FROM tx_crypto t JOIN suivi c ON t.de = c.adresse WHERE c.saut < 8 AND t.horodatage > c.quand AND CHARINDEX(t.vers, c.chemin) = 0) SELECT DISTINCT s.adresse, w.plateforme, w.kyc_nom, s.saut FROM suivi s JOIN wallets w ON w.adresse = s.adresse WHERE w.type = 'exchange';",
+  "hints": [
+   "Reprends la CTE suivi (WITH sans RECURSIVE, CHARINDEX contre les boucles), puis joins-la à wallets.",
+   "Structure : WITH suivi(...) AS (...) SELECT DISTINCT s.adresse, w.plateforme, w.kyc_nom, s.saut FROM suivi s JOIN wallets w ON w.adresse = s.adresse WHERE w.type = 'exchange';"
+  ],
+  "note": "Même CTE récursive qu'en 18.2, avec CHARINDEX à la place de instr.",
+  "require": [
+   {
+    "re": "^\\s*WITH",
+    "msg": "Commence ta requête par WITH (en SQL Server, une CTE récursive s'écrit WITH, sans le mot RECURSIVE)."
+   },
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "La partie récursive se rattache au point de départ avec UNION ALL."
+   }
+  ]
+ },
+ "18.4": {
+  "solution": "WITH suivi(adresse, saut, chemin, quand) AS (SELECT CAST('bc1q-eclipse-7f3a' AS NVARCHAR(32)), 0, CAST('bc1q-eclipse-7f3a' AS NVARCHAR(MAX)), CAST('2027-05-12 00:00:00' AS DATETIME2(0)) UNION ALL SELECT t.vers, c.saut + 1, c.chemin + ' > ' + t.vers, t.horodatage FROM tx_crypto t JOIN suivi c ON t.de = c.adresse WHERE c.saut < 8 AND t.horodatage > c.quand AND CHARINDEX(t.vers, c.chemin) = 0), r AS (SELECT s.adresse, s.saut, s.chemin, ROW_NUMBER() OVER (PARTITION BY s.adresse ORDER BY s.saut, s.chemin) AS rn FROM suivi s JOIN wallets w ON w.adresse = s.adresse WHERE w.type = 'exchange') SELECT adresse, saut, chemin FROM r WHERE rn = 1;",
+  "hints": [
+   "Numérote les chemins de chaque adresse avec ROW_NUMBER() OVER (PARTITION BY adresse ORDER BY saut, chemin) et garde le numéro 1.",
+   "Structure : WITH suivi(...) AS (...), r AS (SELECT s.adresse, s.saut, s.chemin, ROW_NUMBER() OVER (PARTITION BY s.adresse ORDER BY s.saut, s.chemin) AS rn FROM suivi s JOIN wallets w ON ... WHERE w.type = 'exchange') SELECT adresse, saut, chemin FROM r WHERE rn = 1;"
+  ],
+  "note": "CTE récursive T-SQL avec CHARINDEX ; l'ordre alphabétique des chemins suit la collation de la base.",
+  "require": [
+   {
+    "re": "^\\s*WITH",
+    "msg": "Commence ta requête par WITH (en SQL Server, une CTE récursive s'écrit WITH, sans le mot RECURSIVE)."
+   },
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "La partie récursive se rattache au point de départ avec UNION ALL."
+   }
+  ]
+ },
+ "18.5": {
+  "solution": "WITH chaine(siren, part) AS (SELECT CAST(importateur_siren AS NVARCHAR(48)), CAST(100 AS FLOAT) FROM conteneurs WHERE code = 'MSCU-449120' UNION ALL SELECT p.detenteur, c.part * p.pct / 100 FROM participations p JOIN chaine c ON p.detenue = c.siren) SELECT REPLACE(siren, 'PERSONNE:', '') AS beneficiaire, ROUND(part, 1) AS part FROM chaine WHERE siren LIKE 'PERSONNE:%' ORDER BY part DESC;",
+  "hints": [
+   "Les colonnes de l'ancre doivent avoir exactement le type de la partie récursive : detenteur est NVARCHAR(48) et pct un FLOAT, donc caste l'ancre.",
+   "Structure : WITH chaine(siren, part) AS (SELECT CAST(importateur_siren AS NVARCHAR(48)), CAST(100 AS FLOAT) FROM conteneurs WHERE code = 'MSCU-449120' UNION ALL SELECT p.detenteur, c.part * p.pct / 100 FROM participations p JOIN chaine c ON p.detenue = c.siren) SELECT REPLACE(siren, 'PERSONNE:', '') AS beneficiaire, ROUND(part, 1) AS part FROM chaine WHERE siren LIKE 'PERSONNE:%' ORDER BY part DESC;"
+  ],
+  "note": "Sans CAST, SQL Server refuse la CTE : NVARCHAR(32) contre NVARCHAR(48) et NUMERIC contre FLOAT ne concordent pas entre l'ancre et la récursion.",
+  "require": [
+   {
+    "re": "^\\s*WITH",
+    "msg": "Commence ta requête par WITH (en SQL Server, une CTE récursive s'écrit WITH, sans le mot RECURSIVE)."
+   },
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "La partie récursive se rattache au point de départ avec UNION ALL."
+   }
+  ]
+ },
+ "18.A": {
+  "solution": "WITH suivi(adresse, saut, chemin, quand) AS (SELECT CAST('bc1q-eclipse-7f3a' AS NVARCHAR(32)), 0, CAST('bc1q-eclipse-7f3a' AS NVARCHAR(MAX)), CAST('2027-05-12 00:00:00' AS DATETIME2(0)) UNION ALL SELECT t.vers, c.saut + 1, c.chemin + ' > ' + t.vers, t.horodatage FROM tx_crypto t JOIN suivi c ON t.de = c.adresse WHERE c.saut < 8 AND t.horodatage > c.quand AND CHARINDEX(t.vers, c.chemin) = 0) SELECT s.chemin, t.vers AS retour, t.montant, t.horodatage FROM suivi s JOIN tx_crypto t ON t.de = s.adresse AND t.horodatage > s.quand WHERE CHARINDEX(t.vers, s.chemin) > 0;",
+  "hints": [
+   "Reprends suivi, puis cherche les transactions qui repartent vers une adresse déjà présente dans le chemin : CHARINDEX(...) > 0.",
+   "Structure : WITH suivi(...) AS (...) SELECT s.chemin, t.vers AS retour, t.montant, t.horodatage FROM suivi s JOIN tx_crypto t ON t.de = s.adresse AND t.horodatage > s.quand WHERE CHARINDEX(t.vers, s.chemin) > 0;"
+  ],
+  "note": "CHARINDEX(sous_chaine, chaine) remplace instr(chaine, sous_chaine).",
+  "require": [
+   {
+    "re": "^\\s*WITH",
+    "msg": "Commence ta requête par WITH (en SQL Server, une CTE récursive s'écrit WITH, sans le mot RECURSIVE)."
+   },
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "La partie récursive se rattache au point de départ avec UNION ALL."
+   },
+   {
+    "re": "CHARINDEX",
+    "msg": "Évite les boucles avec CHARINDEX(adresse, chemin) = 0."
+   }
+  ]
+ },
+ "18.S": {
+  "solution": "SELECT w.adresse, w.plateforme, w.kyc_nom, COUNT(*) AS versements, ROUND(SUM(t.montant), 2) AS total, SUM(CASE WHEN src.type = 'mixeur' THEN 1 ELSE 0 END) AS via_mixeur, MIN(t.horodatage) AS premier FROM gangs g JOIN suspects s ON s.id = g.chef_id JOIN wallets w ON w.kyc_nom = UPPER(LEFT(s.prenom, 1) + '. ' + s.nom) JOIN tx_crypto t ON t.vers = w.adresse JOIN wallets src ON src.adresse = t.de WHERE g.nom = 'Le Cercle' GROUP BY w.adresse, w.plateforme, w.kyc_nom;",
+  "hints": [
+   "Construis le kyc_nom avec UPPER(LEFT(prenom, 1) + '. ' + nom) : LEFT() (ou SUBSTRING(x, 1, 1)) remplace SUBSTR.",
+   "Structure : FROM gangs g JOIN suspects s ON s.id = g.chef_id JOIN wallets w ON w.kyc_nom = UPPER(LEFT(s.prenom, 1) + '. ' + s.nom) JOIN tx_crypto t ON t.vers = w.adresse JOIN wallets src ON src.adresse = t.de WHERE g.nom = 'Le Cercle' GROUP BY w.adresse, w.plateforme, w.kyc_nom;"
+  ],
+  "note": "SUBSTR n'existe pas en T-SQL : LEFT(x, 1) ou SUBSTRING(x, 1, 1), et + pour concaténer."
+ },
+ "19.1": {
+  "solution": "CREATE TRIGGER trg_archive ON pieces AFTER DELETE AS\nBEGIN\n  SET NOCOUNT ON;\n  INSERT INTO archive_pieces (id, affaire, description, supprimee_le) SELECT id, affaire, description, SYSDATETIME() FROM deleted;\nEND;\nGO\nDELETE FROM pieces WHERE id = 1;",
+  "hints": [
+   "En SQL Server, un trigger s'écrit CREATE TRIGGER nom ON table AFTER DELETE AS BEGIN ... END et lit les lignes supprimées dans la pseudo-table deleted (il n'y a pas de OLD ni de FOR EACH ROW).",
+   "Structure : CREATE TRIGGER trg_archive ON pieces AFTER DELETE AS BEGIN INSERT INTO archive_pieces (...) SELECT id, affaire, description, SYSDATETIME() FROM deleted; END; puis une ligne GO, puis DELETE FROM pieces WHERE id = 1;"
+  ],
+  "note": "Trigger T-SQL au niveau instruction : les anciennes lignes sont dans deleted (OLD n'existe pas), SYSDATETIME() remplace datetime('now'), et CREATE TRIGGER doit être seul dans son lot (GO avant le DELETE).",
+  "setup": "CREATE TABLE archive_pieces (id BIGINT, affaire NVARCHAR(32), description NVARCHAR(68), supprimee_le DATETIME2(0));",
+  "verify": [
+   "DELETE FROM pieces WHERE id = 2; SELECT id, affaire, description FROM archive_pieces ORDER BY id",
+   "SELECT COUNT(*) FROM sys.triggers WHERE parent_id = OBJECT_ID('pieces')"
+  ],
+  "require": [
+   {
+    "re": "CREATE\\s+TRIGGER",
+    "msg": "Crée un trigger avec CREATE TRIGGER."
+   },
+   {
+    "re": "\\bdeleted\\b",
+    "msg": "En SQL Server, les lignes supprimées se lisent dans la pseudo-table deleted."
+   }
+  ]
+ },
+ "19.2": {
+  "solution": "MERGE INTO compteurs_alertes AS c USING (VALUES ('Grande Arche', 1)) AS s(station, nb) ON c.station = s.station WHEN MATCHED THEN UPDATE SET nb = c.nb + 1 WHEN NOT MATCHED THEN INSERT (station, nb) VALUES (s.station, s.nb);\nMERGE INTO compteurs_alertes AS c USING (VALUES ('Grande Arche', 1)) AS s(station, nb) ON c.station = s.station WHEN MATCHED THEN UPDATE SET nb = c.nb + 1 WHEN NOT MATCHED THEN INSERT (station, nb) VALUES (s.station, s.nb);\nMERGE INTO compteurs_alertes AS c USING (VALUES (N'Châtelet-Seine', 1)) AS s(station, nb) ON c.station = s.station WHEN MATCHED THEN UPDATE SET nb = c.nb + 1 WHEN NOT MATCHED THEN INSERT (station, nb) VALUES (s.station, s.nb);",
+  "hints": [
+   "SQL Server n'a pas ON CONFLICT : l'UPSERT s'écrit avec MERGE ... USING ... ON ... WHEN MATCHED THEN UPDATE WHEN NOT MATCHED THEN INSERT, terminé par un point-virgule.",
+   "Structure : MERGE INTO compteurs_alertes AS c USING (VALUES ('Grande Arche', 1)) AS s(station, nb) ON c.station = s.station WHEN MATCHED THEN UPDATE SET nb = c.nb + 1 WHEN NOT MATCHED THEN INSERT (station, nb) VALUES (s.station, s.nb); (trois fois)"
+  ],
+  "note": "MERGE remplace INSERT ... ON CONFLICT ; une instruction MERGE doit se terminer par un point-virgule.",
+  "verify": [
+   "SELECT station, nb FROM compteurs_alertes ORDER BY station"
+  ],
+  "require": [
+   {
+    "re": "MERGE",
+    "msg": "Utilise MERGE pour l'UPSERT."
+   },
+   {
+    "re": "WHEN\\s+MATCHED",
+    "msg": "Prévois le cas WHEN MATCHED THEN UPDATE."
+   },
+   {
+    "re": "WHEN\\s+NOT\\s+MATCHED",
+    "msg": "Prévois le cas WHEN NOT MATCHED THEN INSERT."
+   }
+  ]
+ },
+ "19.3": {
+  "solution": "BEGIN TRANSACTION;\nSET IDENTITY_INSERT pieces ON;\nINSERT INTO pieces (id, affaire, description, ajoutee_le) VALUES (20, N'Éclipse', N'Clé USB du dépôt MAINT-07', '2027-05-12');\nSET IDENTITY_INSERT pieces OFF;\nSAVE TRANSACTION avant_test;\nDELETE FROM pieces WHERE affaire = 'Minuit';\nROLLBACK TRANSACTION avant_test;\nCOMMIT;",
+  "hints": [
+   "En SQL Server, un point de sauvegarde se pose avec SAVE TRANSACTION nom et on y revient avec ROLLBACK TRANSACTION nom. L'id de pieces est IDENTITY : SET IDENTITY_INSERT pieces ON pour imposer 20.",
+   "Structure : BEGIN TRANSACTION; SET IDENTITY_INSERT pieces ON; INSERT INTO pieces (id, affaire, description, ajoutee_le) VALUES (20, ...); SET IDENTITY_INSERT pieces OFF; SAVE TRANSACTION avant_test; DELETE ...; ROLLBACK TRANSACTION avant_test; COMMIT;"
+  ],
+  "note": "SAVEPOINT s'écrit SAVE TRANSACTION et ROLLBACK TO s'écrit ROLLBACK TRANSACTION nom ; IDENTITY_INSERT est nécessaire pour l'id imposé.",
+  "verify": [
+   "SELECT id, affaire, description FROM pieces ORDER BY id"
+  ],
+  "require": [
+   {
+    "re": "SAVE\\s+TRAN(SACTION)?\\s+\\w+",
+    "msg": "Pose un point de sauvegarde avec SAVE TRANSACTION nom."
+   },
+   {
+    "re": "ROLLBACK\\s+TRAN(SACTION)?\\s+\\w+",
+    "msg": "Reviens au point de sauvegarde avec ROLLBACK TRANSACTION nom."
+   }
+  ]
+ },
+ "19.4": {
+  "solution": "SELECT j.login, c.nom_complet, COUNT(*) AS suppressions, MIN(j.horodatage) AS premiere, MAX(j.horodatage) AS derniere FROM journal_brigade j LEFT JOIN consultants c ON c.login = j.login WHERE j.action = 'DELETE' AND j.table_cible = 'pieces' GROUP BY j.login, c.nom_complet;",
+  "hints": [
+   "Un LEFT JOIN vers consultants garde les logins inconnus (nom_complet NULL) ; regroupe par login et nom_complet.",
+   "Structure : SELECT j.login, c.nom_complet, COUNT(*) AS suppressions, MIN(j.horodatage) AS premiere, MAX(j.horodatage) AS derniere FROM journal_brigade j LEFT JOIN consultants c ON c.login = j.login WHERE ... GROUP BY j.login, c.nom_complet;"
+  ]
+ },
+ "19.5": {
+  "solution": "SET IDENTITY_INSERT pieces ON;\nINSERT INTO pieces (id, affaire, description, ajoutee_le) SELECT ligne_id, JSON_VALUE(ancienne_valeur, '$.affaire'), JSON_VALUE(ancienne_valeur, '$.description'), JSON_VALUE(ancienne_valeur, '$.ajoutee_le') FROM journal_brigade WHERE login = 'consultant.fo' AND action = 'DELETE' AND table_cible = 'pieces';\nSET IDENTITY_INSERT pieces OFF;",
+  "hints": [
+   "Lis les champs de ancienne_valeur avec JSON_VALUE ; comme tu imposes l'id d'une colonne IDENTITY, encadre l'INSERT par SET IDENTITY_INSERT pieces ON / OFF.",
+   "Structure : SET IDENTITY_INSERT pieces ON; INSERT INTO pieces (id, affaire, description, ajoutee_le) SELECT ligne_id, JSON_VALUE(ancienne_valeur, '$.affaire'), ... FROM journal_brigade WHERE ...; SET IDENTITY_INSERT pieces OFF;"
+  ],
+  "note": "JSON_VALUE remplace json_extract ; IDENTITY_INSERT permet de remettre les id d'origine.",
+  "verify": [
+   "SELECT id, affaire, description, ajoutee_le FROM pieces ORDER BY id"
+  ]
+ },
+ "19.A": {
+  "solution": "CREATE TRIGGER trg_modif ON pieces AFTER UPDATE AS\nBEGIN\n  SET NOCOUNT ON;\n  INSERT INTO journal_brigade (login, action, table_cible, ligne_id, ancienne_valeur, horodatage) SELECT 'trigger', 'UPDATE', 'pieces', d.id, d.description, SYSDATETIME() FROM deleted d;\nEND;\nGO\nUPDATE pieces SET description = N'Relevé NeoCoin, compte EXCH-NEO-5521' WHERE id = 14;",
+  "hints": [
+   "Dans un trigger AFTER UPDATE de SQL Server, les anciennes valeurs sont dans deleted et les nouvelles dans inserted.",
+   "Structure : CREATE TRIGGER trg_modif ON pieces AFTER UPDATE AS BEGIN INSERT INTO journal_brigade (...) SELECT 'trigger', 'UPDATE', 'pieces', d.id, d.description, SYSDATETIME() FROM deleted d; END; puis une ligne GO, puis l'UPDATE de la pièce 14."
+  ],
+  "note": "OLD.colonne devient la pseudo-table deleted (une ligne par ligne modifiée), datetime('now') devient SYSDATETIME() ; GO sépare le trigger de l'UPDATE de test.",
+  "verify": [
+   "SELECT id, description FROM pieces ORDER BY id",
+   "UPDATE pieces SET description = N'Relevé CH-9131 (copie)' WHERE id = 4; SELECT action, table_cible, ligne_id, ancienne_valeur FROM journal_brigade WHERE login = 'trigger' ORDER BY ligne_id"
+  ],
+  "require": [
+   {
+    "re": "CREATE\\s+TRIGGER",
+    "msg": "Crée un trigger."
+   },
+   {
+    "re": "\\bdeleted\\b",
+    "msg": "Lis l'ancienne description dans la pseudo-table deleted."
+   }
+  ]
+ },
+ "19.S": {
+  "solution": "MERGE INTO fiche_activite AS f USING (SELECT login, SUM(CASE WHEN action = 'SELECT' THEN 1 ELSE 0 END) AS lectures, SUM(CASE WHEN action IN ('INSERT', 'UPDATE') THEN 1 ELSE 0 END) AS ecritures, SUM(CASE WHEN action = 'DELETE' THEN 1 ELSE 0 END) AS suppressions FROM journal_brigade GROUP BY login) AS s ON f.login = s.login WHEN MATCHED THEN UPDATE SET lectures = f.lectures + s.lectures, ecritures = f.ecritures + s.ecritures, suppressions = f.suppressions + s.suppressions WHEN NOT MATCHED THEN INSERT (login, lectures, ecritures, suppressions) VALUES (s.login, s.lectures, s.ecritures, s.suppressions);",
+  "hints": [
+   "Avec MERGE, la source (USING) peut être une requête agrégée ; ses colonnes jouent le rôle de excluded.",
+   "Structure : MERGE INTO fiche_activite AS f USING (SELECT login, SUM(CASE ...) AS lectures, ... FROM journal_brigade GROUP BY login) AS s ON f.login = s.login WHEN MATCHED THEN UPDATE SET lectures = f.lectures + s.lectures, ... WHEN NOT MATCHED THEN INSERT (...) VALUES (s.login, ...);"
+  ],
+  "note": "MERGE remplace INSERT ... SELECT ... ON CONFLICT : les valeurs proposées se lisent dans l'alias de la source (s.colonne) au lieu de excluded.colonne.",
+  "setup": "CREATE TABLE fiche_activite (login NVARCHAR(32) PRIMARY KEY, lectures INT NOT NULL DEFAULT 0, ecritures INT NOT NULL DEFAULT 0, suppressions INT NOT NULL DEFAULT 0); INSERT INTO fiche_activite VALUES ('i.varga', 412, 57, 0), ('n.kessler', 388, 61, 0), ('consultant.fo', 0, 0, 0);",
+  "verify": [
+   "SELECT login, lectures, ecritures, suppressions FROM fiche_activite ORDER BY login"
+  ],
+  "require": [
+   {
+    "re": "MERGE",
+    "msg": "Utilise MERGE."
+   },
+   {
+    "re": "USING\\s*\\(\\s*SELECT",
+    "msg": "La source du MERGE doit être une requête : USING (SELECT ... GROUP BY login)."
+   }
+  ]
+ },
+ "20.1": {
+  "solution": "SET SHOWPLAN_TEXT ON\nGO\nSELECT * FROM trafic WHERE poste = 'MAINT-07';",
+  "hints": [
+   "En SQL Server, SET SHOWPLAN_TEXT ON fait afficher le plan des requêtes suivantes au lieu de les exécuter ; cette instruction doit être seule dans son lot (ligne GO après).",
+   "Structure : SET SHOWPLAN_TEXT ON, puis une ligne GO, puis SELECT * FROM trafic WHERE poste = 'MAINT-07';"
+  ],
+  "note": "EXPLAIN QUERY PLAN n'existe pas : SET SHOWPLAN_TEXT ON (ou SHOWPLAN_ALL, ou le plan graphique de SSMS). Sans index, on voit un Clustered Index Scan sur la clé primaire.",
+  "contains": "Clustered Index Scan",
+  "require": [
+   {
+    "re": "SHOWPLAN_(TEXT|ALL)",
+    "msg": "Affiche le plan avec SET SHOWPLAN_TEXT ON (seul dans son lot, suivi d'une ligne GO)."
+   },
+   {
+    "re": "WHERE\\s+poste\\s*=\\s*'MAINT-07'",
+    "msg": "Analyse la requête demandée."
+   }
+  ]
+ },
+ "20.2": {
+  "solution": "CREATE INDEX idx_trafic_poste ON trafic(poste);\nGO\nSET SHOWPLAN_TEXT ON\nGO\nSELECT * FROM trafic WITH (INDEX(idx_trafic_poste)) WHERE poste = 'MAINT-07';",
+  "hints": [
+   "Crée l'index, puis active SET SHOWPLAN_TEXT ON dans un lot séparé (lignes GO). Sur cette petite table, l'optimiseur préfère encore le parcours complet pour un SELECT * : force l'index avec l'indicateur de table WITH (INDEX(nom_index)).",
+   "Structure : CREATE INDEX idx_trafic_poste ON trafic(poste); puis GO, SET SHOWPLAN_TEXT ON, GO, puis SELECT * FROM trafic WITH (INDEX(idx_trafic_poste)) WHERE poste = 'MAINT-07';"
+  ],
+  "note": "Avec SELECT *, chaque ligne trouvée par l'index demande un Key Lookup vers l'index cluster : sur 6 000 lignes, l'optimiseur juge le Clustered Index Scan moins cher. L'indicateur WITH (INDEX(idx_trafic_poste)) force l'Index Seek pour observer le plan.",
+  "contains": "idx_trafic_poste",
+  "require": [
+   {
+    "re": "CREATE\\s+INDEX",
+    "msg": "Crée d'abord l'index."
+   },
+   {
+    "re": "ON\\s+trafic\\s*\\(\\s*poste\\s*\\)",
+    "msg": "L'index doit porter sur trafic(poste)."
+   },
+   {
+    "re": "SHOWPLAN_(TEXT|ALL)",
+    "msg": "Affiche le plan avec SET SHOWPLAN_TEXT ON (seul dans son lot, suivi d'une ligne GO)."
+   },
+   {
+    "re": "WHERE\\s+poste\\s*=\\s*'MAINT-07'",
+    "msg": "Analyse la requête demandée."
+   }
+  ]
+ },
+ "20.3": {
+  "solution": "CREATE INDEX idx_trafic_dst_h ON trafic(ip_dst, horodatage);",
+  "hints": [
+   "Un index composite liste plusieurs colonnes entre parenthèses, dans l'ordre où elles servent.",
+   "Structure : CREATE INDEX idx_trafic_dst_h ON trafic(ip_dst, horodatage);"
+  ],
+  "note": "La vérification lit sys.indexes et sys.index_columns (key_ordinal donne l'ordre des colonnes).",
+  "verify": [
+   "SELECT STRING_AGG(c.name, ',') WITHIN GROUP (ORDER BY i.name, ic.key_ordinal) FROM sys.indexes i JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id WHERE i.object_id = OBJECT_ID('trafic') AND i.is_primary_key = 0"
+  ]
+ },
+ "20.4": {
+  "solution": "CREATE INDEX idx_trafic_cov ON trafic(ip_dst) INCLUDE (poste, octets);\nGO\nSET SHOWPLAN_TEXT ON\nGO\nSELECT poste, octets FROM trafic WHERE ip_dst = '198.51.100.200';",
+  "hints": [
+   "En SQL Server, un index couvrant met la colonne de recherche en clé et les autres colonnes lues dans INCLUDE (...).",
+   "Structure : CREATE INDEX idx_trafic_cov ON trafic(ip_dst) INCLUDE (poste, octets); puis GO, SET SHOWPLAN_TEXT ON, GO, puis SELECT poste, octets FROM trafic WHERE ip_dst = '198.51.100.200';"
+  ],
+  "note": "INCLUDE stocke les colonnes au niveau feuille sans les mettre dans la clé ; le plan montre un Index Seek sur idx_trafic_cov sans Key Lookup (SQLite parle de COVERING INDEX).",
+  "contains": "idx_trafic_cov",
+  "require": [
+   {
+    "re": "CREATE\\s+INDEX",
+    "msg": "Crée l'index couvrant."
+   },
+   {
+    "re": "SHOWPLAN_(TEXT|ALL)",
+    "msg": "Affiche le plan avec SET SHOWPLAN_TEXT ON (seul dans son lot, suivi d'une ligne GO)."
+   },
+   {
+    "re": "SELECT\\s+poste\\s*,\\s*octets\\s+FROM\\s+trafic\\s+WHERE\\s+ip_dst",
+    "msg": "Analyse la requête demandée."
+   }
+  ]
+ },
+ "20.5": {
+  "solution": "CREATE INDEX idx_c2 ON trafic(ip_dst, horodatage) INCLUDE (poste);\nSELECT poste, MAX(horodatage) AS dernier_contact FROM trafic WHERE ip_dst = '198.51.100.200' AND horodatage >= '2027-05-12 23:20:00' GROUP BY poste ORDER BY dernier_contact;",
+  "hints": [
+   "Un index qui commence par ip_dst puis horodatage sert à la fois l'égalité et l'intervalle ; INCLUDE (poste) le rend couvrant.",
+   "Structure : CREATE INDEX idx_c2 ON trafic(ip_dst, horodatage) INCLUDE (poste); SELECT poste, MAX(horodatage) AS dernier_contact FROM trafic WHERE ip_dst = '...' AND horodatage >= '...' GROUP BY poste ORDER BY dernier_contact;"
+  ],
+  "note": "INCLUDE est propre à SQL Server : l'index couvre la requête sans mettre poste dans la clé.",
+  "worker": true
+ },
+ "20.A": {
+  "solution": "CREATE INDEX idx_sessions_poste_debut ON sessions_postes(poste, debut) INCLUDE (fin, login);\nGO\nSET SHOWPLAN_TEXT ON\nGO\nSELECT login FROM sessions_postes WHERE poste = 'MAINT-02' AND debut <= '2027-05-12 06:17:12' AND fin >= '2027-05-12 06:17:12';",
+  "hints": [
+   "Crée l'index composite, puis affiche le plan avec SET SHOWPLAN_TEXT ON (seul dans son lot, entre des lignes GO). Sur une petite table, SQL Server ignore un index qui l'obligerait à relire la table pour fin et login : ajoute-les avec INCLUDE.",
+   "Structure : CREATE INDEX idx_sessions_poste_debut ON sessions_postes(poste, debut) INCLUDE (fin, login); puis GO, SET SHOWPLAN_TEXT ON, GO, puis la requête SELECT login FROM sessions_postes WHERE ...;"
+  ],
+  "note": "Sans INCLUDE, l'optimiseur préfère un Clustered Index Scan (248 lignes, Key Lookup trop coûteux). Avec INCLUDE (fin, login), l'index est couvrant et le plan montre un Index Seek sur idx_sessions_poste_debut : égalité sur poste, intervalle sur debut.",
+  "contains": "idx_sessions_poste_debut",
+  "require": [
+   {
+    "re": "CREATE\\s+INDEX",
+    "msg": "Crée d'abord l'index."
+   },
+   {
+    "re": "ON\\s+sessions_postes\\s*\\(\\s*poste\\s*,\\s*debut\\s*\\)",
+    "msg": "L'index doit porter sur sessions_postes(poste, debut), dans cet ordre."
+   },
+   {
+    "re": "SHOWPLAN_(TEXT|ALL)",
+    "msg": "Affiche le plan avec SET SHOWPLAN_TEXT ON (seul dans son lot, suivi d'une ligne GO)."
+   },
+   {
+    "re": "WHERE\\s+poste\\s*=\\s*'MAINT-02'",
+    "msg": "Analyse la requête demandée."
+   }
+  ]
+ },
+ "20.S": {
+  "solution": "CREATE INDEX idx_tx_de ON tx_crypto(de);\nCREATE INDEX idx_tx_vers ON tx_crypto(vers) INCLUDE (montant, horodatage);\nSELECT w.adresse, w.plateforme, w.kyc_nom, ROUND(SUM(t.montant), 2) AS recu, MAX(t.horodatage) AS derniere_entree FROM wallets w JOIN tx_crypto t ON t.vers = w.adresse WHERE w.type = 'exchange' AND NOT EXISTS (SELECT 1 FROM tx_crypto x WHERE x.de = w.adresse) GROUP BY w.adresse, w.plateforme, w.kyc_nom;",
+  "hints": [
+   "Indexe les deux colonnes de jointure de tx_crypto (de et vers) ; INCLUDE peut rendre l'index sur vers couvrant.",
+   "Structure : CREATE INDEX idx_tx_de ON tx_crypto(de); CREATE INDEX idx_tx_vers ON tx_crypto(vers) INCLUDE (montant, horodatage); SELECT ... FROM wallets w JOIN tx_crypto t ON t.vers = w.adresse WHERE w.type = 'exchange' AND NOT EXISTS (SELECT 1 FROM tx_crypto x WHERE x.de = w.adresse) GROUP BY ...;"
+  ],
+  "note": "INCLUDE (montant, horodatage) évite les lectures dans la table pour SUM et MAX.",
+  "worker": true
+ }
+}

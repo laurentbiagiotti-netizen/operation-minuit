@@ -1,0 +1,50 @@
+// Saison 4 : scènes de fin d'épisode, personnages et tableau
+CAST.benali = { nom:'Malik Benali', role:'Chef du SOC, Ville de Seine' };
+CAST.varenne = { nom:'Clément Varenne', role:'Administrateur prestataire' };
+Object.assign(SCENES, {
+ 32:[['narr',"SOC de la Ville de Seine, 15 mars 2028, 7h. Des murs d'écrans, des cafés froids, et une carte de Paris où le sud clignote en rouge."],
+     ['benali',"La pulvérisation, on l'a vue passer le 5 mars. Trois cents échecs, rien de grave, on s'est dit. Personne n'a regardé le succès."],
+     ['byte',"Un compte de sauvegarde avec des droits d'admin et un mot de passe d'hiver 2027. C'est la porte la plus vieille du monde."],
+     ['varga',"Et cette porte mène au serveur de fichiers. Qu'est-ce qu'il y a dessus, monsieur Benali ?"],
+     ['benali',"Tout. Les dossiers de la ville, ceux de nos partenaires. TransSeine, la préfecture, la banque..."]],
+ 33:[['narr',"Bureau de la comptabilité. Nadia Perrin regarde son écran comme s'il l'avait trahie."],
+     ['varga',"Vous n'avez rien fait de mal, madame Perrin. Le mail était parfait. Le logo, la signature, le ton."],
+     ['byte',"Seul le domaine était faux : des tirets en trop et un « .com » au lieu de « .fr ». Personne ne lit les domaines un lundi à 9h."],
+     ['benali',"Quarante agents visés, trente-cinq l'ont reçu, cinq ont cliqué. Il en suffisait d'un."]],
+ 34:[['byte',"Word lance cmd, qui lance PowerShell, qui lance rundll32. Et la nuit suivante : procdump sur lsass."],
+     ['haddad',"Traduction pour une flic de terrain ?"],
+     ['byte',"Il a fait une photocopie de la mémoire de la machine. Et dans la mémoire, il y avait les mots de passe de tous ceux qui s'y étaient connectés."],
+     ['benali',"Dont celui de Clément Varenne. Il était venu réparer l'imprimante le 4 mars."]],
+ 35:[['narr',"Salon cyber de Lyon, stand 14. Clément Varenne répond au téléphone entre deux démonstrations."],
+     ['varenne',"Mon compte ? Sur le contrôleur de domaine, à une heure du matin ? J'étais à l'hôtel, commissaire. Il y a des caméras partout ici."],
+     ['varga',"Je sais, monsieur Varenne. La base de données le sait aussi. Vous êtes victime, pas suspect."],
+     ['byte',"Quelqu'un porte son identité comme un manteau. Et ce quelqu'un a maintenant les clés de toute la ville."]],
+ 36:[['byte',"Toutes les dix minutes, à cinq secondes près. Pendant huit jours. Aucun humain ne fait ça."],
+     ['benali',"cdn-update-check.net. Le nom est fait pour ressembler à une mise à jour. Personne ne bloque une mise à jour."],
+     ['varga',"Et le serveur qui reçoit les battements ?"],
+     ['byte',"192.0.2.66. On le garde de côté. Pour l'instant, il nous en dit plus en restant allumé."]],
+ 37:[['byte',"Cent cinquante octets. C'est tout ce qui est sorti. Mais ce ne sont pas des données, ce sont des noms de fichiers : le bordereau d'expédition."],
+     ['varga',"Le plan de TransSeine, le jeu de données de VIGIE, les règles antifraude d'Hélios. Nos trois affaires dans un même colis."],
+     ['haddad',"Livré à quelqu'un qui s'appelle MINOTAURE."],
+     ['varga',"Thésée, Ariane, le Minotaure. Delorme avait des lectures. Et quelqu'un d'autre aussi."]],
+ 38:[['narr',"Réservoir de Montsouris, 6h38. Sofia Lopez, administratrice de la ville, remet la consigne à 4,2 bars à la main. Les robinets du sud de Paris se remettent à couler."],
+     ['haddad',"Trois heures sans eau. Les pompiers, la police, les hôpitaux : tout le monde courait. C'était une diversion."],
+     ['varga',"Une diversion pour quoi ? Le 12 mars, rien n'a été volé."],
+     ['byte',"Rien de visible. C'était une répétition : mesurer combien de temps la police met à réagir quand la ville a soif. La vraie nuit est encore à venir."]],
+ 39:[['benali',"Comptes coupés, IOC en base, index posés. Et un trigger qui sonnera à chaque battement."],
+     ['byte',"La sentinelle ne dort pas, ne boit pas de café, et ne lit pas ses mails le lundi à 9h."],
+     ['varga',"Bien. Maintenant, je veux savoir qui paie ces lignes internet."]],
+ 40:[['benali',"Labyrinthe Énergie. Créée le 2 février. Une adresse dans le 12e qui n'existe sur aucune carte."],
+     ['haddad',"Voie de service, local technique... C'est une adresse de métro. Une station."],
+     ['varga',"Thésée Capital, Ariane Labs, Labyrinthe Énergie, MINOTAURE. Quelqu'un construit un labyrinthe autour de nous depuis des mois."],
+     ['narr',"Le 20 mars, une perquisition au bureau de Maxime Delorme met la main sur un carnet. Et la brigade a toujours ce numéro de cellule à Fleury-Mérogis, trouvé dans sa valise."],
+     ['byte',"Quatre affaires, un seul fil. Il est temps de tirer dessus."]]
+});
+BOARD.push(
+ {id:'svcbackup', img:null, t:'svc_backup', s:'La porte oubliée', unlock:'32.5', facts:['Compte de sauvegarde, droits admin','Tombé au 6e essai le 5 mars','IP 192.0.2.150','Revenu le 9 mars']},
+ {id:'perrin', img:null, t:'PC-COMPTA-07', s:'Le patient zéro', unlock:'33.5', facts:['Faux mail eaux-de-seine-fr.com','Macro de facture_0306.docm','Tâche planifiée MAJ_Adobe','Mots de passe lus dans lsass']},
+ {id:'varenne', img:'varenne', t:'Clément Varenne', s:'L\'identité volée', unlock:'35.4', facts:['Administrateur prestataire','À Lyon du 6 au 13 mars','Son compte a atteint DC01','Innocenté par les données']},
+ {id:'c2', img:null, t:'cdn-update-check.net', s:'Le cœur de l\'Hydre', unlock:'36.5', facts:['Balise toutes les 10 minutes','IP 192.0.2.66','PC-COMPTA-07 et SRV-FICHIERS']},
+ {id:'butin', img:null, t:'HYDRE>MINOTAURE', s:'Le butin', unlock:'37.5', facts:['Exfiltré par DNS le 9 mars','Plan du réseau TransSeine','Jeu de données VIGIE','Règles antifraude Hélios']},
+ {id:'labyrinthe', img:null, t:'Labyrinthe Énergie', s:'Le corps de l\'Hydre', unlock:'40.4', facts:['Abonnée aux lignes de l\'attaquant','Créée le 2 février 2028','Adresse : un tunnel du 12e']}
+);

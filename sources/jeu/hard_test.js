@@ -1,0 +1,21 @@
+const { chromium } = require('playwright');
+(async () => {
+  const U='http://127.0.0.1:8766/index.html';
+  const b = await chromium.launch(); const p = await b.newPage({ viewport:{width:1280,height:850} });
+  const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.goto(U); await p.waitForSelector('#loading', {state:'detached', timeout:60000});
+  await p.waitForSelector('#gate',{timeout:10000});
+  await p.fill('#gClasse','M1 DATA IA'); await p.fill('#gPrenom','Camille'); await p.fill('#gNom','Durand'); await p.click('#gGo'); await p.waitForTimeout(1500);
+  await p.click('[data-hard="maria"]'); await p.waitForTimeout(1500);
+  await p.evaluate(() => document.querySelector('.hardcard').scrollIntoView()); await p.screenshot({path:'/tmp/h1.png'});
+  await p.goto(U+'#m-1-4'); await p.waitForTimeout(1500);
+  await p.fill('#ed textarea', "SELECT prenom || ' ' || nom AS identite FROM suspects"); await p.click('#runBtn'); await p.waitForTimeout(2500);
+  console.log('wrong:', (await p.textContent('#verdict')).trim().slice(0,150));
+  await p.click('#hintBtn'); await p.waitForTimeout(1200); console.log('hint:', (await p.textContent('#hintlist')).trim().slice(0,150));
+  const sol = await (await fetch('http://127.0.0.1:8766/api/hard/config')).json();
+  await p.fill('#ed textarea', "SELECT CONCAT(prenom, ' ', nom) AS identite FROM suspects"); await p.click('#runBtn'); await p.waitForTimeout(2500);
+  console.log('right:', (await p.textContent('#verdict')).trim().slice(0,120));
+  await p.screenshot({path:'/tmp/h2.png'});
+  await p.goto(U+'#classement'); await p.waitForTimeout(2000); await p.screenshot({path:'/tmp/h3.png'});
+  console.log('errors', errs); await b.close();
+})();

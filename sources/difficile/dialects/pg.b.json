@@ -1,0 +1,1280 @@
+{
+ "21.1": {
+  "solution": "SELECT COUNT(*) AS total, COUNT(DISTINCT temoin) AS noms_bruts, COUNT(DISTINCT LOWER(TRIM(temoin))) AS noms_propres FROM temoignages_bruts;",
+  "hints": [
+   "COUNT(DISTINCT ...) accepte une expression : tu peux y mettre LOWER(TRIM(temoin)).",
+   "Structure : SELECT COUNT(*) AS total, COUNT(DISTINCT temoin) AS noms_bruts, COUNT(DISTINCT LOWER(TRIM(temoin))) AS noms_propres FROM ..."
+  ],
+  "note": "Rien ne change en PostgreSQL : LOWER et TRIM sont standard."
+ },
+ "21.2": {
+  "solution": "SELECT LOWER(TRIM(temoin)) AS temoin, COUNT(*) AS nb FROM temoignages_bruts GROUP BY LOWER(TRIM(temoin)) HAVING COUNT(*) > 1 ORDER BY nb DESC, temoin;",
+  "hints": [
+   "Regroupe sur l'expression nettoyée LOWER(TRIM(temoin)) et filtre les groupes avec HAVING.",
+   "GROUP BY LOWER(TRIM(temoin)) HAVING COUNT(*) > 1 ORDER BY nb DESC, temoin."
+  ]
+ },
+ "21.3": {
+  "solution": "DELETE FROM temoignages_bruts t USING (SELECT id, ROW_NUMBER() OVER (PARTITION BY LOWER(TRIM(temoin)) ORDER BY recu_le, id) AS rn FROM temoignages_bruts) r WHERE t.id = r.id AND r.rn > 1;",
+  "hints": [
+   "Numérote les lignes de chaque témoin normalisé avec ROW_NUMBER() OVER (PARTITION BY ... ORDER BY recu_le, id), puis supprime celles dont le numéro dépasse 1.",
+   "PostgreSQL permet DELETE FROM temoignages_bruts t USING (sous-requête numérotée) r WHERE t.id = r.id AND r.rn > 1."
+  ],
+  "note": "En PostgreSQL, DELETE ... USING joint directement la table à la sous-requête numérotée ; une sous-requête dans FROM doit avoir un alias.",
+  "verify": [
+   "SELECT id FROM temoignages_bruts ORDER BY id"
+  ]
+ },
+ "21.4": {
+  "solution": "SELECT UPPER(regexp_replace(plaque, '[ -]', '', 'g')) AS plaque, COUNT(*) AS nb FROM temoignages_bruts WHERE plaque IS NOT NULL AND TRIM(plaque) <> '' GROUP BY 1 ORDER BY nb DESC;",
+  "hints": [
+   "regexp_replace(texte, '[ -]', '', 'g') retire d'un coup les espaces et les tirets (le drapeau 'g' remplace toutes les occurrences).",
+   "SELECT UPPER(regexp_replace(plaque, '[ -]', '', 'g')) AS plaque, COUNT(*) AS nb ... WHERE plaque IS NOT NULL AND TRIM(plaque) <> '' GROUP BY 1 ORDER BY nb DESC."
+  ],
+  "note": "PostgreSQL offre regexp_replace avec le drapeau 'g' à la place des REPLACE imbriqués (qui marchent aussi)."
+ },
+ "21.5": {
+  "solution": "SELECT c.immatriculation, c.marque, c.couleur, c.titulaire, COUNT(DISTINCT LOWER(TRIM(t.temoin))) AS temoins FROM temoignages_bruts t JOIN cartes_grises c ON REPLACE(c.immatriculation, '-', '') = UPPER(regexp_replace(t.plaque, '[ -]', '', 'g')) GROUP BY c.immatriculation, c.marque, c.couleur, c.titulaire ORDER BY temoins DESC;",
+  "hints": [
+   "Joins sur les plaques nettoyées des deux côtés : sans tiret pour la carte grise, sans espace ni tiret et en majuscules pour le témoignage.",
+   "JOIN cartes_grises c ON REPLACE(c.immatriculation, '-', '') = UPPER(regexp_replace(t.plaque, '[ -]', '', 'g')), puis COUNT(DISTINCT LOWER(TRIM(t.temoin)))."
+  ]
+ },
+ "21.A": {
+  "solution": "SELECT DISTINCT LOWER(TRIM(temoin)) AS temoin, REPLACE(telephone, ' ', '') AS telephone FROM temoignages_bruts WHERE description NOT ILIKE 'Rien vu%' ORDER BY temoin;",
+  "hints": [
+   "Attention : en PostgreSQL, LIKE est sensible à la casse. ILIKE ne l'est pas, comme le LIKE de SQLite.",
+   "SELECT DISTINCT LOWER(TRIM(temoin)) AS temoin, REPLACE(telephone, ' ', '') AS telephone ... WHERE description NOT ILIKE 'Rien vu%' ORDER BY temoin."
+  ],
+  "note": "LIKE est sensible à la casse en PostgreSQL ; ILIKE reproduit le comportement de SQLite."
+ },
+ "21.S": {
+  "solution": "SELECT LOWER(TRIM(t.temoin)) AS temoin, COUNT(*) AS appels, COUNT(DISTINCT REPLACE(t.telephone, ' ', '')) AS numeros, MAX(c.immatriculation) AS plaque, MAX(c.titulaire) AS titulaire FROM temoignages_bruts t LEFT JOIN cartes_grises c ON REPLACE(c.immatriculation, '-', '') = UPPER(regexp_replace(t.plaque, '[ -]', '', 'g')) GROUP BY LOWER(TRIM(t.temoin)) HAVING COUNT(*) > 1 AND COUNT(DISTINCT REPLACE(t.telephone, ' ', '')) = COUNT(*) ORDER BY appels DESC, temoin;",
+  "hints": [
+   "LEFT JOIN vers cartes_grises sur les plaques nettoyées, puis regroupe par témoin normalisé.",
+   "HAVING COUNT(*) > 1 AND COUNT(DISTINCT REPLACE(t.telephone, ' ', '')) = COUNT(*) ; ORDER BY appels DESC, temoin."
+  ]
+ },
+ "22.1": {
+  "solution": "SELECT horodatage AS quand, 'connexions' AS source, login AS detail FROM connexions WHERE ip = '203.0.113.66' AND succes = 1 UNION ALL SELECT horodatage, 'badges', badge FROM acces_badges WHERE porte = 'Salle des coffres' AND resultat = 'OK' AND horodatage BETWEEN '2026-11-13 22:00:00' AND '2026-11-14 01:00:00' UNION ALL (SELECT horodatage, 'trafic', poste FROM trafic WHERE ip_dst = '198.51.100.200' ORDER BY horodatage LIMIT 1) UNION ALL SELECT horodatage, 'crypto', vers FROM tx_crypto WHERE de = 'bc1q-eclipse-7f3a' ORDER BY quand;",
+  "hints": [
+   "Chaque branche du UNION ALL renvoie trois colonnes de mêmes types. Pour ne garder que le premier contact, une branche peut avoir son propre ORDER BY ... LIMIT 1 si tu la mets entre parenthèses.",
+   "Structure : SELECT ... UNION ALL SELECT ... UNION ALL (SELECT horodatage, 'trafic', poste FROM trafic WHERE ... ORDER BY horodatage LIMIT 1) UNION ALL SELECT ... ORDER BY quand."
+  ],
+  "note": "En PostgreSQL, une branche de UNION avec son propre ORDER BY/LIMIT s'écrit simplement entre parenthèses."
+ },
+ "22.2": {
+  "solution": "WITH RECURSIVE chaine(siren, part) AS (SELECT importateur_siren, 100.0::float8 FROM conteneurs WHERE code = 'MSCU-449120' UNION ALL SELECT p.detenteur, c.part * p.pct / 100 FROM participations p JOIN chaine c ON p.detenue = c.siren), beneficiaires AS (SELECT REPLACE(siren, 'PERSONNE:', '') AS nom FROM chaine WHERE siren LIKE 'PERSONNE:%' AND part > 50), suivi(adresse, saut, chemin, quand) AS (SELECT 'bc1q-eclipse-7f3a'::text, 0, 'bc1q-eclipse-7f3a'::text, TIMESTAMP '2027-05-12 00:00:00' UNION ALL SELECT t.vers, s.saut + 1, s.chemin || ' > ' || t.vers, t.horodatage FROM tx_crypto t JOIN suivi s ON t.de = s.adresse WHERE s.saut < 8 AND t.horodatage > s.quand AND strpos(s.chemin, t.vers) = 0), kyc AS (SELECT DISTINCT w.kyc_nom FROM suivi s JOIN wallets w ON w.adresse = s.adresse WHERE w.type = 'exchange'), effaceurs AS (SELECT DISTINCT c.nom_complet FROM journal_brigade j JOIN consultants c ON c.login = j.login WHERE j.action = 'DELETE' AND j.table_cible = 'pieces') SELECT b.nom FROM beneficiaires b WHERE UPPER(left(b.nom, 1) || '. ' || split_part(b.nom, ' ', 2)) IN (SELECT kyc_nom FROM kyc) AND b.nom IN (SELECT nom_complet FROM effaceurs);",
+  "hints": [
+   "Dans une CTE récursive PostgreSQL, chaque colonne doit avoir exactement le même type dans les deux parties : caste la part de départ en float8 (pct est en double precision) et l'horodatage de départ en TIMESTAMP.",
+   "Trois CTE : chaine(siren, part) qui remonte participations, suivi(adresse, saut, chemin, quand) qui suit tx_crypto (strpos(chemin, vers) = 0 évite les boucles), puis effaceurs ; garde le nom dont UPPER(left(nom, 1) || '. ' || split_part(nom, ' ', 2)) est un kyc_nom d'exchange."
+  ],
+  "note": "PostgreSQL exige des types identiques entre les deux branches d'une CTE récursive (d'où 100.0::float8 et TIMESTAMP '...') ; instr devient strpos et SUBSTR/INSTR se simplifient avec left et split_part."
+ },
+ "22.3": {
+  "solution": "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT DISTINCT 'Éclipse', c.nom_complet, 'effacement de pièces' FROM consultants c JOIN journal_brigade j ON j.login = c.login WHERE j.action = 'DELETE';",
+  "hints": [
+   "Un INSERT INTO ... (colonnes) SELECT ... insère le résultat de la requête : les constantes 'Éclipse' et 'effacement de pièces' peuvent figurer dans le SELECT.",
+   "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT DISTINCT 'Éclipse', c.nom_complet, '...' FROM consultants c JOIN journal_brigade j ON j.login = c.login WHERE j.action = 'DELETE'."
+  ],
+  "note": "Rien de propre au moteur : INSERT ... SELECT est standard.",
+  "setup": "CREATE TABLE proces_verbal (affaire TEXT NOT NULL, coupable TEXT NOT NULL, preuve TEXT);",
+  "verify": [
+   "SELECT affaire, coupable FROM proces_verbal"
+  ]
+ },
+ "22.A": {
+  "solution": "SELECT horodatage AS quand, 'helios' AS source, ip AS detail FROM connexions WHERE login = 'f.ouali' AND ip = '203.0.113.66' UNION ALL SELECT (contenu->>'date')::timestamp, 'saisies', contenu->>'texte' FROM saisies WHERE contenu->>'de' = 'cartographe' UNION ALL SELECT debut, 'sessions', poste FROM sessions_postes WHERE login = 'ext.kartograf' UNION ALL SELECT horodatage, 'journal', ancienne_valeur->>'description' FROM journal_brigade WHERE login = 'consultant.fo' AND action = 'DELETE' ORDER BY quand;",
+  "hints": [
+   "Les colonnes contenu et ancienne_valeur sont en jsonb : l'opérateur ->> lit un champ sous forme de texte (contenu->>'date').",
+   "La date lue dans le JSON est du texte : caste-la avec (contenu->>'date')::timestamp pour qu'elle s'empile avec les horodatages des autres branches et se trie correctement."
+  ],
+  "note": "En PostgreSQL, json_extract devient l'opérateur ->> sur jsonb, et chaque branche du UNION doit avoir le même type : la date JSON est castée en timestamp."
+ },
+ "22.S": {
+  "solution": "WITH RECURSIVE chaine(siren, part) AS (SELECT importateur_siren, 100.0::float8 FROM conteneurs WHERE code = 'MSCU-449120' UNION ALL SELECT p.detenteur, c.part * p.pct / 100 FROM participations p JOIN chaine c ON p.detenue = c.siren), b AS (SELECT REPLACE(siren, 'PERSONNE:', '') AS nom, part FROM chaine WHERE siren LIKE 'PERSONNE:%') SELECT b.nom AS beneficiaire, ROUND(b.part::numeric, 1) AS part, w.plateforme, w.adresse, (SELECT ROUND(SUM(montant)::numeric, 2) FROM tx_crypto WHERE vers = w.adresse) AS recu FROM b JOIN wallets w ON w.kyc_nom = UPPER(left(b.nom, 1) || '. ' || split_part(b.nom, ' ', 2)) WHERE b.nom NOT IN (SELECT nom_complet FROM consultants);",
+  "hints": [
+   "La part et les montants sont en double precision : en PostgreSQL, ROUND(x, n) n'existe que pour le type numeric, caste avec ::numeric avant d'arrondir.",
+   "CTE récursive chaine(siren, part) avec 100.0::float8 au départ, puis JOIN wallets w ON w.kyc_nom = UPPER(left(nom, 1) || '. ' || split_part(nom, ' ', 2)) et une sous-requête ROUND(SUM(montant)::numeric, 2) pour recu."
+  ],
+  "note": "ROUND(double precision, n) n'existe pas en PostgreSQL : il faut caster en numeric. Les types de la CTE récursive doivent aussi être identiques."
+ },
+ "23.1": {
+  "solution": "SELECT label_risque, COUNT(*) AS nb FROM dataset_vigie GROUP BY label_risque ORDER BY label_risque;",
+  "hints": [
+   "Un GROUP BY sur label_risque et un COUNT(*) suffisent.",
+   "SELECT label_risque, COUNT(*) AS nb FROM dataset_vigie GROUP BY label_risque ORDER BY label_risque."
+  ]
+ },
+ "23.2": {
+  "solution": "SELECT COUNT(*) AS lignes, COUNT(*) FILTER (WHERE meteo IS NULL) AS meteo_manquante, ROUND(100.0 * COUNT(*) FILTER (WHERE meteo IS NULL) / COUNT(*), 1) AS pct FROM dataset_vigie;",
+  "hints": [
+   "PostgreSQL connaît la clause FILTER : COUNT(*) FILTER (WHERE meteo IS NULL) compte seulement les lignes sans météo. COUNT(*) - COUNT(meteo) marche aussi.",
+   "ROUND(100.0 * COUNT(*) FILTER (WHERE meteo IS NULL) / COUNT(*), 1) : le 100.0 évite la division entière."
+  ],
+  "note": "PostgreSQL propose la clause FILTER des agrégats, plus lisible que COUNT(*) - COUNT(meteo)."
+ },
+ "23.3": {
+  "solution": "SELECT quartier, COUNT(*) AS exemples, ROUND(100.0 * AVG(label_risque), 1) AS pct_risque FROM dataset_vigie GROUP BY quartier ORDER BY pct_risque DESC;",
+  "hints": [
+   "Comme label_risque vaut 0 ou 1, sa moyenne est la proportion de 1.",
+   "ROUND(100.0 * AVG(label_risque), 1) AS pct_risque, GROUP BY quartier ORDER BY pct_risque DESC."
+  ],
+  "note": "AVG d'un entier renvoie un numeric en PostgreSQL : ROUND(..., 1) s'applique directement."
+ },
+ "23.4": {
+  "solution": "SELECT quartier, date, creneau, COUNT(*) AS nb FROM dataset_vigie GROUP BY quartier, date, creneau HAVING COUNT(*) > 1;",
+  "hints": [
+   "Regroupe sur les trois colonnes qui devraient identifier une situation, puis garde les groupes de plus d'une ligne.",
+   "GROUP BY quartier, date, creneau HAVING COUNT(*) > 1."
+  ]
+ },
+ "23.5": {
+  "solution": "SELECT quartier, COUNT(*) AS exemples, ROUND(100.0 * AVG(label_risque), 1) AS pct_risque, ROUND(100.0 * COUNT(*) FILTER (WHERE meteo IS NULL) / COUNT(*), 1) AS pct_meteo_nulle, MIN(date) AS debut, MAX(date) AS fin FROM dataset_vigie GROUP BY quartier ORDER BY quartier;",
+  "hints": [
+   "Combine les calculs des missions précédentes dans un seul GROUP BY quartier ; MIN et MAX fonctionnent sur une colonne DATE.",
+   "ROUND(100.0 * AVG(label_risque), 1), ROUND(100.0 * COUNT(*) FILTER (WHERE meteo IS NULL) / COUNT(*), 1), MIN(date) AS debut, MAX(date) AS fin."
+  ]
+ },
+ "23.A": {
+  "solution": "SELECT COALESCE(meteo, 'inconnue') AS meteo, COUNT(*) AS nb, ROUND(100.0 * AVG(reel), 1) AS pct_reel FROM dataset_vigie GROUP BY COALESCE(meteo, 'inconnue') ORDER BY nb DESC;",
+  "hints": [
+   "COALESCE(meteo, 'inconnue') remplace le NULL ; regroupe sur cette même expression.",
+   "SELECT COALESCE(meteo, 'inconnue') AS meteo, COUNT(*) AS nb, ROUND(100.0 * AVG(reel), 1) AS pct_reel ... GROUP BY 1 ORDER BY nb DESC."
+  ]
+ },
+ "23.S": {
+  "solution": "SELECT id, date, creneau, annote_par, annote_le, date - annote_le::date AS jours_avance FROM dataset_vigie WHERE annote_le::date < date ORDER BY date, creneau;",
+  "hints": [
+   "En PostgreSQL, annote_le::date garde le jour d'un timestamp, et la différence de deux DATE donne directement un nombre entier de jours.",
+   "SELECT ..., date - annote_le::date AS jours_avance FROM dataset_vigie WHERE annote_le::date < date ORDER BY date, creneau."
+  ],
+  "note": "Pas de julianday en PostgreSQL : DATE - DATE renvoie un entier (nombre de jours) et ::date tronque un timestamp au jour."
+ },
+ "24.1": {
+  "solution": "SELECT CASE WHEN incidents_7j < 5 THEN 'calme' WHEN incidents_7j < 10 THEN 'moyen' ELSE 'chaud' END AS tranche, COUNT(*) AS nb FROM dataset_vigie GROUP BY tranche;",
+  "hints": [
+   "Un CASE WHEN ... THEN ... ELSE ... END découpe incidents_7j en tranches ; PostgreSQL accepte de regrouper sur son alias.",
+   "SELECT CASE WHEN incidents_7j < 5 THEN 'calme' WHEN incidents_7j < 10 THEN 'moyen' ELSE 'chaud' END AS tranche, COUNT(*) AS nb ... GROUP BY tranche."
+  ]
+ },
+ "24.2": {
+  "solution": "SELECT id, (creneau = 'nuit')::int AS c_nuit, (creneau = 'matin')::int AS c_matin, (creneau = 'aprem')::int AS c_aprem, (creneau = 'soir')::int AS c_soir FROM dataset_vigie ORDER BY id LIMIT 8;",
+  "hints": [
+   "En PostgreSQL, une comparaison renvoie un booléen (true/false) : caste-la en entier avec ::int pour obtenir 0 ou 1.",
+   "SELECT id, (creneau = 'nuit')::int AS c_nuit, ... FROM dataset_vigie ORDER BY id LIMIT 8."
+  ],
+  "note": "PostgreSQL a un vrai type boolean : (creneau = 'nuit') vaut true/false, ::int le transforme en 1/0."
+ },
+ "24.3": {
+  "solution": "WITH n AS (SELECT id, quartier, date, creneau, incidents_7j, ROUND((incidents_7j - MIN(incidents_7j) OVER ()) * 1.0 / (MAX(incidents_7j) OVER () - MIN(incidents_7j) OVER ()), 3) AS inc_norm FROM dataset_vigie) SELECT id, creneau, incidents_7j, inc_norm FROM n WHERE quartier = 'La Défense' AND date = '2028-02-01';",
+  "hints": [
+   "MIN(...) OVER () et MAX(...) OVER () donnent le minimum et le maximum de toute la table sur chaque ligne ; calcule la normalisation dans une CTE avant de filtrer.",
+   "Dans la CTE : ROUND((incidents_7j - MIN(incidents_7j) OVER ()) * 1.0 / (MAX(incidents_7j) OVER () - MIN(incidents_7j) OVER ()), 3) ; le * 1.0 évite la division entière."
+  ]
+ },
+ "24.4": {
+  "solution": "WITH n AS (SELECT date, MAX(label_risque) AS label_risque FROM dataset_vigie WHERE quartier = 'La Défense' AND creneau = 'nuit' GROUP BY date), f AS (SELECT date, label_risque, SUM(label_risque) OVER (ORDER BY date ROWS BETWEEN 7 PRECEDING AND 1 PRECEDING) AS risque_7_nuits FROM n) SELECT date, label_risque, risque_7_nuits FROM f WHERE date >= DATE '2028-02-01' AND date < DATE '2028-03-01' ORDER BY date;",
+  "hints": [
+   "La colonne date est une vraie DATE en PostgreSQL : LIKE '2028-02%' ne marche pas dessus, filtre plutôt avec un intervalle de dates (>= '2028-02-01' et < '2028-03-01').",
+   "Calcule la fenêtre SUM(label_risque) OVER (ORDER BY date ROWS BETWEEN 7 PRECEDING AND 1 PRECEDING) dans une CTE, puis filtre février dans la requête finale."
+  ],
+  "note": "Sur une colonne DATE, PostgreSQL refuse LIKE : on filtre le mois avec un intervalle de dates (ou date_trunc('month', date))."
+ },
+ "24.5": {
+  "solution": "SELECT to_char(date, 'YYYY-MM') AS mois, ROUND(100.0 * AVG(label_risque), 1) AS pct_label, ROUND(100.0 * AVG(reel), 1) AS pct_reel FROM dataset_vigie WHERE quartier = 'La Défense' AND creneau = 'nuit' GROUP BY mois ORDER BY mois;",
+  "hints": [
+   "strftime n'existe pas en PostgreSQL : to_char(date, 'YYYY-MM') donne le mois sous forme de texte.",
+   "SELECT to_char(date, 'YYYY-MM') AS mois, ROUND(100.0 * AVG(label_risque), 1) AS pct_label, ... GROUP BY mois ORDER BY mois."
+  ],
+  "note": "strftime('%Y-%m', ...) devient to_char(..., 'YYYY-MM')."
+ },
+ "24.A": {
+  "solution": "SELECT CASE WHEN jour_semaine IN (5, 6) THEN 'week-end' ELSE 'semaine' END AS periode, creneau, COUNT(*) AS nb, ROUND(100.0 * AVG(reel), 1) AS pct_reel FROM dataset_vigie GROUP BY periode, creneau ORDER BY periode, creneau;",
+  "hints": [
+   "Construis la période avec un CASE sur jour_semaine, puis regroupe sur la période et le créneau.",
+   "CASE WHEN jour_semaine IN (5, 6) THEN 'week-end' ELSE 'semaine' END AS periode ... GROUP BY periode, creneau ORDER BY periode, creneau."
+  ]
+ },
+ "24.S": {
+  "solution": "SELECT creneau, ROUND(100.0 * AVG(label_risque) FILTER (WHERE date < '2028-02-01'), 1) AS pct_label_avant, ROUND(100.0 * AVG(label_risque) FILTER (WHERE date >= '2028-02-01'), 1) AS pct_label_fevrier, ROUND(100.0 * AVG(reel) FILTER (WHERE date >= '2028-02-01'), 1) AS pct_reel_fevrier FROM dataset_vigie WHERE quartier = 'La Défense' GROUP BY creneau ORDER BY creneau;",
+  "hints": [
+   "La clause FILTER (WHERE ...) de PostgreSQL restreint un agrégat à certaines lignes : AVG(label_risque) FILTER (WHERE date < '2028-02-01').",
+   "Trois agrégats filtrés dans un même GROUP BY creneau : ROUND(100.0 * AVG(x) FILTER (WHERE ...), 1)."
+  ],
+  "note": "FILTER remplace élégamment AVG(CASE WHEN ... THEN x END)."
+ },
+ "25.1": {
+  "solution": "SELECT split, COUNT(*) AS nb, ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct FROM dataset_vigie GROUP BY split;",
+  "hints": [
+   "Une fonction de fenêtre peut s'appliquer à un agrégat : SUM(COUNT(*)) OVER () donne le total de tous les groupes.",
+   "ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct ... GROUP BY split."
+  ]
+ },
+ "25.2": {
+  "solution": "SELECT COUNT(*) AS fuites FROM (SELECT quartier, date, creneau FROM dataset_vigie WHERE split = 'train' INTERSECT SELECT quartier, date, creneau FROM dataset_vigie WHERE split = 'test') AS communs;",
+  "hints": [
+   "INTERSECT garde les lignes présentes dans les deux requêtes ; compte-les dans une requête englobante.",
+   "SELECT COUNT(*) AS fuites FROM (SELECT ... WHERE split = 'train' INTERSECT SELECT ... WHERE split = 'test') AS communs."
+  ],
+  "note": "Rien de particulier : INTERSECT est standard ; donne un alias à la sous-requête."
+ },
+ "25.3": {
+  "solution": "SELECT to_char(date, 'YYYY-MM') AS mois, COUNT(*) FILTER (WHERE split = 'train') AS train, COUNT(*) FILTER (WHERE split = 'test') AS test FROM dataset_vigie GROUP BY mois ORDER BY mois;",
+  "hints": [
+   "to_char(date, 'YYYY-MM') donne le mois ; COUNT(*) FILTER (WHERE split = 'train') compte un seul split.",
+   "SELECT to_char(date, 'YYYY-MM') AS mois, COUNT(*) FILTER (WHERE split = 'train') AS train, COUNT(*) FILTER (WHERE split = 'test') AS test ... GROUP BY mois ORDER BY mois."
+  ],
+  "note": "strftime devient to_char, et le pivot SUM(CASE ...) peut s'écrire avec FILTER."
+ },
+ "25.4": {
+  "solution": "SELECT CASE WHEN date < '2028-02-01' THEN 'train' ELSE 'test' END AS jeu, COUNT(*) AS nb, ROUND(100.0 * AVG(label_risque), 1) AS pct_risque FROM dataset_vigie GROUP BY jeu ORDER BY jeu DESC;",
+  "hints": [
+   "Construis le jeu avec un CASE sur la date (comparée à la chaîne '2028-02-01', convertie en DATE par PostgreSQL).",
+   "SELECT CASE WHEN date < '2028-02-01' THEN 'train' ELSE 'test' END AS jeu, COUNT(*) AS nb, ROUND(100.0 * AVG(label_risque), 1) ... GROUP BY jeu ORDER BY jeu DESC."
+  ]
+ },
+ "25.5": {
+  "solution": "CREATE VIEW v_train AS SELECT * FROM dataset_vigie WHERE date < '2028-02-01' AND id IN (SELECT MIN(id) FROM dataset_vigie GROUP BY quartier, date, creneau); CREATE VIEW v_test AS SELECT * FROM dataset_vigie WHERE date >= '2028-02-01' AND id IN (SELECT MIN(id) FROM dataset_vigie GROUP BY quartier, date, creneau);",
+  "hints": [
+   "Crée deux vues avec CREATE VIEW nom AS SELECT ... ; pour dédoublonner, garde les id renvoyés par SELECT MIN(id) ... GROUP BY quartier, date, creneau.",
+   "CREATE VIEW v_train AS SELECT * FROM dataset_vigie WHERE date < '2028-02-01' AND id IN (SELECT MIN(id) ...); puis la même chose pour v_test avec date >= '2028-02-01'."
+  ],
+  "note": "CREATE VIEW est identique en PostgreSQL.",
+  "verify": [
+   "SELECT COUNT(*), MIN(date), MAX(date) FROM v_train",
+   "SELECT COUNT(*), MIN(date), MAX(date) FROM v_test",
+   "SELECT COUNT(*) FROM (SELECT quartier, date, creneau FROM v_train INTERSECT SELECT quartier, date, creneau FROM v_test) AS x"
+  ]
+ },
+ "25.A": {
+  "solution": "SELECT CASE WHEN id % 5 = 0 THEN 'test' ELSE 'train' END AS jeu, COUNT(*) AS nb, ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct, ROUND(100.0 * AVG(label_risque), 1) AS pct_risque FROM dataset_vigie GROUP BY jeu ORDER BY jeu DESC;",
+  "hints": [
+   "L'opérateur % donne le reste de la division entière en PostgreSQL (mod(id, 5) aussi).",
+   "CASE WHEN id % 5 = 0 THEN 'test' ELSE 'train' END AS jeu, puis ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct."
+  ]
+ },
+ "25.S": {
+  "solution": "SELECT d.id, d.date, d.creneau, d.label_risque, d.reel, EXISTS (SELECT 1 FROM dataset_vigie t WHERE t.split = 'train' AND t.quartier = d.quartier AND t.date = d.date AND t.creneau = d.creneau)::int AS jumeau FROM dataset_vigie d WHERE d.split = 'test' AND d.quartier = 'La Défense' AND d.creneau IN ('nuit', 'soir') AND d.date >= '2028-02-01' AND d.date < '2028-03-01' ORDER BY d.date, d.creneau;",
+  "hints": [
+   "EXISTS (sous-requête corrélée) renvoie un booléen ; caste-le en entier avec ::int pour obtenir 1 ou 0.",
+   "Filtre février avec d.date >= '2028-02-01' AND d.date < '2028-03-01' (pas de LIKE sur une DATE) et ajoute EXISTS (SELECT 1 FROM dataset_vigie t WHERE t.split = 'train' AND ...)::int AS jumeau."
+  ],
+  "note": "EXISTS renvoie un boolean en PostgreSQL (::int pour 0/1) et LIKE ne s'applique pas à une colonne DATE."
+ },
+ "26.1": {
+  "solution": "SELECT COUNT(*) FILTER (WHERE p.prediction = 1 AND d.reel = 1) AS tp, COUNT(*) FILTER (WHERE p.prediction = 1 AND d.reel = 0) AS fp, COUNT(*) FILTER (WHERE p.prediction = 0 AND d.reel = 1) AS fn, COUNT(*) FILTER (WHERE p.prediction = 0 AND d.reel = 0) AS tn FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id WHERE p.modele = 'v1';",
+  "hints": [
+   "Joins predictions_vigie à dataset_vigie, puis compte chaque case de la matrice de confusion avec COUNT(*) FILTER (WHERE ...).",
+   "COUNT(*) FILTER (WHERE p.prediction = 1 AND d.reel = 1) AS tp, ... (quatre agrégats filtrés) ... WHERE p.modele = 'v1'."
+  ],
+  "note": "La clause FILTER de PostgreSQL remplace SUM(CASE WHEN ... THEN 1 ELSE 0 END)."
+ },
+ "26.2": {
+  "solution": "WITH m AS (SELECT p.modele, COUNT(*) FILTER (WHERE p.prediction = 1 AND d.reel = 1) AS tp, COUNT(*) FILTER (WHERE p.prediction = 1 AND d.reel = 0) AS fp, COUNT(*) FILTER (WHERE p.prediction = 0 AND d.reel = 1) AS fn, COUNT(*) FILTER (WHERE p.prediction = 0 AND d.reel = 0) AS tn FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id GROUP BY p.modele) SELECT modele, ROUND(1.0 * (tp + tn) / (tp + fp + fn + tn), 3) AS exactitude, ROUND(1.0 * tp / (tp + fp), 3) AS precision, ROUND(1.0 * tp / (tp + fn), 3) AS rappel FROM m ORDER BY modele;",
+  "hints": [
+   "Calcule tp, fp, fn, tn par modèle dans une CTE, puis les ratios dans la requête finale. COUNT renvoie un bigint : multiplie par 1.0 pour une division décimale.",
+   "WITH m AS (SELECT p.modele, COUNT(*) FILTER (WHERE ...) AS tp, ... GROUP BY p.modele) SELECT modele, ROUND(1.0 * (tp + tn) / (tp + fp + fn + tn), 3) AS exactitude, ..."
+  ]
+ },
+ "26.3": {
+  "solution": "WITH m AS (SELECT p.modele, COUNT(*) FILTER (WHERE p.prediction = 1 AND d.reel = 1) AS tp, COUNT(*) FILTER (WHERE p.prediction = 1 AND d.reel = 0) AS fp, COUNT(*) FILTER (WHERE p.prediction = 0 AND d.reel = 1) AS fn, COUNT(*) FILTER (WHERE p.prediction = 0 AND d.reel = 0) AS tn FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id GROUP BY p.modele) SELECT modele, ROUND(2.0 * tp / (2 * tp + fp + fn), 3) AS f1 FROM m ORDER BY modele;",
+  "hints": [
+   "Le F1 vaut 2 tp / (2 tp + fp + fn) ; écris 2.0 pour éviter la division entière.",
+   "Reprends la CTE de la matrice de confusion par modèle, puis ROUND(2.0 * tp / (2 * tp + fp + fn), 3) AS f1."
+  ]
+ },
+ "26.4": {
+  "solution": "WITH r AS (SELECT d.quartier, 1.0 * COUNT(*) FILTER (WHERE p.modele = 'v1' AND p.prediction = 1 AND d.reel = 1) / COUNT(*) FILTER (WHERE p.modele = 'v1' AND d.reel = 1) AS r1, 1.0 * COUNT(*) FILTER (WHERE p.modele = 'v2' AND p.prediction = 1 AND d.reel = 1) / COUNT(*) FILTER (WHERE p.modele = 'v2' AND d.reel = 1) AS r2 FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id GROUP BY d.quartier) SELECT quartier, ROUND(r1, 3) AS rappel_v1, ROUND(r2, 3) AS rappel_v2, ROUND(r2 - r1, 3) AS ecart FROM r ORDER BY ecart;",
+  "hints": [
+   "Par quartier, le rappel d'un modèle est (vrais positifs) / (exemples réellement positifs) ; deux agrégats filtrés par modèle suffisent.",
+   "WITH r AS (SELECT d.quartier, 1.0 * COUNT(*) FILTER (WHERE p.modele = 'v1' AND p.prediction = 1 AND d.reel = 1) / COUNT(*) FILTER (WHERE p.modele = 'v1' AND d.reel = 1) AS r1, ... GROUP BY d.quartier), puis ROUND(r2 - r1, 3) AS ecart ORDER BY ecart."
+  ],
+  "note": "On garde des valeurs non arrondies dans la CTE et on arrondit l'écart à la fin ; 1.0 * force un numeric."
+ },
+ "26.5": {
+  "solution": "WITH RECURSIVE s(t) AS (SELECT 0.1 UNION ALL SELECT t + 0.1 FROM s WHERE t < 0.9), m AS (SELECT s.t, COUNT(*) FILTER (WHERE p.score >= s.t AND d.reel = 1) AS tp, COUNT(*) FILTER (WHERE p.score >= s.t AND d.reel = 0) AS fp, COUNT(*) FILTER (WHERE p.score < s.t AND d.reel = 1) AS fn FROM s CROSS JOIN predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id WHERE p.modele = 'v2' AND d.quartier = 'La Défense' GROUP BY s.t) SELECT t AS seuil, ROUND(1.0 * tp / NULLIF(tp + fp, 0), 3) AS precision, ROUND(1.0 * tp / (tp + fn), 3) AS rappel FROM m ORDER BY seuil;",
+  "hints": [
+   "WITH RECURSIVE s(t) AS (SELECT 0.1 UNION ALL SELECT t + 0.1 FROM s WHERE t < 0.9) génère les seuils ; en PostgreSQL 0.1 est un numeric exact, donc pas d'erreur d'arrondi qui s'accumule.",
+   "Croise les seuils avec les prédictions (CROSS JOIN), compte tp, fp, fn par seuil avec FILTER, puis NULLIF(tp + fp, 0) évite la division par zéro."
+  ],
+  "note": "Les constantes décimales sont des numeric exacts en PostgreSQL : t + 0.1 n'a pas besoin de ROUND, contrairement aux flottants de SQLite. Pour generate_series, la CTE récursive est exigée ici."
+ },
+ "26.A": {
+  "solution": "SELECT p.modele, COUNT(*) FILTER (WHERE p.prediction = 1 AND d.reel = 1) AS tp, COUNT(*) FILTER (WHERE p.prediction = 1 AND d.reel = 0) AS fp, COUNT(*) FILTER (WHERE p.prediction = 0 AND d.reel = 1) AS fn, COUNT(*) FILTER (WHERE p.prediction = 0 AND d.reel = 0) AS tn FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id WHERE d.quartier = 'La Défense' GROUP BY p.modele ORDER BY p.modele;",
+  "hints": [
+   "Même matrice de confusion qu'en 26.1, mais regroupée par modèle et limitée à La Défense.",
+   "SELECT p.modele, COUNT(*) FILTER (WHERE p.prediction = 1 AND d.reel = 1) AS tp, ... WHERE d.quartier = 'La Défense' GROUP BY p.modele ORDER BY p.modele."
+  ]
+ },
+ "26.S": {
+  "solution": "SELECT p.modele, COUNT(*) AS nb, ROUND(AVG((p.prediction = d.label_risque)::int), 3) AS exactitude_label, ROUND(AVG((p.prediction = d.reel)::int), 3) AS exactitude_reel FROM predictions_vigie p JOIN dataset_vigie d ON d.id = p.dataset_id WHERE d.quartier = 'La Défense' AND d.creneau IN ('nuit', 'soir') AND d.date >= '2028-02-01' AND d.date < '2028-03-01' GROUP BY p.modele ORDER BY p.modele;",
+  "hints": [
+   "AVG n'accepte pas de booléen en PostgreSQL : caste la comparaison en entier, AVG((p.prediction = d.reel)::int).",
+   "Filtre février par un intervalle de dates (pas de LIKE sur DATE), puis ROUND(AVG((p.prediction = d.label_risque)::int), 3) AS exactitude_label."
+  ],
+  "note": "En PostgreSQL une comparaison est un boolean : AVG(a = b) est refusé, il faut AVG((a = b)::int)."
+ },
+ "27.1": {
+  "solution": "SELECT a.pseudo, a.inscrit_le, COUNT(*) AS nb FROM dataset_vigie d JOIN annotateurs a ON a.id = d.annote_par WHERE d.quartier = 'La Défense' AND d.creneau IN ('nuit', 'soir') AND d.date >= '2028-02-01' AND d.date < '2028-03-01' GROUP BY a.id, a.pseudo, a.inscrit_le ORDER BY nb DESC;",
+  "hints": [
+   "Joins dataset_vigie à annotateurs par annote_par ; pour février, compare la DATE à un intervalle.",
+   "WHERE d.quartier = 'La Défense' AND d.creneau IN ('nuit', 'soir') AND d.date >= '2028-02-01' AND d.date < '2028-03-01' GROUP BY a.id, a.pseudo, a.inscrit_le ORDER BY nb DESC."
+  ]
+ },
+ "27.2": {
+  "solution": "SELECT a.annotateur_id, COUNT(*) AS nb, ROUND(AVG((a.label = d.reel)::int), 3) AS accord FROM annotations a JOIN dataset_vigie d ON d.id = a.item_id GROUP BY a.annotateur_id ORDER BY accord, a.annotateur_id LIMIT 5;",
+  "hints": [
+   "L'accord est la moyenne de la comparaison label = reel, castée en entier : AVG((a.label = d.reel)::int).",
+   "GROUP BY a.annotateur_id ORDER BY accord, a.annotateur_id LIMIT 5."
+  ],
+  "note": "AVG d'un boolean est refusé en PostgreSQL : on caste la comparaison en int."
+ },
+ "27.3": {
+  "solution": "SELECT to_char(horodatage, 'YYYY-MM-DD HH24') AS heure, COUNT(*) AS nb FROM annotations GROUP BY heure ORDER BY nb DESC LIMIT 3;",
+  "hints": [
+   "to_char(horodatage, 'YYYY-MM-DD HH24') formate l'heure sur 24 heures (HH seul donnerait l'heure sur 12).",
+   "SELECT to_char(horodatage, 'YYYY-MM-DD HH24') AS heure, COUNT(*) AS nb FROM annotations GROUP BY heure ORDER BY nb DESC LIMIT 3."
+  ],
+  "note": "strftime('%Y-%m-%d %H', ...) devient to_char(..., 'YYYY-MM-DD HH24') ; date_trunc('hour', horodatage) regrouperait aussi mais afficherait les minutes."
+ },
+ "27.4": {
+  "solution": "SELECT SUM(a.label) FILTER (WHERE a.annotateur_id IN (41, 42, 43)) AS votes_suspects_1, COUNT(*) FILTER (WHERE a.annotateur_id IN (41, 42, 43)) AS votes_suspects, SUM(a.label) FILTER (WHERE a.annotateur_id NOT IN (41, 42, 43)) AS votes_honnetes_1, COUNT(*) FILTER (WHERE a.annotateur_id NOT IN (41, 42, 43)) AS votes_honnetes FROM annotations a JOIN dataset_vigie d ON d.id = a.item_id WHERE d.quartier = 'La Défense' AND d.date >= '2028-02-01' AND d.date < '2028-03-01' AND a.item_id IN (SELECT item_id FROM annotations WHERE annotateur_id IN (41, 42, 43));",
+  "hints": [
+   "Restreins les items avec a.item_id IN (SELECT item_id FROM annotations WHERE annotateur_id IN (41, 42, 43)), puis sépare suspects et honnêtes avec des agrégats filtrés.",
+   "SUM(a.label) FILTER (WHERE a.annotateur_id IN (41, 42, 43)) AS votes_suspects_1, COUNT(*) FILTER (WHERE ...) AS votes_suspects, et la même chose avec NOT IN."
+  ],
+  "note": "FILTER remplace les SUM(CASE ...) ; attention, SUM(...) FILTER renvoie NULL s'il n'y a aucune ligne, ce qui n'arrive pas ici."
+ },
+ "27.5": {
+  "solution": "WITH RECURSIVE chaine(siren, part) AS (SELECT DISTINCT p.payeur_siren, 100.0::float8 FROM paiements_annotation p JOIN annotateurs a ON a.compte_paiement = p.compte_paiement WHERE a.id IN (41, 42, 43) UNION ALL SELECT pa.detenteur, c.part * pa.pct / 100 FROM participations pa JOIN chaine c ON pa.detenue = c.siren) SELECT REPLACE(siren, 'PERSONNE:', '') AS beneficiaire, ROUND(part::numeric, 1) AS part FROM chaine WHERE siren LIKE 'PERSONNE:%' ORDER BY part DESC;",
+  "hints": [
+   "pct est en double precision : dans la CTE récursive, la part de départ doit avoir le même type, écris 100.0::float8.",
+   "WITH RECURSIVE chaine(siren, part) AS (SELECT DISTINCT p.payeur_siren, 100.0::float8 FROM ... UNION ALL SELECT pa.detenteur, c.part * pa.pct / 100 FROM participations pa JOIN chaine c ON pa.detenue = c.siren), puis ROUND(part::numeric, 1)."
+  ],
+  "note": "Types identiques exigés dans une CTE récursive (float8) et ROUND(x, n) seulement sur numeric."
+ },
+ "27.A": {
+  "solution": "WITH par_item AS (SELECT item_id, COUNT(*) AS n, (MIN(label) = MAX(label)) AS unanime FROM annotations GROUP BY item_id) SELECT n AS annotateurs, COUNT(*) AS items, ROUND(100.0 * AVG(unanime::int), 1) AS pct_unanimes FROM par_item GROUP BY n ORDER BY n;",
+  "hints": [
+   "Un exemple est unanime si MIN(label) = MAX(label) ; en PostgreSQL c'est un booléen, caste-le avec ::int avant d'en faire la moyenne.",
+   "WITH par_item AS (SELECT item_id, COUNT(*) AS n, (MIN(label) = MAX(label)) AS unanime FROM annotations GROUP BY item_id) SELECT n AS annotateurs, COUNT(*) AS items, ROUND(100.0 * AVG(unanime::int), 1) ..."
+  ],
+  "note": "AVG d'un boolean est refusé : on caste en int."
+ },
+ "27.S": {
+  "solution": "WITH p AS (SELECT DISTINCT pa.detenteur FROM participations pa JOIN societes s ON s.siren = pa.detenue WHERE s.nom = 'Ariane Labs' AND pa.detenteur LIKE 'PERSONNE:%') SELECT REPLACE(pa.detenteur, 'PERSONNE:', '') AS personne, s.nom AS societe, s.ville, pa.pct, (SELECT COUNT(*) FROM conteneurs c WHERE c.importateur_siren = s.siren) AS conteneurs FROM participations pa JOIN p ON p.detenteur = pa.detenteur JOIN societes s ON s.siren = pa.detenue ORDER BY pa.pct DESC;",
+  "hints": [
+   "Commence par la liste des personnes qui détiennent une part de 'Ariane Labs' (CTE), puis reviens sur toutes leurs participations.",
+   "Une sous-requête scalaire (SELECT COUNT(*) FROM conteneurs c WHERE c.importateur_siren = s.siren) donne 0 quand il n'y a aucun conteneur."
+  ]
+ },
+ "28.1": {
+  "solution": "SELECT j.k - 1 AS composante, j.v::float8 AS valeur FROM voix_ref r CROSS JOIN LATERAL jsonb_array_elements(r.vecteur) WITH ORDINALITY AS j(v, k) WHERE r.locuteur = 'Inès Varga' ORDER BY j.k;",
+  "hints": [
+   "En PostgreSQL, jsonb_array_elements(vecteur) déplie un tableau JSON en lignes ; ajoute WITH ORDINALITY pour obtenir la position (qui commence à 1).",
+   "FROM voix_ref r CROSS JOIN LATERAL jsonb_array_elements(r.vecteur) WITH ORDINALITY AS j(v, k) ; affiche j.k - 1 AS composante et j.v::float8 AS valeur."
+  ],
+  "note": "json_each de SQLite devient jsonb_array_elements ... WITH ORDINALITY ; la position démarre à 1 (d'où k - 1) et chaque élément est un jsonb à caster en float8.",
+  "require": [
+   {
+    "re": "jsonb_array_elements",
+    "msg": "Déplie les vecteurs avec jsonb_array_elements (WITH ORDINALITY pour la position)."
+   }
+  ]
+ },
+ "28.2": {
+  "solution": "SELECT r.locuteur, ROUND(sqrt(SUM(j.v::float8 * j.v::float8))::numeric, 3) AS norme FROM voix_ref r CROSS JOIN LATERAL jsonb_array_elements(r.vecteur) WITH ORDINALITY AS j(v, k) GROUP BY r.locuteur ORDER BY r.locuteur;",
+  "hints": [
+   "Déplie chaque vecteur avec jsonb_array_elements, caste les éléments en float8, puis regroupe par locuteur pour faire la somme des carrés.",
+   "ROUND(sqrt(SUM(j.v::float8 * j.v::float8))::numeric, 3) : ROUND à n décimales demande un numeric."
+  ],
+  "note": "sqrt renvoie un double precision : il faut ::numeric avant ROUND(..., 3)."
+ },
+ "28.3": {
+  "solution": "WITH ref AS (SELECT j.k, j.v::float8 AS v FROM voix_ref r CROSS JOIN LATERAL jsonb_array_elements(r.vecteur) WITH ORDINALITY AS j(v, k) WHERE r.locuteur = 'Inès Varga'), a AS (SELECT x.id, x.horodatage, x.numero_appelant, j.k, j.v::float8 AS v FROM appels_vocaux x CROSS JOIN LATERAL jsonb_array_elements(x.vecteur) WITH ORDINALITY AS j(v, k) WHERE x.locuteur_declare = 'Inès Varga') SELECT a.id, a.horodatage, a.numero_appelant, ROUND(SUM(a.v * ref.v)::numeric, 3) AS cosinus FROM a JOIN ref ON ref.k = a.k GROUP BY a.id, a.horodatage, a.numero_appelant ORDER BY cosinus, a.id LIMIT 6;",
+  "hints": [
+   "Déplie le vecteur de référence et ceux des appels dans deux CTE (position k et valeur v::float8), puis joins-les sur la position.",
+   "SUM(a.v * ref.v) par appel donne le cosinus (vecteurs normés) ; ROUND(SUM(...)::numeric, 3), ORDER BY cosinus, a.id LIMIT 6."
+  ],
+  "note": "Le dépliage JSON se fait avec jsonb_array_elements ... WITH ORDINALITY, et ROUND demande un numeric."
+ },
+ "28.4": {
+  "solution": "WITH c AS (SELECT j.k, AVG(j.v::float8) AS v FROM appels_vocaux x CROSS JOIN LATERAL jsonb_array_elements(x.vecteur) WITH ORDINALITY AS j(v, k) WHERE x.numero_appelant = '0745998877' GROUP BY j.k), e AS (SELECT t.id, t.fichier, t.depose_par, j.k, j.v::float8 AS v FROM echantillons_tts t CROSS JOIN LATERAL jsonb_array_elements(t.vecteur) WITH ORDINALITY AS j(v, k)) SELECT e.id, e.fichier, e.depose_par, ROUND(SUM(e.v * c.v)::numeric, 3) AS similarite FROM e JOIN c ON c.k = e.k GROUP BY e.id, e.fichier, e.depose_par ORDER BY similarite DESC LIMIT 5;",
+  "hints": [
+   "Le centroïde est la moyenne de chaque composante : déplie les vecteurs des appels avec jsonb_array_elements ... WITH ORDINALITY et regroupe par position.",
+   "WITH c AS (SELECT j.k, AVG(j.v::float8) AS v ... GROUP BY j.k), e AS (vecteurs des échantillons dépliés) SELECT ..., ROUND(SUM(e.v * c.v)::numeric, 3) AS similarite ... ORDER BY similarite DESC LIMIT 5."
+  ]
+ },
+ "28.5": {
+  "solution": "WITH ref AS (SELECT j.k, j.v::float8 AS v FROM voix_ref r CROSS JOIN LATERAL jsonb_array_elements(r.vecteur) WITH ORDINALITY AS j(v, k) WHERE r.locuteur = 'Inès Varga'), a AS (SELECT x.id, x.horodatage, x.numero_appelant, x.destinataire, j.k, j.v::float8 AS v FROM appels_vocaux x CROSS JOIN LATERAL jsonb_array_elements(x.vecteur) WITH ORDINALITY AS j(v, k) WHERE x.locuteur_declare = 'Inès Varga') SELECT a.horodatage, a.numero_appelant, a.destinataire, ROUND(SUM(a.v * ref.v)::numeric, 3) AS cosinus FROM a JOIN ref ON ref.k = a.k GROUP BY a.id, a.horodatage, a.numero_appelant, a.destinataire HAVING SUM(a.v * ref.v) < 0.93 ORDER BY a.horodatage;",
+  "hints": [
+   "Reprends le calcul du cosinus de 28.3, et filtre les groupes avec HAVING sur la somme non arrondie.",
+   "... GROUP BY a.id, a.horodatage, a.numero_appelant, a.destinataire HAVING SUM(a.v * ref.v) < 0.93 ORDER BY a.horodatage."
+  ]
+ },
+ "28.A": {
+  "solution": "WITH x AS (SELECT j.k, j.v::float8 AS v FROM appels_vocaux a CROSS JOIN LATERAL jsonb_array_elements(a.vecteur) WITH ORDINALITY AS j(v, k) WHERE a.horodatage = '2028-02-29 00:41:10'), r AS (SELECT r.locuteur, j.k, j.v::float8 AS v FROM voix_ref r CROSS JOIN LATERAL jsonb_array_elements(r.vecteur) WITH ORDINALITY AS j(v, k)) SELECT r.locuteur, ROUND(SUM(r.v * x.v)::numeric, 3) AS similarite FROM r JOIN x ON x.k = r.k GROUP BY r.locuteur ORDER BY similarite DESC;",
+  "hints": [
+   "Déplie le vecteur de l'appel et ceux de voix_ref avec jsonb_array_elements ... WITH ORDINALITY, puis joins sur la position.",
+   "SUM(r.v * x.v) regroupé par r.locuteur, arrondi avec ROUND(...::numeric, 3), trié par similarite DESC."
+  ],
+  "require": [
+   {
+    "re": "jsonb_array_elements",
+    "msg": "Déplie les vecteurs avec jsonb_array_elements (WITH ORDINALITY pour la position)."
+   }
+  ]
+ },
+ "28.S": {
+  "solution": "WITH ref AS (SELECT j.k, j.v::float8 AS v FROM voix_ref r CROSS JOIN LATERAL jsonb_array_elements(r.vecteur) WITH ORDINALITY AS j(v, k) WHERE r.locuteur = 'Inès Varga'), f AS (SELECT t.fichier, t.depose_le, SUM(j.v::float8 * ref.v) AS sim FROM echantillons_tts t CROSS JOIN LATERAL jsonb_array_elements(t.vecteur) WITH ORDINALITY AS j(v, k) JOIN ref ON ref.k = j.k WHERE t.fichier LIKE 'varga\\_%' GROUP BY t.id, t.fichier, t.depose_le), a AS (SELECT x.id, SUM(j.v::float8 * ref.v) AS sim FROM appels_vocaux x CROSS JOIN LATERAL jsonb_array_elements(x.vecteur) WITH ORDINALITY AS j(v, k) JOIN ref ON ref.k = j.k WHERE x.locuteur_declare = 'Inès Varga' AND x.numero_appelant <> '0745998877' GROUP BY x.id), plancher AS (SELECT MIN(sim) AS p FROM a) SELECT f.fichier, f.depose_le, ROUND(f.sim::numeric, 3) AS similarite, ROUND((f.sim - plancher.p)::numeric, 3) AS ecart FROM f CROSS JOIN plancher ORDER BY f.depose_le;",
+  "hints": [
+   "Calcule la similarité non arrondie des fichiers et des vrais appels dans deux CTE (jsonb_array_elements ... WITH ORDINALITY joint au vecteur de référence), puis le plancher = MIN des vrais appels.",
+   "Utilise CROSS JOIN LATERAL jsonb_array_elements(t.vecteur) WITH ORDINALITY AS j(v, k) JOIN ref ON ref.k = j.k ; à la fin ROUND((f.sim - plancher.p)::numeric, 3) AS ecart."
+  ],
+  "note": "En PostgreSQL, dans LIKE le _ est un joker : 'varga\\_%' l'échappe (le résultat est le même ici). CROSS JOIN LATERAL rend explicite le dépliage ligne par ligne.",
+  "require": [
+   {
+    "re": "jsonb_array_elements",
+    "msg": "Déplie les vecteurs avec jsonb_array_elements (WITH ORDINALITY pour la position)."
+   }
+  ]
+ },
+ "29.1": {
+  "solution": "SELECT horodatage::date AS jour, COUNT(DISTINCT session) AS sessions, COUNT(*) AS messages, SUM(tokens) AS tokens FROM chatbot_logs WHERE horodatage::date BETWEEN '2028-02-23' AND '2028-02-29' GROUP BY jour ORDER BY jour;",
+  "hints": [
+   "horodatage::date garde seulement le jour d'un timestamp.",
+   "SELECT horodatage::date AS jour, COUNT(DISTINCT session) AS sessions, COUNT(*) AS messages, SUM(tokens) AS tokens ... WHERE horodatage::date BETWEEN '2028-02-23' AND '2028-02-29' GROUP BY jour ORDER BY jour."
+  ],
+  "note": "date(horodatage) de SQLite devient le cast horodatage::date."
+ },
+ "29.2": {
+  "solution": "SELECT session, horodatage, message FROM chatbot_logs WHERE role = 'user' AND (LOWER(message) LIKE '%ignore%instruction%' OR LOWER(message) LIKE '%ignore%restriction%' OR LOWER(message) LIKE '%oublie%') ORDER BY horodatage;",
+  "hints": [
+   "LIKE est sensible à la casse en PostgreSQL : passe le message en minuscules avec LOWER (ou utilise ILIKE).",
+   "WHERE role = 'user' AND (LOWER(message) LIKE '%ignore%instruction%' OR ... LIKE '%ignore%restriction%' OR ... LIKE '%oublie%') ORDER BY horodatage."
+  ]
+ },
+ "29.3": {
+  "solution": "SELECT session, horodatage, message FROM chatbot_logs WHERE role = 'assistant' AND (message ~ '[a-z0-9.]+@[a-z0-9.-]+\\.[a-z]+' OR message ~ '0[1-9]( ?[0-9]{2}){4}') AND message NOT LIKE '%contact@ville-seine.fr%' ORDER BY horodatage;",
+  "hints": [
+   "En PostgreSQL, l'opérateur ~ teste une expression régulière POSIX (sensible à la casse ; ~* ne l'est pas).",
+   "WHERE role = 'assistant' AND (message ~ 'motif e-mail' OR message ~ '0[1-9]( ?[0-9]{2}){4}') AND message NOT LIKE '%contact@ville-seine.fr%' ORDER BY horodatage."
+  ],
+  "note": "REGEXP de SQLite devient l'opérateur ~ en PostgreSQL.",
+  "require": [
+   {
+    "re": "~|regexp_like|regexp_match",
+    "msg": "Utilise une expression régulière (opérateur ~)."
+   }
+  ]
+ },
+ "29.4": {
+  "solution": "WITH s AS (SELECT titre, confidentialite, (strpos(LOWER(contenu), 'patrouille') > 0)::int + (strpos(LOWER(contenu), 'nuit') > 0)::int + (strpos(LOWER(contenu), 'la défense') > 0)::int AS score FROM documents_rag) SELECT titre, confidentialite, score FROM s WHERE score >= 1 ORDER BY score DESC, titre;",
+  "hints": [
+   "strpos(texte, mot) > 0 est un booléen en PostgreSQL : caste chaque test en entier avec ::int pour pouvoir les additionner.",
+   "Calcule score dans une CTE : (strpos(LOWER(contenu), 'patrouille') > 0)::int + ... ; puis WHERE score >= 1 ORDER BY score DESC, titre."
+  ],
+  "note": "instr devient strpos, et les booléens ne s'additionnent pas sans ::int."
+ },
+ "29.5": {
+  "solution": "SELECT DISTINCT s.session, s.ip, s.appareil, e.nom, d.titre AS document FROM chatbot_sessions s JOIN chatbot_logs l ON l.session = s.session AND l.role = 'assistant' JOIN documents_rag d ON d.confidentialite <> 'public' AND strpos(l.message, left(d.contenu, 40)) > 0 LEFT JOIN appareils a ON a.appareil = s.appareil LEFT JOIN employes_neurocite e ON e.login = a.proprietaire_login WHERE EXISTS (SELECT 1 FROM chatbot_logs u WHERE u.session = s.session AND u.role = 'user' AND LOWER(u.message) LIKE '%ignore%');",
+  "hints": [
+   "left(contenu, 40) donne les 40 premiers caractères, et strpos(message, extrait) > 0 teste si la réponse les contient.",
+   "JOIN documents_rag d ON d.confidentialite <> 'public' AND strpos(l.message, left(d.contenu, 40)) > 0, puis LEFT JOIN appareils et employes_neurocite, avec un EXISTS sur les messages user contenant 'ignore'."
+  ],
+  "note": "instr et substr deviennent strpos et left."
+ },
+ "29.A": {
+  "solution": "WITH s AS (SELECT titre, confidentialite, (strpos(LOWER(contenu), 'serveurs') > 0)::int + (strpos(LOWER(contenu), 'baie') > 0)::int + (strpos(LOWER(contenu), 'quai') > 0)::int + (strpos(LOWER(contenu), 'dataseine') > 0)::int AS score FROM documents_rag) SELECT titre, confidentialite, score FROM s WHERE score >= 1 ORDER BY score DESC, titre;",
+  "hints": [
+   "Additionne quatre tests de présence castés en entier : (strpos(LOWER(contenu), 'serveurs') > 0)::int + ...",
+   "CTE s avec le score, puis SELECT titre, confidentialite, score FROM s WHERE score >= 1 ORDER BY score DESC, titre."
+  ]
+ },
+ "29.S": {
+  "solution": "WITH t AS (SELECT s.session, s.debut, s.ip, s.appareil, EXISTS (SELECT 1 FROM chatbot_logs l JOIN documents_rag d ON d.confidentialite <> 'public' AND strpos(l.message, left(d.contenu, 40)) > 0 WHERE l.session = s.session AND l.role = 'assistant')::int AS fuite FROM chatbot_sessions s WHERE EXISTS (SELECT 1 FROM chatbot_logs u WHERE u.session = s.session AND u.role = 'user' AND (LOWER(u.message) LIKE '%ignore%' OR LOWER(u.message) LIKE '%oublie%'))) SELECT session, debut, ip, appareil, fuite, ROUND(EXTRACT(EPOCH FROM debut - LAG(debut) OVER (ORDER BY debut)) / 60) AS ecart_min FROM t ORDER BY debut;",
+  "hints": [
+   "La différence de deux timestamps est un interval ; EXTRACT(EPOCH FROM intervalle) le convertit en secondes.",
+   "fuite = EXISTS (...)::int ; ecart_min = ROUND(EXTRACT(EPOCH FROM debut - LAG(debut) OVER (ORDER BY debut)) / 60)."
+  ],
+  "note": "Pas de julianday : on soustrait les timestamps (interval) et EXTRACT(EPOCH FROM ...) donne des secondes."
+ },
+ "30.1": {
+  "solution": "SELECT DISTINCT quartier FROM patrouilles EXCEPT SELECT quartier FROM patrouilles WHERE date = '2028-02-29' AND creneau = 'nuit';",
+  "hints": [
+   "EXCEPT retire du premier ensemble les lignes présentes dans le second.",
+   "SELECT DISTINCT quartier FROM patrouilles EXCEPT SELECT quartier FROM patrouilles WHERE date = '2028-02-29' AND creneau = 'nuit'."
+  ],
+  "note": "EXCEPT est standard en PostgreSQL."
+ },
+ "30.2": {
+  "solution": "WITH m AS (SELECT quartier, ROUND(AVG(nb_agents), 1) AS moyenne FROM patrouilles WHERE creneau = 'nuit' AND date BETWEEN '2028-02-01' AND '2028-02-28' GROUP BY quartier), n AS (SELECT quartier, SUM(nb_agents) AS nb FROM patrouilles WHERE creneau = 'nuit' AND date = '2028-02-29' GROUP BY quartier) SELECT m.quartier, m.moyenne, COALESCE(n.nb, 0) AS nuit_29 FROM m LEFT JOIN n ON n.quartier = m.quartier ORDER BY m.quartier;",
+  "hints": [
+   "Deux CTE : la moyenne de février par quartier, et le total de la nuit du 29 ; joins-les avec LEFT JOIN.",
+   "SELECT m.quartier, m.moyenne, COALESCE(n.nb, 0) AS nuit_29 FROM m LEFT JOIN n ON n.quartier = m.quartier ORDER BY m.quartier."
+  ]
+ },
+ "30.3": {
+  "solution": "SELECT a.badge, a.site AS site_1, a.horodatage AS heure_1, b.site AS site_2, b.horodatage AS heure_2, ROUND(EXTRACT(EPOCH FROM b.horodatage - a.horodatage) / 60) AS minutes FROM acces_datacenter a JOIN acces_datacenter b ON b.badge = a.badge AND b.site <> a.site AND b.horodatage > a.horodatage AND b.horodatage - a.horodatage < INTERVAL '30 minutes';",
+  "hints": [
+   "En PostgreSQL, la différence de deux timestamps est un interval que tu peux comparer directement à INTERVAL '30 minutes'.",
+   "Auto-jointure sur le badge avec b.site <> a.site AND b.horodatage > a.horodatage AND b.horodatage - a.horodatage < INTERVAL '30 minutes' ; minutes = ROUND(EXTRACT(EPOCH FROM b.horodatage - a.horodatage) / 60)."
+  ],
+  "note": "julianday disparaît : on travaille avec des intervalles et EXTRACT(EPOCH FROM ...)."
+ },
+ "30.4": {
+  "solution": "SELECT i.baie, COUNT(*) AS manquants, SUM(i.valeur_eur) AS valeur FROM inventaire_gpu i WHERE i.serveur IN (SELECT serveur FROM inventaire_gpu EXCEPT SELECT serveur FROM scans_gpu) GROUP BY i.baie;",
+  "hints": [
+   "Les serveurs non scannés sont ceux de l'inventaire EXCEPT ceux de scans_gpu.",
+   "WHERE i.serveur IN (SELECT serveur FROM inventaire_gpu EXCEPT SELECT serveur FROM scans_gpu) GROUP BY i.baie."
+  ]
+ },
+ "30.5": {
+  "solution": "SELECT horodatage AS quand, 'appel' AS source, destinataire AS detail FROM appels_vocaux WHERE numero_appelant = '0745998877' AND horodatage::date = '2028-02-29' UNION ALL SELECT horodatage, 'badge', badge FROM acces_datacenter WHERE site = 'DataSeine Puteaux' AND porte IN ('Quai de livraison', 'Salle C') AND horodatage BETWEEN '2028-02-29 00:00:00' AND '2028-02-29 02:00:00' UNION ALL SELECT horodatage, 'chatbot', role FROM chatbot_logs WHERE session = 's-9003' ORDER BY quand, source;",
+  "hints": [
+   "horodatage est un timestamp : LIKE '2028-02-29%' ne marche pas dessus, utilise horodatage::date = '2028-02-29'.",
+   "Trois SELECT de trois colonnes empilés avec UNION ALL, puis ORDER BY quand, source."
+  ],
+  "note": "Sur un timestamp, le filtre par jour s'écrit avec ::date (ou un intervalle) plutôt qu'avec LIKE."
+ },
+ "30.A": {
+  "solution": "SELECT badge, COUNT(*) FILTER (WHERE site = 'DataSeine Puteaux') AS passages_puteaux, COUNT(*) FILTER (WHERE site = 'DataSeine Saint-Denis') AS passages_saint_denis FROM acces_datacenter GROUP BY badge HAVING COUNT(DISTINCT site) > 1 ORDER BY badge;",
+  "hints": [
+   "COUNT(*) FILTER (WHERE site = '...') compte les passages d'un seul site.",
+   "GROUP BY badge HAVING COUNT(DISTINCT site) > 1 ORDER BY badge, avec deux COUNT(*) FILTER."
+  ]
+ },
+ "30.S": {
+  "solution": "SELECT a.porte, a.horodatage AS heure_clone, b.badge, b.horodatage AS heure, ROUND(EXTRACT(EPOCH FROM b.horodatage - a.horodatage)) AS ecart_s, (SELECT COUNT(*) FROM acces_datacenter h WHERE h.badge = b.badge AND h.horodatage < '2028-02-29') AS passages_avant FROM acces_datacenter a JOIN acces_datacenter b ON b.site = a.site AND b.porte = a.porte AND b.badge <> a.badge AND b.horodatage > a.horodatage AND b.horodatage < a.horodatage + INTERVAL '2 minutes' WHERE a.badge = 'DS-017' AND a.site = 'DataSeine Puteaux' ORDER BY a.horodatage;",
+  "hints": [
+   "Ajoute un intervalle à un timestamp : a.horodatage + INTERVAL '2 minutes'.",
+   "Auto-jointure sur site et porte avec b.badge <> a.badge AND b.horodatage > a.horodatage AND b.horodatage < a.horodatage + INTERVAL '2 minutes' ; ecart_s = ROUND(EXTRACT(EPOCH FROM b.horodatage - a.horodatage))."
+  ]
+ },
+ "31.1": {
+  "solution": "BEGIN; DELETE FROM annotations WHERE annotateur_id IN (41, 42, 43); UPDATE dataset_vigie d SET label_risque = CASE WHEN m.moy >= 0.5 THEN 1 ELSE 0 END FROM (SELECT item_id, AVG(label) AS moy FROM annotations GROUP BY item_id) m WHERE m.item_id = d.id; COMMIT;",
+  "hints": [
+   "Ouvre une transaction avec BEGIN, supprime les annotations des comptes 41 à 43, recalcule les labels, puis COMMIT.",
+   "PostgreSQL permet UPDATE dataset_vigie d SET label_risque = CASE WHEN m.moy >= 0.5 THEN 1 ELSE 0 END FROM (SELECT item_id, AVG(label) AS moy FROM annotations GROUP BY item_id) m WHERE m.item_id = d.id."
+  ],
+  "note": "UPDATE ... FROM (propre à PostgreSQL) joint la table à mettre à jour aux moyennes calculées, sans sous-requête corrélée ; seuls les exemples qui ont encore des annotations sont touchés.",
+  "verify": [
+   "SELECT COUNT(*) FROM annotations WHERE annotateur_id IN (41, 42, 43)",
+   "SELECT to_char(date, 'YYYY-MM') AS mois, ROUND(100.0 * AVG(label_risque), 1) FROM dataset_vigie WHERE quartier = 'La Défense' AND creneau = 'nuit' GROUP BY mois ORDER BY mois",
+   "SELECT SUM(label_risque) FROM dataset_vigie"
+  ]
+ },
+ "31.2": {
+  "solution": "WITH RECURSIVE suspects_ann AS (SELECT a.annotateur_id FROM annotations a JOIN dataset_vigie d ON d.id = a.item_id GROUP BY a.annotateur_id HAVING AVG((a.label = d.reel)::int) < 0.5), chaine(siren, part) AS (SELECT DISTINCT p.payeur_siren, 100.0::float8 FROM paiements_annotation p JOIN annotateurs an ON an.compte_paiement = p.compte_paiement WHERE an.id IN (SELECT annotateur_id FROM suspects_ann) UNION ALL SELECT pa.detenteur, c.part * pa.pct / 100 FROM participations pa JOIN chaine c ON pa.detenue = c.siren), p1 AS (SELECT REPLACE(siren, 'PERSONNE:', '') AS nom FROM chaine WHERE siren LIKE 'PERSONNE:%' AND part > 50), ref AS (SELECT j.k, j.v::float8 AS v FROM voix_ref r CROSS JOIN LATERAL jsonb_array_elements(r.vecteur) WITH ORDINALITY AS j(v, k) WHERE r.locuteur = 'Inès Varga'), av AS (SELECT x.id, j.k, j.v::float8 AS v FROM appels_vocaux x CROSS JOIN LATERAL jsonb_array_elements(x.vecteur) WITH ORDINALITY AS j(v, k) WHERE x.locuteur_declare = 'Inès Varga'), faux AS (SELECT av.id FROM av JOIN ref ON ref.k = av.k GROUP BY av.id HAVING SUM(av.v * ref.v) < 0.93), centroide AS (SELECT j.k, AVG(j.v::float8) AS v FROM appels_vocaux x CROSS JOIN LATERAL jsonb_array_elements(x.vecteur) WITH ORDINALITY AS j(v, k) WHERE x.id IN (SELECT id FROM faux) GROUP BY j.k), proches AS (SELECT t.id, t.depose_par FROM echantillons_tts t CROSS JOIN LATERAL jsonb_array_elements(t.vecteur) WITH ORDINALITY AS j(v, k) JOIN centroide c ON c.k = j.k GROUP BY t.id, t.depose_par ORDER BY SUM(j.v::float8 * c.v) DESC LIMIT 5), p2 AS (SELECT DISTINCT e.nom FROM proches pr JOIN employes_neurocite e ON e.login = pr.depose_par), p3 AS (SELECT DISTINCT e.nom FROM chatbot_sessions s JOIN chatbot_logs l ON l.session = s.session AND l.role = 'assistant' JOIN documents_rag d ON d.confidentialite <> 'public' AND strpos(l.message, left(d.contenu, 40)) > 0 JOIN appareils ap ON ap.appareil = s.appareil JOIN employes_neurocite e ON e.login = ap.proprietaire_login WHERE EXISTS (SELECT 1 FROM chatbot_logs u WHERE u.session = s.session AND u.role = 'user' AND LOWER(u.message) LIKE '%ignore%')) SELECT nom FROM p1 INTERSECT SELECT nom FROM p2 INTERSECT SELECT nom FROM p3;",
+  "hints": [
+   "Reprends les trois pistes des chapitres précédents en CTE (WITH RECURSIVE en tête suffit pour toutes) : AVG((label = reel)::int) pour les faux annotateurs, chaine(siren, part) en float8, et jsonb_array_elements ... WITH ORDINALITY pour les vecteurs.",
+   "p1 (bénéficiaire à plus de 50 %), p2 (déposant des 5 échantillons les plus proches du centroïde des faux appels), p3 (propriétaire de l'appareil de la session qui a fait fuiter un document, strpos(message, left(contenu, 40)) > 0), puis SELECT nom FROM p1 INTERSECT SELECT nom FROM p2 INTERSECT SELECT nom FROM p3."
+  ],
+  "note": "Mêmes adaptations qu'aux chapitres 27 à 29 : booléens castés en int, float8 dans la CTE récursive, jsonb_array_elements à la place de json_each, strpos et left à la place de instr et substr.",
+  "require": [
+   {
+    "re": "RECURSIVE",
+    "msg": "La chaîne de propriété exige une CTE récursive."
+   },
+   {
+    "re": "jsonb_array_elements",
+    "msg": "La piste vocale exige jsonb_array_elements."
+   },
+   {
+    "re": "^(?![\\s\\S]*(Delorme|Maxime|mdelorme|MacBook|s-9003|0745998877|512002|nova_lab|delta_mind|ariadne|Ariane|Th[ée]s[ée]e|4[123]\\s*,\\s*4[123]|BETWEEN\\s+4[0-3]))",
+    "msg": "Ne recopie aucune valeur trouvée avant (nom, login, appareil, session, numéro, SIREN, id d'annotateurs) : la requête doit tout retrouver seule."
+   }
+  ]
+ },
+ "31.3": {
+  "solution": "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT DISTINCT 'Synapse', e.nom, 'clonage de voix' FROM employes_neurocite e JOIN echantillons_tts t ON t.depose_par = e.login WHERE t.fichier LIKE 'varga\\_%';",
+  "hints": [
+   "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT ... : le nom vient de la jointure entre echantillons_tts et employes_neurocite.",
+   "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT DISTINCT 'Synapse', e.nom, 'clonage de voix' FROM employes_neurocite e JOIN echantillons_tts t ON t.depose_par = e.login WHERE t.fichier LIKE 'varga\\_%'."
+  ],
+  "note": "INSERT ... SELECT est standard ; en LIKE, le _ est un joker, on peut l'échapper avec \\_.",
+  "setup": "CREATE TABLE proces_verbal (affaire TEXT NOT NULL, coupable TEXT NOT NULL, preuve TEXT);",
+  "verify": [
+   "SELECT affaire, coupable FROM proces_verbal"
+  ]
+ },
+ "31.A": {
+  "solution": "INSERT INTO quarantaine (annotation_id, item_id, annotateur_id, label, horodatage) SELECT a.id, a.item_id, a.annotateur_id, a.label, a.horodatage FROM annotations a WHERE a.annotateur_id IN (SELECT x.annotateur_id FROM annotations x JOIN dataset_vigie d ON d.id = x.item_id GROUP BY x.annotateur_id HAVING AVG((x.label = d.reel)::int) < 0.5);",
+  "hints": [
+   "La règle d'accord se calcule avec HAVING AVG((x.label = d.reel)::int) < 0.5 : en PostgreSQL, AVG n'accepte pas un booléen directement.",
+   "INSERT INTO quarantaine (annotation_id, item_id, annotateur_id, label, horodatage) SELECT a.id, ... FROM annotations a WHERE a.annotateur_id IN (SELECT x.annotateur_id ... GROUP BY x.annotateur_id HAVING AVG((x.label = d.reel)::int) < 0.5)."
+  ],
+  "note": "Seule différence : la comparaison booléenne est castée en int avant AVG.",
+  "setup": "CREATE TABLE quarantaine (annotation_id BIGINT PRIMARY KEY, item_id BIGINT, annotateur_id BIGINT, label BIGINT, horodatage TIMESTAMP(0));",
+  "verify": [
+   "SELECT COUNT(*), COUNT(DISTINCT annotateur_id), SUM(label), MIN(horodatage), MAX(horodatage) FROM quarantaine",
+   "SELECT annotateur_id, COUNT(*) FROM quarantaine GROUP BY annotateur_id ORDER BY annotateur_id"
+  ]
+ },
+ "31.S": {
+  "solution": "SELECT creation::text AS quand, 'Thésée Capital créée' AS etape FROM societes WHERE nom = 'Thésée Capital' UNION ALL SELECT creation::text, 'Ariane Labs créée' FROM societes WHERE nom = 'Ariane Labs' UNION ALL SELECT MIN(depose_le)::text, 'premier fichier varga_' FROM echantillons_tts WHERE fichier LIKE 'varga\\_%' UNION ALL SELECT MIN(date)::text, 'VIGIE décide des patrouilles' FROM patrouilles WHERE decide_par = 'VIGIE' UNION ALL SELECT MIN(inscrit_le)::text, 'faux annotateurs inscrits' FROM annotateurs WHERE pseudo IN ('nova_lab', 'delta_mind', 'ariadne_x') UNION ALL SELECT MIN(a.horodatage)::text, 'première annotation empoisonnée' FROM annotations a JOIN annotateurs n ON n.id = a.annotateur_id WHERE n.pseudo IN ('nova_lab', 'delta_mind', 'ariadne_x') UNION ALL SELECT MIN(horodatage)::text, 'premier faux appel' FROM appels_vocaux WHERE numero_appelant = '0745998877' ORDER BY quand;",
+  "hints": [
+   "Tu empiles des DATE (creation, date) et des TIMESTAMP : PostgreSQL convertirait tout en timestamp et ajouterait 00:00:00 aux dates. Caste chaque quand en texte (::text) pour garder le format d'origine ; le tri reste correct au format ISO.",
+   "Sept SELECT de deux colonnes (quand::text, etape) empilés avec UNION ALL, puis ORDER BY quand."
+  ],
+  "note": "Dans un UNION, PostgreSQL unifie DATE et TIMESTAMP en timestamp ; pour afficher '2027-12-02' et non '2027-12-02 00:00:00', on caste chaque valeur en text.",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "Empile les étapes avec UNION ALL."
+   }
+  ]
+ },
+ "32.1": {
+  "solution": "SELECT methode, resultat, COUNT(*) AS nb FROM auth_logs GROUP BY methode, resultat ORDER BY methode, resultat;",
+  "hints": [
+   "Regroupe sur les deux colonnes et compte.",
+   "SELECT methode, resultat, COUNT(*) AS nb FROM auth_logs GROUP BY methode, resultat ORDER BY methode, resultat."
+  ]
+ },
+ "32.2": {
+  "solution": "SELECT source_ip, COUNT(*) AS echecs, COUNT(DISTINCT login) AS comptes, ROUND(1.0 * COUNT(*) / COUNT(DISTINCT login), 1) AS essais_par_compte FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 20 ORDER BY echecs DESC;",
+  "hints": [
+   "COUNT renvoie un bigint : sans 1.0 *, la division serait entière.",
+   "WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 20, avec ROUND(1.0 * COUNT(*) / COUNT(DISTINCT login), 1)."
+  ]
+ },
+ "32.3": {
+  "solution": "WITH spray AS (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100) SELECT source_ip, MIN(horodatage) AS debut, MAX(horodatage) AS fin, ROUND(EXTRACT(EPOCH FROM MAX(horodatage) - MIN(horodatage)) / 60) AS minutes, ROUND(COUNT(*) / (EXTRACT(EPOCH FROM MAX(horodatage) - MIN(horodatage)) / 60), 1) AS par_minute FROM auth_logs WHERE resultat = 'echec' AND source_ip IN (SELECT source_ip FROM spray) GROUP BY source_ip;",
+  "hints": [
+   "MAX(horodatage) - MIN(horodatage) donne un interval ; EXTRACT(EPOCH FROM ...) le convertit en secondes (un numeric).",
+   "minutes = ROUND(EXTRACT(EPOCH FROM MAX(horodatage) - MIN(horodatage)) / 60) et par_minute = ROUND(COUNT(*) / (même durée en minutes), 1)."
+  ],
+  "note": "julianday est remplacé par la soustraction de timestamps et EXTRACT(EPOCH FROM ...)."
+ },
+ "32.4": {
+  "solution": "WITH spray AS (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100) SELECT s.login, s.source_ip, s.horodatage, (SELECT COUNT(*) FROM auth_logs e WHERE e.login = s.login AND e.source_ip = s.source_ip AND e.resultat = 'echec' AND e.horodatage < s.horodatage) AS echecs_avant FROM auth_logs s WHERE s.resultat = 'succes' AND s.source_ip IN (SELECT source_ip FROM spray) ORDER BY s.horodatage;",
+  "hints": [
+   "Une CTE spray liste les IP à au moins 100 échecs ; une sous-requête corrélée compte les échecs antérieurs.",
+   "SELECT s.login, s.source_ip, s.horodatage, (SELECT COUNT(*) FROM auth_logs e WHERE e.login = s.login AND e.source_ip = s.source_ip AND e.resultat = 'echec' AND e.horodatage < s.horodatage) AS echecs_avant ..."
+  ]
+ },
+ "32.5": {
+  "solution": "WITH spray AS (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100), comp AS (SELECT login, MIN(horodatage) AS t0 FROM auth_logs WHERE resultat = 'succes' AND source_ip IN (SELECT source_ip FROM spray) GROUP BY login) SELECT a.login, a.horodatage, a.source_ip, a.dest_host, a.methode FROM auth_logs a JOIN comp c ON c.login = a.login WHERE a.resultat = 'succes' AND a.horodatage >= c.t0 AND a.methode <> 'local' ORDER BY a.horodatage;",
+  "hints": [
+   "Deux CTE : spray (les IP) puis comp (login et première réussite t0 depuis ces IP).",
+   "JOIN comp c ON c.login = a.login WHERE a.resultat = 'succes' AND a.horodatage >= c.t0 AND a.methode <> 'local' ORDER BY a.horodatage."
+  ]
+ },
+ "32.A": {
+  "solution": "WITH spray AS (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100) SELECT c.service, COUNT(*) AS comptes, COUNT(*) FILTER (WHERE c.login IN (SELECT login FROM auth_logs WHERE resultat = 'echec' AND source_ip IN (SELECT source_ip FROM spray))) AS vises FROM comptes_ad c GROUP BY c.service ORDER BY c.service;",
+  "hints": [
+   "Compte les comptes visés avec un agrégat filtré : COUNT(*) FILTER (WHERE c.login IN (...)).",
+   "WITH spray AS (...) SELECT c.service, COUNT(*) AS comptes, COUNT(*) FILTER (WHERE c.login IN (SELECT login FROM auth_logs WHERE resultat = 'echec' AND source_ip IN (SELECT source_ip FROM spray))) AS vises ... GROUP BY c.service ORDER BY c.service."
+  ]
+ },
+ "32.S": {
+  "solution": "SELECT source_ip, string_agg(DISTINCT login, ',' ORDER BY login) AS comptes, string_agg(DISTINCT dest_host, ',' ORDER BY dest_host) AS machines, COUNT(*) AS connexions, MIN(horodatage) AS premiere, MAX(horodatage) AS derniere FROM auth_logs WHERE resultat = 'succes' AND methode <> 'vpn' AND source_ip NOT IN (SELECT ip FROM postes) GROUP BY source_ip ORDER BY premiere;",
+  "hints": [
+   "En PostgreSQL, group_concat s'écrit string_agg(expression, séparateur) ; le séparateur ',' est obligatoire.",
+   "string_agg(DISTINCT dest_host, ',' ORDER BY dest_host) AS machines : avec DISTINCT, l'ORDER BY doit porter sur la même expression."
+  ],
+  "note": "group_concat devient string_agg(DISTINCT x, ',' ORDER BY x)."
+ },
+ "33.1": {
+  "solution": "SELECT split_part(expediteur, '@', 2) AS domaine, COUNT(*) AS mails, COUNT(DISTINCT destinataire) AS destinataires, MIN(horodatage) AS premier FROM mail_logs GROUP BY domaine ORDER BY premier DESC;",
+  "hints": [
+   "split_part(texte, '@', 2) renvoie le morceau après l'arobase.",
+   "SELECT split_part(expediteur, '@', 2) AS domaine, COUNT(*) AS mails, COUNT(DISTINCT destinataire) AS destinataires, MIN(horodatage) AS premier ... GROUP BY domaine ORDER BY premier DESC."
+  ],
+  "note": "substr/instr se remplacent avantageusement par split_part en PostgreSQL."
+ },
+ "33.2": {
+  "solution": "WITH e AS (SELECT DISTINCT split_part(expediteur, '@', 2) AS d FROM mail_logs) SELECT e.d AS suspect, k.domaine AS imite FROM e JOIN domaines_connus k ON strpos(translate(e.d, '-.', ''), translate(k.domaine, '-.', '')) > 0 AND e.d <> k.domaine;",
+  "hints": [
+   "translate(texte, '-.', '') supprime d'un coup les tirets et les points (chaque caractère de la 2e chaîne sans correspondant dans la 3e est retiré).",
+   "JOIN domaines_connus k ON strpos(translate(e.d, '-.', ''), translate(k.domaine, '-.', '')) > 0 AND e.d <> k.domaine (LIKE '%' || ... || '%' marche aussi)."
+  ],
+  "note": "translate remplace les REPLACE imbriqués, et strpos teste la présence d'une sous-chaîne."
+ },
+ "33.3": {
+  "solution": "SELECT LOWER(split_part(piece_jointe, '.', -1)) AS extension, COUNT(*) AS nb, COUNT(*) FILTER (WHERE verdict = 'livre') AS livres FROM mail_logs WHERE piece_jointe IS NOT NULL GROUP BY extension ORDER BY nb DESC;",
+  "hints": [
+   "Depuis PostgreSQL 14, split_part accepte un indice négatif : split_part(nom, '.', -1) donne le dernier morceau après un point.",
+   "SELECT LOWER(split_part(piece_jointe, '.', -1)) AS extension, COUNT(*) AS nb, COUNT(*) FILTER (WHERE verdict = 'livre') AS livres ... GROUP BY extension ORDER BY nb DESC."
+  ],
+  "note": "L'astuce rtrim/replace de SQLite devient split_part(..., '.', -1) (ou substring(piece_jointe from '\\.([^.]+)$'))."
+ },
+ "33.4": {
+  "solution": "WITH r AS (SELECT split_part(destinataire, '@', 1) AS login, horodatage AS recu FROM mail_logs WHERE expediteur = 'factures@eaux-de-seine-fr.com' AND verdict = 'livre'), c AS (SELECT r.login, r.recu, (SELECT MIN(horodatage) FROM clics k WHERE k.login = r.login AND k.url LIKE '%eaux-de-seine-fr.com%') AS clic FROM r) SELECT login, recu, clic, ROUND(EXTRACT(EPOCH FROM clic - recu) / 60) AS minutes FROM c WHERE clic IS NOT NULL ORDER BY clic;",
+  "hints": [
+   "split_part(destinataire, '@', 1) donne le login ; la différence clic - recu est un interval.",
+   "minutes = ROUND(EXTRACT(EPOCH FROM clic - recu) / 60), avec une sous-requête MIN(horodatage) pour le premier clic."
+  ],
+  "note": "Le délai se calcule par soustraction de timestamps et EXTRACT(EPOCH FROM ...), sans julianday."
+ },
+ "33.5": {
+  "solution": "WITH cl AS (SELECT DISTINCT login FROM clics WHERE url LIKE '%eaux-de-seine-fr.com%') SELECT c.login, ad.nom, po.hostname AS host, MIN(f.horodatage) AS premier_lancement FROM cl c JOIN comptes_ad ad ON ad.login = c.login JOIN postes po ON po.utilisateur = c.login JOIN process_logs f ON f.host = po.hostname AND f.process IN ('cmd.exe', 'powershell.exe') JOIN process_logs pere ON pere.host = f.host AND pere.pid = f.ppid AND pere.process = 'winword.exe' GROUP BY c.login, ad.nom, po.hostname;",
+  "hints": [
+   "Joins process_logs à lui-même pour retrouver le parent : même host et pere.pid = f.ppid.",
+   "CTE des cliqueurs, puis JOIN comptes_ad, postes, process_logs f (cmd.exe ou powershell.exe) et process_logs pere (winword.exe), GROUP BY login, nom, hostname avec MIN(f.horodatage)."
+  ]
+ },
+ "33.A": {
+  "solution": "WITH r AS (SELECT split_part(destinataire, '@', 1) AS login, verdict FROM mail_logs WHERE expediteur = 'factures@eaux-de-seine-fr.com') SELECT c.service, COUNT(*) AS vises, COUNT(*) FILTER (WHERE r.verdict = 'livre') AS recus, COUNT(*) FILTER (WHERE r.login IN (SELECT login FROM clics WHERE url LIKE '%eaux-de-seine-fr.com%')) AS cliqueurs FROM r JOIN comptes_ad c ON c.login = r.login GROUP BY c.service ORDER BY c.service;",
+  "hints": [
+   "Extrais le login du destinataire avec split_part(destinataire, '@', 1), puis joins comptes_ad.",
+   "COUNT(*) AS vises, COUNT(*) FILTER (WHERE r.verdict = 'livre') AS recus, COUNT(*) FILTER (WHERE r.login IN (SELECT login FROM clics WHERE ...)) AS cliqueurs ... GROUP BY c.service."
+  ]
+ },
+ "33.S": {
+  "solution": "WITH k AS (SELECT horodatage, login, split_part(url, '/', 3) AS dom FROM clics) SELECT k.dom AS domaine, x.ip_dest AS ip, s.nom AS abonne, l.adresse, COUNT(*) AS visites FROM k JOIN postes p ON p.utilisateur = k.login JOIN proxy_logs x ON x.host = p.hostname AND x.domaine = k.dom AND x.horodatage BETWEEN k.horodatage AND k.horodatage + INTERVAL '60 seconds' JOIN lignes_internet l ON l.ip = x.ip_dest JOIN societes s ON s.siren = l.abonne_siren WHERE k.dom NOT IN (SELECT domaine FROM domaines_connus) GROUP BY k.dom, x.ip_dest, s.nom, l.adresse;",
+  "hints": [
+   "Dans 'https://domaine/chemin', le domaine est le 3e morceau quand on découpe sur '/' : split_part(url, '/', 3).",
+   "Fenêtre de temps : x.horodatage BETWEEN k.horodatage AND k.horodatage + INTERVAL '60 seconds' ; puis jointures vers lignes_internet et societes, GROUP BY domaine, ip, abonne, adresse."
+  ],
+  "note": "datetime(x, '+60 seconds') devient x + INTERVAL '60 seconds'."
+ },
+ "34.1": {
+  "solution": "SELECT process, COUNT(DISTINCT host) AS machines, COUNT(*) AS executions, string_agg(DISTINCT host, ',' ORDER BY host) AS liste FROM process_logs GROUP BY process HAVING COUNT(DISTINCT host) <= 2 ORDER BY process;",
+  "hints": [
+   "group_concat devient string_agg(expression, ',') en PostgreSQL.",
+   "string_agg(DISTINCT host, ',' ORDER BY host) AS liste ... GROUP BY process HAVING COUNT(DISTINCT host) <= 2 ORDER BY process."
+  ],
+  "note": "string_agg exige le séparateur ; avec DISTINCT, l'ORDER BY interne porte sur la même expression."
+ },
+ "34.2": {
+  "solution": "SELECT horodatage, host, process, ligne_commande FROM process_logs WHERE ligne_commande ~* '(-enc|hidden|/create|lsass)' ORDER BY horodatage;",
+  "hints": [
+   "L'opérateur ~* teste une expression régulière sans tenir compte de la casse : une seule alternative (a|b|c) remplace quatre LIKE.",
+   "WHERE ligne_commande ~* '(-enc|hidden|/create|lsass)' ORDER BY horodatage (ou quatre LOWER(...) LIKE '%...%')."
+  ],
+  "note": "~* est l'expression régulière insensible à la casse de PostgreSQL ; LOWER(...) LIKE fonctionne aussi."
+ },
+ "34.3": {
+  "solution": "SELECT f.horodatage AS heure, p.process AS parent, f.process AS enfant FROM process_logs f JOIN process_logs p ON p.host = f.host AND p.pid = f.ppid WHERE f.host = 'PC-COMPTA-07' AND f.horodatage BETWEEN '2028-03-06 09:00:00' AND '2028-03-06 10:00:00' ORDER BY f.horodatage;",
+  "hints": [
+   "Auto-jointure : le parent est sur le même host avec p.pid = f.ppid.",
+   "FROM process_logs f JOIN process_logs p ON p.host = f.host AND p.pid = f.ppid WHERE f.host = 'PC-COMPTA-07' AND f.horodatage BETWEEN ... ORDER BY f.horodatage."
+  ]
+ },
+ "34.4": {
+  "solution": "WITH RECURSIVE arbre(host, pid, process, niveau, horodatage) AS (SELECT host, pid, process, 0, horodatage FROM process_logs WHERE process = 'winword.exe' AND ligne_commande LIKE '%facture_0306%' UNION ALL SELECT p.host, p.pid, p.process, a.niveau + 1, p.horodatage FROM process_logs p JOIN arbre a ON p.host = a.host AND p.ppid = a.pid) SELECT horodatage, niveau, repeat('.', 2 * niveau) || process AS arbre FROM arbre ORDER BY horodatage;",
+  "hints": [
+   "repeat('.', n) répète un caractère n fois : pratique pour indenter un arbre.",
+   "WITH RECURSIVE arbre(host, pid, process, niveau, horodatage) AS (point de départ winword.exe UNION ALL enfants avec p.ppid = a.pid) SELECT horodatage, niveau, repeat('.', 2 * niveau) || process AS arbre ..."
+  ],
+  "note": "PostgreSQL a repeat(), plus clair que substr('............', 1, 2 * niveau)."
+ },
+ "34.5": {
+  "solution": "WITH r AS (SELECT * FROM process_logs WHERE process = 'rundll32.exe' AND ligne_commande LIKE '%upd.dll%'), g AS (SELECT host, MIN(horodatage) AS premiere, COUNT(*) AS executions FROM r GROUP BY host) SELECT g.host, g.premiere, g.executions, p.process AS parent_premiere FROM g JOIN r ON r.host = g.host AND r.horodatage = g.premiere LEFT JOIN process_logs p ON p.host = r.host AND p.pid = r.ppid ORDER BY g.premiere;",
+  "hints": [
+   "Calcule la première exécution par machine, puis rejoins la ligne correspondante pour lire son ppid.",
+   "CTE r (les rundll32), CTE g (MIN et COUNT par host), puis JOIN r sur host et horodatage = premiere, LEFT JOIN process_logs p pour le parent."
+  ]
+ },
+ "34.A": {
+  "solution": "SELECT f.host, f.horodatage::date AS jour, COUNT(*) AS executions, MIN(f.horodatage) AS premiere, MAX(f.horodatage) AS derniere FROM process_logs f LEFT JOIN process_logs p ON p.host = f.host AND p.pid = f.ppid WHERE f.process = 'rundll32.exe' AND f.ligne_commande LIKE '%upd.dll%' AND p.pid IS NULL GROUP BY f.host, jour ORDER BY jour;",
+  "hints": [
+   "Un parent absent se repère avec un LEFT JOIN suivi de p.pid IS NULL ; le jour s'obtient avec f.horodatage::date.",
+   "... LEFT JOIN process_logs p ON p.host = f.host AND p.pid = f.ppid WHERE ... AND p.pid IS NULL GROUP BY f.host, jour ORDER BY jour."
+  ],
+  "note": "date(x) devient x::date."
+ },
+ "34.S": {
+  "solution": "SELECT f.login, d.lieu, f.host, COUNT(*) AS processus, string_agg(DISTINCT f.process, ',' ORDER BY f.process) AS programmes, MIN(f.horodatage) AS premier, (SELECT COUNT(*) FROM auth_logs a WHERE a.login = f.login AND a.resultat = 'succes' AND a.horodatage BETWEEN d.debut AND d.fin) AS connexions FROM process_logs f JOIN deplacements d ON d.login = f.login AND f.horodatage BETWEEN d.debut AND d.fin JOIN postes po ON po.hostname = f.host AND po.type = 'poste' GROUP BY f.login, d.id, d.lieu, d.debut, d.fin, f.host ORDER BY premier, f.host;",
+  "hints": [
+   "Joins process_logs aux déplacements du même login (horodatage BETWEEN debut AND fin) et aux postes de type 'poste'.",
+   "string_agg(DISTINCT f.process, ',' ORDER BY f.process) AS programmes ; regroupe par f.login, d.id, d.lieu, d.debut, d.fin, f.host pour pouvoir utiliser debut et fin dans la sous-requête des connexions."
+  ],
+  "note": "group_concat devient string_agg ; PostgreSQL exige que les colonnes utilisées dans la sous-requête corrélée soient dans le GROUP BY."
+ },
+ "35.1": {
+  "solution": "SELECT a.login, a.dest_host, MIN(a.horodatage) AS premiere FROM auth_logs a JOIN comptes_ad c ON c.login = a.login WHERE c.admin = 1 AND a.resultat = 'succes' GROUP BY a.login, a.dest_host HAVING MIN(a.horodatage) >= '2028-03-06' ORDER BY premiere;",
+  "hints": [
+   "Regroupe par compte et machine, et filtre sur la première connexion avec HAVING MIN(...).",
+   "... GROUP BY a.login, a.dest_host HAVING MIN(a.horodatage) >= '2028-03-06' ORDER BY premiere."
+  ],
+  "note": "PostgreSQL convertit la chaîne '2028-03-06' en timestamp pour la comparaison."
+ },
+ "35.2": {
+  "solution": "SELECT a.horodatage, a.login, p.hostname AS poste_source, p.utilisateur AS proprietaire, a.dest_host FROM auth_logs a JOIN comptes_ad c ON c.login = a.login AND c.admin = 1 JOIN postes p ON p.ip = a.source_ip AND p.type = 'poste' WHERE a.resultat = 'succes' AND p.utilisateur <> a.login ORDER BY a.horodatage;",
+  "hints": [
+   "Joins auth_logs aux comptes admin, puis aux postes par l'IP source.",
+   "JOIN postes p ON p.ip = a.source_ip AND p.type = 'poste' WHERE a.resultat = 'succes' AND p.utilisateur <> a.login ORDER BY a.horodatage."
+  ]
+ },
+ "35.3": {
+  "solution": "SELECT a.login, a.horodatage::date AS nuit, COUNT(*) AS connexions, string_agg(DISTINCT a.dest_host, ',' ORDER BY a.dest_host) AS machines FROM auth_logs a JOIN comptes_ad c ON c.login = a.login WHERE c.admin = 1 AND a.resultat = 'succes' AND EXTRACT(HOUR FROM a.horodatage) < 6 GROUP BY a.login, nuit ORDER BY nuit, a.login;",
+  "hints": [
+   "EXTRACT(HOUR FROM horodatage) donne l'heure (0 à 23) d'un timestamp ; ::date garde le jour.",
+   "WHERE ... AND EXTRACT(HOUR FROM a.horodatage) < 6 GROUP BY a.login, nuit, avec string_agg(DISTINCT a.dest_host, ',' ORDER BY a.dest_host) AS machines."
+  ],
+  "note": "CAST(strftime('%H', ...) AS INTEGER) devient EXTRACT(HOUR FROM ...), et group_concat devient string_agg."
+ },
+ "35.4": {
+  "solution": "SELECT a.login, d.lieu, COUNT(*) AS connexions, MIN(a.horodatage) AS premiere, MAX(a.horodatage) AS derniere FROM auth_logs a JOIN deplacements d ON d.login = a.login AND a.horodatage BETWEEN d.debut AND d.fin WHERE a.resultat = 'succes' AND a.methode <> 'vpn' GROUP BY a.login, d.lieu;",
+  "hints": [
+   "Joins auth_logs aux déplacements du même login, avec horodatage BETWEEN debut AND fin.",
+   "... WHERE a.resultat = 'succes' AND a.methode <> 'vpn' GROUP BY a.login, d.lieu."
+  ]
+ },
+ "35.5": {
+  "solution": "WITH RECURSIVE aretes AS (SELECT p.hostname AS src, a.dest_host AS dest, a.horodatage AS t FROM auth_logs a JOIN postes p ON p.ip = a.source_ip WHERE a.login = 'adm.varenne' AND a.resultat = 'succes' AND a.horodatage >= '2028-03-06'), c(dest, chemin, t) AS (SELECT dest, src || ' > ' || dest, t FROM aretes WHERE src = 'PC-COMPTA-07' UNION ALL SELECT e.dest, c.chemin || ' > ' || e.dest, e.t FROM c JOIN aretes e ON e.src = c.dest AND e.t > c.t AND strpos(c.chemin, e.dest) = 0) SELECT chemin, t AS arrivee FROM c WHERE dest = 'DC01';",
+  "hints": [
+   "Construis d'abord les arêtes (machine source, machine destination, horodatage) ; une CTE récursive avance de saut en saut, toujours plus tard dans le temps.",
+   "c(dest, chemin, t) : départ depuis 'PC-COMPTA-07', puis JOIN aretes e ON e.src = c.dest AND e.t > c.t AND strpos(c.chemin, e.dest) = 0 (pas de boucle) ; garde dest = 'DC01'."
+  ],
+  "note": "instr devient strpos ; le reste (WITH RECURSIVE, ||) est identique."
+ },
+ "35.A": {
+  "solution": "SELECT a.login, COUNT(*) FILTER (WHERE EXTRACT(HOUR FROM a.horodatage) < 6) AS nuit, COUNT(*) FILTER (WHERE EXTRACT(HOUR FROM a.horodatage) BETWEEN 6 AND 19) AS jour, COUNT(*) FILTER (WHERE EXTRACT(HOUR FROM a.horodatage) >= 20) AS soir FROM auth_logs a JOIN comptes_ad c ON c.login = a.login WHERE c.admin = 1 AND a.resultat = 'succes' GROUP BY a.login ORDER BY a.login;",
+  "hints": [
+   "EXTRACT(HOUR FROM a.horodatage) donne l'heure ; compte chaque tranche avec COUNT(*) FILTER (WHERE ...).",
+   "COUNT(*) FILTER (WHERE EXTRACT(HOUR FROM a.horodatage) < 6) AS nuit, ... BETWEEN 6 AND 19 ... AS jour, ... >= 20 ... AS soir, GROUP BY a.login ORDER BY a.login."
+  ]
+ },
+ "35.S": {
+  "solution": "WITH RECURSIVE aretes AS (SELECT p.hostname AS src, a.dest_host AS dest, a.horodatage AS t FROM auth_logs a JOIN postes p ON p.ip = a.source_ip WHERE a.login = 'adm.varenne' AND a.resultat = 'succes' AND a.horodatage >= '2028-03-06'), c(dest, chemin, t, depart) AS (SELECT dest, src || ' > ' || dest, t, t FROM aretes WHERE src = 'PC-COMPTA-07' UNION ALL SELECT e.dest, c.chemin || ' > ' || e.dest, e.t, c.depart FROM c JOIN aretes e ON e.src = c.dest AND e.t > c.t AND strpos(c.chemin, e.dest) = 0) SELECT DISTINCT c.chemin, c.depart, c.t AS arrivee FROM c JOIN postes po ON po.hostname = c.dest WHERE po.type = 'ot';",
+  "hints": [
+   "Ajoute une colonne depart à la CTE récursive : elle vaut t au départ puis se recopie à chaque saut.",
+   "c(dest, chemin, t, depart) comme en 35.5, puis SELECT DISTINCT c.chemin, c.depart, c.t AS arrivee FROM c JOIN postes po ON po.hostname = c.dest WHERE po.type = 'ot'."
+  ]
+ },
+ "36.1": {
+  "solution": "SELECT host, domaine, COUNT(*) AS connexions FROM proxy_logs WHERE domaine NOT IN (SELECT domaine FROM domaines_connus) GROUP BY host, domaine ORDER BY connexions DESC, host;",
+  "hints": [
+   "Écarte les domaines connus avec NOT IN (SELECT domaine FROM domaines_connus).",
+   "... WHERE domaine NOT IN (...) GROUP BY host, domaine ORDER BY connexions DESC, host."
+  ]
+ },
+ "36.2": {
+  "solution": "SELECT horodatage, ROUND(EXTRACT(EPOCH FROM horodatage - LAG(horodatage) OVER (ORDER BY horodatage))) AS ecart_s FROM proxy_logs WHERE host = 'PC-COMPTA-07' AND domaine = 'cdn-update-check.net' ORDER BY horodatage LIMIT 10;",
+  "hints": [
+   "horodatage - LAG(horodatage) OVER (ORDER BY horodatage) est un interval ; EXTRACT(EPOCH FROM ...) le convertit en secondes.",
+   "SELECT horodatage, ROUND(EXTRACT(EPOCH FROM horodatage - LAG(horodatage) OVER (ORDER BY horodatage))) AS ecart_s ... ORDER BY horodatage LIMIT 10."
+  ],
+  "note": "julianday(...) * 86400 devient EXTRACT(EPOCH FROM intervalle)."
+ },
+ "36.3": {
+  "solution": "WITH iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, EXTRACT(EPOCH FROM horodatage - LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage)) AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, stddev_pop(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50) SELECT host, domaine, n AS intervalles, ROUND(m) AS moyenne_s, ROUND(sd, 1) AS ecart_type, ROUND(sd / m, 3) AS cv FROM st ORDER BY cv, host;",
+  "hints": [
+   "PostgreSQL a l'agrégat stddev_pop(x) : l'écart-type de population, sans passer par sqrt(AVG(x*x) - AVG(x)*AVG(x)).",
+   "CTE iv avec dt = EXTRACT(EPOCH FROM horodatage - LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage)), CTE st avec COUNT(dt), AVG(dt), stddev_pop(dt) ... HAVING COUNT(dt) >= 50, puis ROUND(sd / m, 3) AS cv."
+  ],
+  "note": "stddev_pop remplace le calcul manuel ; EXTRACT renvoie un numeric, donc ROUND(..., n) s'applique directement."
+ },
+ "36.4": {
+  "solution": "WITH iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, EXTRACT(EPOCH FROM horodatage - LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage)) AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, stddev_pop(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50) SELECT host, domaine, ip_dest, ROUND(m) AS moyenne_s FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus);",
+  "hints": [
+   "Reprends les CTE de 36.3 (LAG et stddev_pop) et filtre sur le coefficient de variation.",
+   "... SELECT host, domaine, ip_dest, ROUND(m) AS moyenne_s FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus)."
+  ]
+ },
+ "36.5": {
+  "solution": "WITH iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, EXTRACT(EPOCH FROM horodatage - LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage)) AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, stddev_pop(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50), b AS (SELECT DISTINCT domaine FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus)) SELECT p.domaine, p.ip_dest, string_agg(DISTINCT p.host, ',' ORDER BY p.host) AS machines, MIN(p.horodatage) AS premier, COUNT(*) AS connexions, SUM(p.octets_out) AS octets_envoyes FROM proxy_logs p WHERE p.domaine IN (SELECT domaine FROM b) GROUP BY p.domaine, p.ip_dest;",
+  "hints": [
+   "Ajoute une CTE b des domaines balises, puis agrège proxy_logs pour ces domaines.",
+   "string_agg(DISTINCT p.host, ',' ORDER BY p.host) AS machines, MIN(p.horodatage), COUNT(*), SUM(p.octets_out) ... GROUP BY p.domaine, p.ip_dest."
+  ],
+  "note": "group_concat devient string_agg."
+ },
+ "36.A": {
+  "solution": "WITH iv AS (SELECT host, domaine, EXTRACT(EPOCH FROM horodatage - LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage)) AS dt FROM proxy_logs), st AS (SELECT host, domaine, AVG(dt) AS m, stddev_pop(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine HAVING COUNT(dt) >= 10) SELECT domaine, COUNT(*) AS couples, ROUND(AVG(sd / m), 2) AS cv_moyen FROM st GROUP BY domaine ORDER BY cv_moyen;",
+  "hints": [
+   "Intervalles avec LAG et EXTRACT(EPOCH FROM ...), écart-type avec stddev_pop, puis une seconde agrégation par domaine.",
+   "CTE st par (host, domaine) HAVING COUNT(dt) >= 10, puis SELECT domaine, COUNT(*) AS couples, ROUND(AVG(sd / m), 2) AS cv_moyen FROM st GROUP BY domaine ORDER BY cv_moyen."
+  ]
+ },
+ "36.S": {
+  "solution": "WITH iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, EXTRACT(EPOCH FROM horodatage - LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage)) AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, stddev_pop(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50), b AS (SELECT DISTINCT host, domaine FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus)), t AS (SELECT b.host, (SELECT MIN(horodatage) FROM process_logs p WHERE p.host = b.host AND p.process = 'rundll32.exe' AND p.ligne_commande LIKE '%upd.dll%') AS chargement, (SELECT MIN(horodatage) FROM proxy_logs x WHERE x.host = b.host AND x.domaine = b.domaine) AS premier_battement, (SELECT MAX(horodatage) FROM proxy_logs x WHERE x.host = b.host AND x.domaine = b.domaine) AS dernier_battement FROM b) SELECT host, chargement, premier_battement, dernier_battement, ROUND(EXTRACT(EPOCH FROM premier_battement - chargement)) AS secondes FROM t ORDER BY chargement;",
+  "hints": [
+   "Retrouve les couples balises (LAG, stddev_pop) puis, pour chaque host, le premier chargement de upd.dll et les battements extrêmes par sous-requêtes.",
+   "secondes = ROUND(EXTRACT(EPOCH FROM premier_battement - chargement))."
+  ]
+ },
+ "37.1": {
+  "solution": "SELECT domaine, COUNT(*) AS requetes, ROUND(AVG(length(requete)), 1) AS longueur_moy, COUNT(DISTINCT requete) AS distinctes FROM dns_logs GROUP BY domaine ORDER BY longueur_moy DESC LIMIT 5;",
+  "hints": [
+   "length(texte) donne le nombre de caractères ; AVG d'un entier renvoie un numeric.",
+   "SELECT domaine, COUNT(*) AS requetes, ROUND(AVG(length(requete)), 1) AS longueur_moy, COUNT(DISTINCT requete) AS distinctes ... GROUP BY domaine ORDER BY longueur_moy DESC LIMIT 5."
+  ]
+ },
+ "37.2": {
+  "solution": "SELECT host, MIN(horodatage) AS debut, MAX(horodatage) AS fin, COUNT(*) AS requetes FROM dns_logs WHERE domaine = (SELECT domaine FROM dns_logs GROUP BY domaine ORDER BY AVG(length(requete)) DESC LIMIT 1) GROUP BY host;",
+  "hints": [
+   "Une sous-requête scalaire avec ORDER BY ... LIMIT 1 trouve le domaine à la plus grande longueur moyenne.",
+   "WHERE domaine = (SELECT domaine FROM dns_logs GROUP BY domaine ORDER BY AVG(length(requete)) DESC LIMIT 1) GROUP BY host."
+  ]
+ },
+ "37.3": {
+  "solution": "SELECT split_part(requete, '.', 1)::int AS seq, split_part(requete, '.', 2) AS hex FROM dns_logs WHERE domaine = 'tunnel-meteo.net' ORDER BY seq;",
+  "hints": [
+   "split_part(requete, '.', n) renvoie le n-ième morceau entre les points.",
+   "SELECT split_part(requete, '.', 1)::int AS seq, split_part(requete, '.', 2) AS hex ... ORDER BY seq."
+  ],
+  "note": "split_part remplace les substr/instr imbriqués ; ::int convertit le numéro."
+ },
+ "37.4": {
+  "solution": "WITH y AS (SELECT split_part(requete, '.', 1)::int AS seq, split_part(requete, '.', 2) AS hex FROM dns_logs WHERE domaine = 'tunnel-meteo.net') SELECT seq, convert_from(decode(hex, 'hex'), 'UTF8') AS texte FROM y ORDER BY seq;",
+  "hints": [
+   "PostgreSQL n'a pas unhex : decode(hex, 'hex') donne des octets (bytea), et convert_from(octets, 'UTF8') les transforme en texte.",
+   "WITH y AS (seq et hex extraits avec split_part) SELECT seq, convert_from(decode(hex, 'hex'), 'UTF8') AS texte FROM y ORDER BY seq."
+  ],
+  "note": "CAST(unhex(hex) AS TEXT) devient convert_from(decode(hex, 'hex'), 'UTF8').",
+  "require": [
+   {
+    "re": "decode",
+    "msg": "Décode l'hexadécimal avec decode(..., 'hex') puis convert_from."
+   }
+  ]
+ },
+ "37.5": {
+  "solution": "WITH y AS (SELECT split_part(requete, '.', 1)::int AS seq, split_part(requete, '.', 2) AS hex FROM dns_logs WHERE domaine = 'tunnel-meteo.net') SELECT string_agg(convert_from(decode(hex, 'hex'), 'UTF8'), '' ORDER BY seq) AS message, SUM(length(hex) / 2) AS octets FROM y;",
+  "hints": [
+   "string_agg(texte, '' ORDER BY seq) concatène les morceaux sans séparateur, dans l'ordre voulu.",
+   "SELECT string_agg(convert_from(decode(hex, 'hex'), 'UTF8'), '' ORDER BY seq) AS message, SUM(length(hex) / 2) AS octets FROM y."
+  ],
+  "note": "group_concat(..., '' ORDER BY seq) devient string_agg(..., '' ORDER BY seq) ; unhex devient decode/convert_from.",
+  "require": [
+   {
+    "re": "decode",
+    "msg": "Décode l'hexadécimal avec decode(..., 'hex') puis convert_from."
+   }
+  ]
+ },
+ "37.A": {
+  "solution": "SELECT domaine, COUNT(*) AS requetes, COUNT(DISTINCT requete) AS distinctes, ROUND(AVG(length(requete)), 1) AS longueur_moy FROM dns_logs WHERE host = 'SRV-FICHIERS' AND horodatage BETWEEN '2028-03-09 00:30:00' AND '2028-03-09 02:00:00' GROUP BY domaine ORDER BY requetes DESC;",
+  "hints": [
+   "Filtre le host et la fenêtre de temps avec BETWEEN, puis regroupe par domaine.",
+   "... WHERE host = 'SRV-FICHIERS' AND horodatage BETWEEN '...' AND '...' GROUP BY domaine ORDER BY requetes DESC."
+  ]
+ },
+ "37.S": {
+  "solution": "WITH t0 AS (SELECT MIN(horodatage) AS h FROM dns_logs WHERE domaine = 'tunnel-meteo.net') SELECT horodatage AS quand, 'auth' AS journal, login AS compte, dest_host AS machine, methode AS detail FROM auth_logs WHERE resultat = 'succes' AND horodatage BETWEEN '2028-03-09 00:30:00' AND (SELECT h FROM t0) UNION ALL SELECT horodatage, 'process', login, host, ligne_commande FROM process_logs WHERE horodatage BETWEEN '2028-03-09 00:30:00' AND (SELECT h FROM t0) UNION ALL SELECT horodatage, 'dns', NULL, host, convert_from(decode(split_part(requete, '.', 2), 'hex'), 'UTF8') FROM dns_logs WHERE domaine = 'tunnel-meteo.net' AND horodatage = (SELECT h FROM t0) ORDER BY quand;",
+  "hints": [
+   "Une CTE t0 donne la première requête vers le tunnel ; trois branches UNION ALL de cinq colonnes, la troisième avec NULL comme compte.",
+   "Le morceau décodé : convert_from(decode(split_part(requete, '.', 2), 'hex'), 'UTF8')."
+  ],
+  "note": "unhex devient decode(..., 'hex') et convert_from ; split_part simplifie l'extraction du morceau.",
+  "require": [
+   {
+    "re": "UNION\\s+ALL",
+    "msg": "Empile les journaux avec UNION ALL."
+   },
+   {
+    "re": "decode",
+    "msg": "Décode l'hexadécimal avec decode(..., 'hex') puis convert_from."
+   }
+  ]
+ },
+ "38.1": {
+  "solution": "WITH m AS (SELECT horodatage, valeur, AVG(valeur) OVER (ORDER BY horodatage ROWS BETWEEN 6 PRECEDING AND 1 PRECEDING) AS moyenne FROM capteurs WHERE site = 'Réservoir Montsouris') SELECT horodatage, valeur, ROUND(moyenne::numeric, 2) AS moyenne, ROUND((100.0 * (valeur - moyenne) / moyenne)::numeric) AS ecart_pct FROM m WHERE horodatage::date = '2028-03-12' AND ABS(valeur - moyenne) / moyenne > 0.2 ORDER BY horodatage;",
+  "hints": [
+   "valeur est en double precision : la moyenne aussi, et ROUND(x, 2) exige un numeric en PostgreSQL, caste avec ::numeric.",
+   "CTE m avec AVG(valeur) OVER (ORDER BY horodatage ROWS BETWEEN 6 PRECEDING AND 1 PRECEDING), puis WHERE horodatage::date = '2028-03-12' AND ABS(valeur - moyenne) / moyenne > 0.2."
+  ],
+  "note": "ROUND(double precision, n) n'existe pas : ::numeric ; date(x) devient x::date. La moyenne glissante de 07:30 vaut exactement 2,335 : SQLite, qui cumule ses flottants autrement, affiche 2,33 alors que PostgreSQL arrondit à 2,34 ; le résultat attendu est donc celui de PostgreSQL.",
+  "expected_from_solution": true
+ },
+ "38.2": {
+  "solution": "WITH v AS (SELECT site, valeur, LAG(valeur) OVER (PARTITION BY site ORDER BY horodatage) AS avant, LEAD(valeur) OVER (PARTITION BY site ORDER BY horodatage) AS apres FROM capteurs) SELECT site, COUNT(*) AS pics_isoles FROM v WHERE valeur = 0 AND avant > 1 AND apres > 1 GROUP BY site;",
+  "hints": [
+   "LAG et LEAD lisent la valeur précédente et suivante dans l'ordre du temps, par site.",
+   "CTE v avec LAG(valeur) et LEAD(valeur) OVER (PARTITION BY site ORDER BY horodatage), puis WHERE valeur = 0 AND avant > 1 AND apres > 1 GROUP BY site."
+  ]
+ },
+ "38.3": {
+  "solution": "SELECT * FROM commandes_ot WHERE EXTRACT(HOUR FROM horodatage) < 7 OR EXTRACT(HOUR FROM horodatage) >= 20 ORDER BY horodatage;",
+  "hints": [
+   "EXTRACT(HOUR FROM horodatage) renvoie l'heure d'un timestamp.",
+   "SELECT * FROM commandes_ot WHERE EXTRACT(HOUR FROM horodatage) < 7 OR EXTRACT(HOUR FROM horodatage) >= 20 ORDER BY horodatage."
+  ],
+  "note": "CAST(strftime('%H', ...) AS INTEGER) devient EXTRACT(HOUR FROM ...)."
+ },
+ "38.4": {
+  "solution": "SELECT c.horodatage, c.nouvelle, ROUND((SELECT AVG(valeur) FROM capteurs s WHERE s.site = c.site AND s.horodatage BETWEEN c.horodatage - INTERVAL '30 minutes' AND c.horodatage)::numeric, 2) AS avant, ROUND((SELECT AVG(valeur) FROM capteurs s WHERE s.site = c.site AND s.horodatage BETWEEN c.horodatage + INTERVAL '10 minutes' AND c.horodatage + INTERVAL '40 minutes')::numeric, 2) AS apres FROM commandes_ot c WHERE c.site = 'Réservoir Montsouris' AND c.horodatage::date = '2028-03-12' AND c.parametre = 'consigne_pression' ORDER BY c.horodatage;",
+  "hints": [
+   "Les fenêtres de temps s'écrivent avec des intervalles : c.horodatage - INTERVAL '30 minutes'.",
+   "Deux sous-requêtes AVG(valeur) sur capteurs (BETWEEN c.horodatage - INTERVAL '30 minutes' AND c.horodatage, puis + 10 à + 40 minutes), arrondies avec ROUND((...)::numeric, 2)."
+  ],
+  "note": "datetime(x, '-30 minutes') devient x - INTERVAL '30 minutes' ; ROUND exige un numeric."
+ },
+ "38.5": {
+  "solution": "SELECT c.horodatage, c.parametre, c.ancienne, c.nouvelle, c.login, ad.nom AS titulaire, p.hostname AS machine, d.lieu FROM commandes_ot c LEFT JOIN comptes_ad ad ON ad.login = c.login LEFT JOIN postes p ON p.ip = c.source_ip LEFT JOIN deplacements d ON d.login = c.login AND c.horodatage BETWEEN d.debut AND d.fin WHERE (EXTRACT(HOUR FROM c.horodatage) < 7 OR EXTRACT(HOUR FROM c.horodatage) >= 20) AND c.nouvelle < c.ancienne ORDER BY c.horodatage;",
+  "hints": [
+   "Trois LEFT JOIN : comptes_ad (titulaire), postes (machine par l'IP) et deplacements (en cours au moment de la commande).",
+   "WHERE (EXTRACT(HOUR FROM c.horodatage) < 7 OR EXTRACT(HOUR FROM c.horodatage) >= 20) AND c.nouvelle < c.ancienne ORDER BY c.horodatage."
+  ]
+ },
+ "38.A": {
+  "solution": "WITH m AS (SELECT site, horodatage, AVG(valeur) OVER (PARTITION BY site ORDER BY horodatage ROWS BETWEEN 5 PRECEDING AND CURRENT ROW) AS mm FROM capteurs) SELECT site, ROUND(MIN(mm)::numeric, 2) AS plus_basse, ROUND(MAX(mm)::numeric, 2) AS plus_haute FROM m WHERE horodatage::date = '2028-03-12' GROUP BY site ORDER BY plus_basse;",
+  "hints": [
+   "Moyenne glissante : AVG(valeur) OVER (PARTITION BY site ORDER BY horodatage ROWS BETWEEN 5 PRECEDING AND CURRENT ROW).",
+   "Puis WHERE horodatage::date = '2028-03-12' GROUP BY site avec ROUND(MIN(mm)::numeric, 2) et ROUND(MAX(mm)::numeric, 2)."
+  ],
+  "note": "Le cast ::numeric est nécessaire avant ROUND(..., 2) sur un double precision."
+ },
+ "38.S": {
+  "solution": "WITH r AS (SELECT c.horodatage, c.valeur, COALESCE((SELECT o.nouvelle FROM commandes_ot o WHERE o.site = c.site AND o.parametre = 'seuil_alarme' AND o.horodatage <= c.horodatage ORDER BY o.horodatage DESC LIMIT 1), 3.0) AS seuil FROM capteurs c WHERE c.site = 'Réservoir Montsouris') SELECT CASE WHEN valeur < seuil THEN 'sonnée' ELSE 'étouffée' END AS alarme, COUNT(*) AS releves, MIN(horodatage) AS premier, MAX(horodatage) AS dernier FROM r WHERE valeur < 3.0 GROUP BY alarme ORDER BY premier;",
+  "hints": [
+   "Le seuil en vigueur est la dernière commande 'seuil_alarme' antérieure : sous-requête ORDER BY o.horodatage DESC LIMIT 1, avec COALESCE(..., 3.0).",
+   "CTE r (horodatage, valeur, seuil), puis CASE WHEN valeur < seuil THEN 'sonnée' ELSE 'étouffée' END AS alarme ... WHERE valeur < 3.0 GROUP BY alarme ORDER BY premier."
+  ]
+ },
+ "39.1": {
+  "solution": "CREATE TABLE ioc (id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY, type TEXT NOT NULL, valeur TEXT NOT NULL UNIQUE, source TEXT);",
+  "hints": [
+   "En PostgreSQL, un INTEGER PRIMARY KEY ne s'auto-incrémente pas tout seul : ajoute GENERATED ALWAYS AS IDENTITY (ou BY DEFAULT) pour que l'id soit attribué automatiquement.",
+   "CREATE TABLE ioc (id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY, type TEXT NOT NULL, valeur TEXT NOT NULL UNIQUE, source TEXT)."
+  ],
+  "note": "L'auto-incrément de SQLite (INTEGER PRIMARY KEY) s'écrit GENERATED ... AS IDENTITY en PostgreSQL. La vérification lit information_schema (colonnes, NOT NULL déclarés hors clé primaire, contrainte UNIQUE).",
+  "verify": [
+   "SELECT c.column_name AS name, upper(c.data_type) AS type, CASE WHEN k.column_name IS NOT NULL THEN 0 ELSE (c.is_nullable = 'NO')::int END AS notnull, (k.column_name IS NOT NULL)::int AS pk FROM information_schema.columns c LEFT JOIN (SELECT u.column_name FROM information_schema.table_constraints t JOIN information_schema.key_column_usage u ON u.constraint_name = t.constraint_name AND u.table_schema = t.table_schema AND u.table_name = t.table_name WHERE t.table_schema = current_schema() AND t.table_name = 'ioc' AND t.constraint_type = 'PRIMARY KEY') k ON k.column_name = c.column_name WHERE c.table_schema = current_schema() AND c.table_name = 'ioc' ORDER BY c.ordinal_position",
+   "SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema = current_schema() AND table_name = 'ioc' AND constraint_type = 'UNIQUE'"
+  ]
+ },
+ "39.2": {
+  "solution": "INSERT INTO ioc (type, valeur, source) SELECT 'ip', source_ip, 'auth' FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100; WITH iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, EXTRACT(EPOCH FROM horodatage - LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage)) AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, stddev_pop(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50) INSERT INTO ioc (type, valeur, source) SELECT DISTINCT 'domaine', domaine, 'proxy' FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus); INSERT INTO ioc (type, valeur, source) SELECT 'domaine', domaine, 'dns' FROM dns_logs GROUP BY domaine HAVING AVG(length(requete)) > 40;",
+  "hints": [
+   "Trois INSERT INTO ioc (type, valeur, source) SELECT ... ; en PostgreSQL, les CTE se placent avant l'INSERT : WITH iv AS (...), st AS (...) INSERT INTO ioc ... SELECT ...",
+   "1) les IP à au moins 100 échecs (GROUP BY source_ip HAVING COUNT(*) >= 100) ; 2) WITH iv AS (LAG et EXTRACT(EPOCH ...)), st AS (stddev_pop) INSERT ... SELECT DISTINCT 'domaine', domaine, 'proxy' FROM st WHERE sd / m < 0.05 ... ; 3) les domaines avec AVG(length(requete)) > 40."
+  ],
+  "note": "En PostgreSQL, la clause WITH précède l'INSERT ; l'id est rempli par l'identité de la table.",
+  "setup": "CREATE TABLE ioc (id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, type TEXT NOT NULL, valeur TEXT NOT NULL UNIQUE, source TEXT);",
+  "verify": [
+   "SELECT type, valeur, source FROM ioc ORDER BY type, valeur"
+  ]
+ },
+ "39.3": {
+  "solution": "UPDATE comptes_ad SET actif = 0 WHERE login IN (SELECT login FROM auth_logs WHERE resultat = 'succes' AND source_ip IN (SELECT valeur FROM ioc WHERE type = 'ip')) OR login IN (SELECT a.login FROM auth_logs a JOIN comptes_ad c ON c.login = a.login AND c.admin = 1 JOIN postes p ON p.ip = a.source_ip AND p.type = 'poste' WHERE a.resultat = 'succes' AND p.utilisateur <> a.login);",
+  "hints": [
+   "Les comptes concernés : ceux qui ont réussi une connexion depuis une IP de ioc, et les admins connectés depuis le poste de quelqu'un d'autre (35.2).",
+   "UPDATE comptes_ad SET actif = 0 WHERE login IN (succès depuis une IP de ioc) OR login IN (admins connectés depuis un poste dont l'utilisateur est différent)."
+  ],
+  "note": "UPDATE ... WHERE ... IN (sous-requête) est identique en PostgreSQL.",
+  "setup": "CREATE TABLE ioc (id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, type TEXT NOT NULL, valeur TEXT NOT NULL UNIQUE, source TEXT); INSERT INTO ioc (type, valeur, source) VALUES ('ip', '192.0.2.150', 'auth'), ('ip', '192.0.2.66', 'proxy'), ('domaine', 'cdn-update-check.net', 'proxy'), ('domaine', 'tunnel-meteo.net', 'dns'), ('domaine', 'eaux-de-seine-fr.com', 'mail');",
+  "verify": [
+   "SELECT login FROM comptes_ad WHERE actif = 0 ORDER BY login",
+   "SELECT COUNT(*) FROM comptes_ad"
+  ]
+ },
+ "39.4": {
+  "solution": "CREATE INDEX idx_proxy_domaine ON proxy_logs(domaine); EXPLAIN SELECT * FROM proxy_logs WHERE domaine = 'cdn-update-check.net';",
+  "hints": [
+   "En PostgreSQL, le plan s'affiche avec EXPLAIN (sans QUERY PLAN) devant la requête.",
+   "CREATE INDEX idx_proxy_domaine ON proxy_logs(domaine); puis EXPLAIN SELECT * FROM proxy_logs WHERE domaine = 'cdn-update-check.net'."
+  ],
+  "note": "EXPLAIN QUERY PLAN de SQLite devient EXPLAIN ; PostgreSQL montre ici un Bitmap Index Scan on idx_proxy_domaine.",
+  "contains": "idx_proxy_domaine"
+ },
+ "39.5": {
+  "solution": "CREATE TABLE alertes (id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, horodatage TIMESTAMP(0), host TEXT, cible TEXT);\nCREATE FUNCTION f_trg_ioc() RETURNS trigger LANGUAGE plpgsql AS $$\nBEGIN\n  IF NEW.domaine IN (SELECT valeur FROM ioc WHERE type = 'domaine') OR NEW.ip_dest IN (SELECT valeur FROM ioc WHERE type = 'ip') THEN\n    INSERT INTO alertes (horodatage, host, cible) VALUES (NEW.horodatage, NEW.host, NEW.domaine);\n  END IF;\n  RETURN NEW;\nEND;\n$$;\nCREATE TRIGGER trg_ioc AFTER INSERT ON proxy_logs FOR EACH ROW EXECUTE FUNCTION f_trg_ioc();",
+  "hints": [
+   "En PostgreSQL, un trigger appelle une fonction : crée d'abord CREATE FUNCTION f() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN ... RETURN NEW; END; $$, puis CREATE TRIGGER trg_ioc AFTER INSERT ON proxy_logs FOR EACH ROW EXECUTE FUNCTION f().",
+   "La clause WHEN d'un trigger PostgreSQL n'accepte pas de sous-requête : mets le test dans la fonction, IF NEW.domaine IN (SELECT valeur FROM ioc WHERE type = 'domaine') OR NEW.ip_dest IN (...) THEN INSERT INTO alertes ... END IF ; et donne à alertes.id une identité (GENERATED BY DEFAULT AS IDENTITY)."
+  ],
+  "note": "Triggers PostgreSQL : une fonction plpgsql RETURNS trigger plus un CREATE TRIGGER ... FOR EACH ROW EXECUTE FUNCTION ; le filtre avec sous-requête va dans un IF de la fonction.",
+  "setup": "CREATE TABLE ioc (id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, type TEXT NOT NULL, valeur TEXT NOT NULL UNIQUE, source TEXT); INSERT INTO ioc (type, valeur, source) VALUES ('ip', '192.0.2.150', 'auth'), ('ip', '192.0.2.66', 'proxy'), ('domaine', 'cdn-update-check.net', 'proxy'), ('domaine', 'tunnel-meteo.net', 'dns'), ('domaine', 'eaux-de-seine-fr.com', 'mail');",
+  "verify": [
+   "INSERT INTO proxy_logs (horodatage, host, domaine, ip_dest, octets_out, octets_in) VALUES ('2028-03-15 10:00:00', 'PC-RH-01', 'cdn-update-check.net', '192.0.2.66', 400, 300), ('2028-03-15 10:01:00', 'PC-RH-02', 'meteo-seine.fr', '203.0.113.22', 400, 300), ('2028-03-15 10:02:00', 'PC-URBA-01', 'nouveau-site.net', '192.0.2.150', 10, 10), ('2028-03-15 10:03:00', 'PC-COM-01', 'tunnel-meteo.net', '198.51.100.9', 10, 10); SELECT horodatage, host, cible FROM alertes ORDER BY horodatage"
+  ]
+ },
+ "39.A": {
+  "solution": "INSERT INTO ioc (type, valeur, source) SELECT DISTINCT 'ip', ip_dest, 'pivot' FROM proxy_logs WHERE domaine IN (SELECT valeur FROM ioc WHERE type = 'domaine') AND ip_dest NOT IN (SELECT valeur FROM ioc);",
+  "hints": [
+   "INSERT INTO ioc (type, valeur, source) SELECT DISTINCT ... : les IP viennent de proxy_logs.",
+   "... SELECT DISTINCT 'ip', ip_dest, 'pivot' FROM proxy_logs WHERE domaine IN (SELECT valeur FROM ioc WHERE type = 'domaine') AND ip_dest NOT IN (SELECT valeur FROM ioc)."
+  ],
+  "note": "Identique en PostgreSQL ; l'id est fourni par l'identité de ioc.",
+  "setup": "CREATE TABLE ioc (id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, type TEXT NOT NULL, valeur TEXT NOT NULL UNIQUE, source TEXT); INSERT INTO ioc (type, valeur, source) VALUES ('ip', '192.0.2.150', 'auth'), ('ip', '192.0.2.66', 'proxy'), ('domaine', 'cdn-update-check.net', 'proxy'), ('domaine', 'tunnel-meteo.net', 'dns'), ('domaine', 'eaux-de-seine-fr.com', 'mail');",
+  "verify": [
+   "SELECT type, valeur, source FROM ioc ORDER BY type, valeur"
+  ]
+ },
+ "39.S": {
+  "solution": "CREATE TABLE rejeu (horodatage TIMESTAMP(0), host TEXT, domaine TEXT, ip_dest TEXT);\nCREATE TABLE alertes (id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, horodatage TIMESTAMP(0), host TEXT, cible TEXT);\nCREATE FUNCTION f_trg_rejeu() RETURNS trigger LANGUAGE plpgsql AS $$\nBEGIN\n  IF NEW.domaine IN (SELECT valeur FROM ioc WHERE type = 'domaine') OR NEW.ip_dest IN (SELECT valeur FROM ioc WHERE type = 'ip') THEN\n    INSERT INTO alertes (horodatage, host, cible) VALUES (NEW.horodatage, NEW.host, NEW.domaine);\n  END IF;\n  RETURN NEW;\nEND;\n$$;\nCREATE TRIGGER trg_rejeu AFTER INSERT ON rejeu FOR EACH ROW EXECUTE FUNCTION f_trg_rejeu();\nINSERT INTO rejeu (horodatage, host, domaine, ip_dest) SELECT horodatage, host, domaine, ip_dest FROM proxy_logs ORDER BY horodatage;\nSELECT host, MIN(horodatage) AS premiere, COUNT(*) AS alertes FROM alertes GROUP BY host ORDER BY premiere;",
+  "hints": [
+   "Comme en 39.5 : une fonction plpgsql RETURNS trigger qui teste les IOC avec IF ... THEN INSERT INTO alertes ... END IF, puis CREATE TRIGGER trg_rejeu AFTER INSERT ON rejeu FOR EACH ROW EXECUTE FUNCTION ...",
+   "Ordre du script : CREATE TABLE rejeu, CREATE TABLE alertes (id en identité), CREATE FUNCTION, CREATE TRIGGER, INSERT INTO rejeu ... SELECT ... FROM proxy_logs ORDER BY horodatage, puis la requête finale demandée."
+  ],
+  "note": "Le trigger FOR EACH ROW s'exécute pour chacune des lignes rejouées ; le filtre avec sous-requêtes est dans la fonction, car le WHEN d'un trigger PostgreSQL les refuse.",
+  "setup": "CREATE TABLE ioc (id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, type TEXT NOT NULL, valeur TEXT NOT NULL UNIQUE, source TEXT); INSERT INTO ioc (type, valeur, source) VALUES ('ip', '192.0.2.150', 'auth'), ('ip', '192.0.2.66', 'proxy'), ('domaine', 'cdn-update-check.net', 'proxy'), ('domaine', 'tunnel-meteo.net', 'dns'), ('domaine', 'eaux-de-seine-fr.com', 'mail');",
+  "verify": [
+   "SELECT host, MIN(horodatage), COUNT(*) FROM alertes GROUP BY host ORDER BY 2",
+   "SELECT COUNT(*) FROM rejeu",
+   "INSERT INTO rejeu (horodatage, host, domaine, ip_dest) VALUES ('2028-03-15 10:00:00', 'PC-TEST', 'nouveau-site.net', '192.0.2.150'), ('2028-03-15 10:01:00', 'PC-TEST', 'meteo-seine.fr', '203.0.113.22'); SELECT horodatage, host, cible FROM alertes WHERE host = 'PC-TEST'"
+  ]
+ },
+ "40.1": {
+  "solution": "SELECT MIN(horodatage) AS quand, 'pulvérisation' AS etape FROM auth_logs WHERE source_ip = '192.0.2.150' AND resultat = 'echec' UNION ALL SELECT MIN(horodatage), 'phishing' FROM mail_logs WHERE expediteur = 'factures@eaux-de-seine-fr.com' UNION ALL SELECT MIN(horodatage), 'macro' FROM process_logs WHERE ligne_commande ILIKE '%-enc%' UNION ALL SELECT MIN(horodatage), 'balise' FROM proxy_logs WHERE domaine = 'cdn-update-check.net' UNION ALL SELECT MIN(horodatage), 'contrôleur de domaine' FROM auth_logs WHERE login = 'adm.varenne' AND dest_host = 'DC01' AND resultat = 'succes' UNION ALL SELECT MIN(horodatage), 'exfiltration' FROM dns_logs WHERE domaine = 'tunnel-meteo.net' UNION ALL SELECT MIN(horodatage), 'sabotage' FROM commandes_ot WHERE login = 'adm.varenne' ORDER BY quand;",
+  "hints": [
+   "Sept SELECT MIN(horodatage), 'étape' empilés avec UNION ALL ; toutes les colonnes quand sont des timestamps.",
+   "Pour la macro, ILIKE '%-enc%' ignore la casse comme le LIKE de SQLite ; termine par ORDER BY quand."
+  ],
+  "note": "LIKE est sensible à la casse en PostgreSQL : ILIKE reproduit le LIKE de SQLite."
+ },
+ "40.2": {
+  "solution": "WITH RECURSIVE j(d) AS (SELECT DATE '2028-03-01' UNION ALL SELECT d + 1 FROM j WHERE d < DATE '2028-03-14') SELECT j.d AS jour, (SELECT COUNT(*) FROM auth_logs a WHERE a.login = 'adm.varenne' AND a.resultat = 'succes' AND a.methode <> 'vpn' AND a.horodatage::date = j.d) AS connexions, COALESCE((SELECT lieu FROM deplacements dp WHERE dp.login = 'adm.varenne' AND j.d + TIME '12:00' BETWEEN dp.debut AND dp.fin), 'Paris') AS lieu FROM j ORDER BY jour;",
+  "hints": [
+   "Une CTE récursive peut générer des DATE : départ DATE '2028-03-01', puis d + 1 (ajouter un entier à une date ajoute des jours).",
+   "j.d + TIME '12:00' donne le timestamp de midi ; sous-requêtes pour les connexions du jour (a.horodatage::date = j.d) et le lieu avec COALESCE(..., 'Paris')."
+  ],
+  "note": "date(d, '+1 day') devient d + 1 ; une date plus une heure donne un timestamp. generate_series ferait aussi le calendrier, mais la mission exige la CTE récursive."
+ },
+ "40.3": {
+  "solution": "SELECT l.ip, s.nom AS abonne, s.creation, l.adresse FROM lignes_internet l JOIN societes s ON s.siren = l.abonne_siren WHERE l.ip IN ('192.0.2.150', '192.0.2.66');",
+  "hints": [
+   "Joins lignes_internet à societes par le SIREN de l'abonné.",
+   "SELECT l.ip, s.nom AS abonne, s.creation, l.adresse FROM lignes_internet l JOIN societes s ON s.siren = l.abonne_siren WHERE l.ip IN (...)."
+  ]
+ },
+ "40.4": {
+  "solution": "WITH spray AS (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100), iv AS (SELECT host, domaine, ip_dest, horodatage, octets_out, EXTRACT(EPOCH FROM horodatage - LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage)) AS dt FROM proxy_logs), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, stddev_pop(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50), ips AS (SELECT source_ip AS ip, 'pulvérisation' AS role FROM spray UNION SELECT DISTINCT ip_dest, 'commande' FROM st WHERE sd / m < 0.05 AND domaine NOT IN (SELECT domaine FROM domaines_connus)) SELECT i.ip, i.role, s.nom AS abonne, s.creation, l.adresse FROM ips i JOIN lignes_internet l ON l.ip = i.ip JOIN societes s ON s.siren = l.abonne_siren ORDER BY i.role;",
+  "hints": [
+   "Reprends les CTE spray (IP à au moins 100 échecs) et les intervalles de balise (LAG, EXTRACT(EPOCH ...), stddev_pop).",
+   "ips AS (SELECT source_ip AS ip, 'pulvérisation' AS role FROM spray UNION SELECT DISTINCT ip_dest, 'commande' FROM st WHERE sd / m < 0.05 AND ...), puis jointures vers lignes_internet et societes, ORDER BY i.role."
+  ]
+ },
+ "40.5": {
+  "solution": "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT 'Hydre', s.nom, 'lignes de l''attaquant' FROM societes s JOIN lignes_internet l ON l.abonne_siren = s.siren WHERE l.ip IN (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100);",
+  "hints": [
+   "INSERT INTO ... SELECT : le nom vient de societes via la ligne internet de l'IP qui a au moins 100 échecs. L'apostrophe se double : 'lignes de l''attaquant'.",
+   "INSERT INTO proces_verbal (affaire, coupable, preuve) SELECT 'Hydre', s.nom, 'lignes de l''attaquant' FROM societes s JOIN lignes_internet l ON ... WHERE l.ip IN (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100)."
+  ],
+  "note": "Identique en PostgreSQL.",
+  "setup": "CREATE TABLE proces_verbal (affaire TEXT NOT NULL, coupable TEXT NOT NULL, preuve TEXT);",
+  "verify": [
+   "SELECT affaire, coupable FROM proces_verbal"
+  ]
+ },
+ "40.A": {
+  "solution": "SELECT l.ip, s.nom AS abonne, l.adresse, (SELECT COUNT(*) FROM auth_logs a WHERE a.source_ip = l.ip AND a.resultat = 'echec') AS echecs, (SELECT COUNT(*) FROM proxy_logs x WHERE x.ip_dest = l.ip) AS connexions_proxy FROM lignes_internet l JOIN societes s ON s.siren = l.abonne_siren ORDER BY l.ip;",
+  "hints": [
+   "Deux sous-requêtes scalaires comptent les échecs venant de l'IP et les connexions proxy vers elle.",
+   "SELECT l.ip, s.nom AS abonne, l.adresse, (SELECT COUNT(*) FROM auth_logs a WHERE a.source_ip = l.ip AND a.resultat = 'echec') AS echecs, (SELECT COUNT(*) FROM proxy_logs x WHERE x.ip_dest = l.ip) AS connexions_proxy ... ORDER BY l.ip."
+  ],
+  "note": "Identique en PostgreSQL ; les IP sont du texte, triées comme des chaînes (et non numériquement)."
+ },
+ "40.S": {
+  "solution": "WITH RECURSIVE ab AS (SELECT l.abonne_siren AS siren FROM lignes_internet l WHERE l.ip IN (SELECT source_ip FROM auth_logs WHERE resultat = 'echec' GROUP BY source_ip HAVING COUNT(*) >= 100)), ju AS (SELECT s.siren, s.nom FROM societes s JOIN societes a ON a.siren = (SELECT siren FROM ab) WHERE s.siren <> a.siren AND ABS(s.creation - a.creation) <= 7), c1(siren, part) AS (SELECT siren, 100.0::float8 FROM ab UNION ALL SELECT p.detenteur, c1.part * p.pct / 100 FROM participations p JOIN c1 ON p.detenue = c1.siren), c2(siren, part) AS (SELECT siren, 100.0::float8 FROM ju UNION ALL SELECT p.detenteur, c2.part * p.pct / 100 FROM participations p JOIN c2 ON p.detenue = c2.siren), b1 AS (SELECT siren, SUM(part) AS part FROM c1 WHERE siren LIKE 'PERSONNE:%' GROUP BY siren), b2 AS (SELECT siren, SUM(part) AS part FROM c2 WHERE siren LIKE 'PERSONNE:%' GROUP BY siren) SELECT REPLACE(b1.siren, 'PERSONNE:', '') AS beneficiaire, (SELECT nom FROM ju) AS jumelle, ROUND(b1.part::numeric, 1) AS part_abonne, ROUND(b2.part::numeric, 1) AS part_jumelle FROM b1 JOIN b2 ON b2.siren = b1.siren;",
+  "hints": [
+   "La différence de deux DATE est un nombre de jours en PostgreSQL : ABS(s.creation - a.creation) <= 7 trouve la société jumelle.",
+   "Deux CTE récursives c1 et c2 (part de départ 100.0::float8), sommées par personne dans b1 et b2, puis jointes ; ROUND(part::numeric, 1)."
+  ],
+  "note": "julianday disparaît (DATE - DATE donne des jours) ; float8 dans les CTE récursives et ::numeric pour ROUND."
+ },
+ "41.1": {
+  "solution": "SELECT string_agg(UPPER(substr(texte, ligne::int, 1)), '' ORDER BY page, ligne) AS message FROM carnet_delorme;",
+  "hints": [
+   "string_agg(expression, '' ORDER BY page, ligne) concatène dans l'ordre voulu ; substr(texte, position, 1) prend une lettre.",
+   "La colonne ligne est un bigint : substr attend un integer, caste avec ligne::int. SELECT string_agg(UPPER(substr(texte, ligne::int, 1)), '' ORDER BY page, ligne) AS message ..."
+  ],
+  "note": "group_concat devient string_agg ; substr n'accepte pas de bigint sans cast."
+ },
+ "41.2": {
+  "solution": "WITH b AS (SELECT sous_station, AVG(kwh) AS m, stddev_pop(kwh) AS sd FROM releves_electriques WHERE horodatage < '2028-03-01' GROUP BY sous_station), r AS (SELECT sous_station, AVG(kwh) AS m FROM releves_electriques WHERE horodatage >= '2028-03-01' GROUP BY sous_station), z AS (SELECT b.sous_station, b.m AS avant, r.m AS apres, (r.m - b.m) / b.sd AS z FROM b JOIN r ON r.sous_station = b.sous_station) SELECT sous_station, ROUND(avant::numeric, 1) AS avant, ROUND(apres::numeric, 1) AS apres, ROUND(z::numeric, 1) AS z FROM z ORDER BY z DESC;",
+  "hints": [
+   "stddev_pop(kwh) donne l'écart-type de la période « avant » ; kwh étant en double precision, caste en numeric avant ROUND(..., 1).",
+   "CTE b (AVG et stddev_pop avant le 1er mars), r (AVG après), z ((r.m - b.m) / b.sd), puis ROUND(x::numeric, 1) pour chaque colonne, ORDER BY z DESC."
+  ],
+  "note": "stddev_pop remplace sqrt(AVG(x*x) - AVG(x)*AVG(x)) ; ROUND(double, n) n'existe pas sans ::numeric."
+ },
+ "41.3": {
+  "solution": "WITH h AS (SELECT horodatage, (EXTRACT(EPOCH FROM horodatage - TIMESTAMP '2028-02-15 00:00:00') / 3600)::int AS n FROM releves_electriques WHERE sous_station = 'SST Dédale' AND kwh > 20), g AS (SELECT horodatage, n - ROW_NUMBER() OVER (ORDER BY n) AS grp FROM h) SELECT MIN(horodatage) AS debut, MAX(horodatage) AS fin, COUNT(*) AS heures FROM g GROUP BY grp ORDER BY debut;",
+  "hints": [
+   "Numérote chaque relevé par son nombre d'heures depuis une origine : EXTRACT(EPOCH FROM horodatage - TIMESTAMP '2028-02-15 00:00:00') / 3600.",
+   "Dans un îlot d'heures consécutives, n - ROW_NUMBER() OVER (ORDER BY n) est constant : regroupe sur cette différence et prends MIN, MAX, COUNT."
+  ],
+  "note": "julianday(...) * 24 devient EXTRACT(EPOCH FROM intervalle) / 3600."
+ },
+ "41.4": {
+  "solution": "WITH c AS (SELECT horodatage, (metriques->>'acc')::float8 AS y FROM minotaure_checkpoints ORDER BY epoch DESC LIMIT 48), x0 AS (SELECT MIN(horodatage) AS t FROM c), pts AS (SELECT EXTRACT(EPOCH FROM c.horodatage - x0.t)::float8 / 3600 AS x, c.y FROM c CROSS JOIN x0), reg AS (SELECT regr_slope(y, x) AS a, regr_intercept(y, x) AS b FROM pts) SELECT ROUND(a::numeric, 5) AS pente, to_char((SELECT t FROM x0) + (0.99 - b) / a * INTERVAL '1 hour', 'YYYY-MM-DD HH24:MI') AS heure_limite FROM reg;",
+  "hints": [
+   "metriques est en jsonb : (metriques->>'acc')::float8 lit l'exactitude. PostgreSQL a même les agrégats de régression regr_slope(y, x) et regr_intercept(y, x).",
+   "x = EXTRACT(EPOCH FROM horodatage - premier horodatage) / 3600 ; heure_limite = to_char(t0 + (0.99 - b) / a * INTERVAL '1 hour', 'YYYY-MM-DD HH24:MI')."
+  ],
+  "note": "json_extract devient ->> ; la régression des moindres carrés est native (regr_slope, regr_intercept) ; un nombre multiplié par INTERVAL '1 hour' donne une durée à ajouter au timestamp.",
+  "require": [
+   {
+    "re": "->>|jsonb_extract_path|json_value",
+    "msg": "Lis l'exactitude dans le JSON avec l'opérateur ->>."
+   }
+  ]
+ },
+ "41.5": {
+  "solution": "WITH f AS (SELECT DISTINCT numero FROM bornages WHERE antenne = 'Fleury-Mérogis'), lien AS (SELECT appelant AS x, appele AS y FROM communications UNION SELECT appele, appelant FROM communications), cible AS (SELECT DISTINCT b.numero FROM bornages b JOIN antennes a ON a.antenne = b.antenne WHERE a.station = 'Dédale') SELECT DISTINCT f.numero AS depart, l1.y AS relais, l2.y AS arrivee, ab.titulaire FROM f JOIN lien l1 ON l1.x = f.numero JOIN lien l2 ON l2.x = l1.y JOIN cible ON cible.numero = l2.y LEFT JOIN abonnes ab ON ab.numero = l2.y;",
+  "hints": [
+   "Rends les communications symétriques avec un UNION (appelant, appele) et (appele, appelant), puis enchaîne deux jointures.",
+   "CTE f (numéros bornés à Fleury-Mérogis), lien (UNION dans les deux sens), cible (numéros bornés près de Dédale), puis f JOIN lien l1 JOIN lien l2 JOIN cible LEFT JOIN abonnes."
+  ]
+ },
+ "41.6": {
+  "solution": "WITH RECURSIVE ch(siren, part) AS (SELECT payeur_siren, 100.0::float8 FROM sous_stations WHERE nom = 'SST Dédale' UNION ALL SELECT p.detenteur, c.part * p.pct / 100 FROM participations p JOIN ch c ON p.detenue = c.siren) SELECT REPLACE(siren, 'PERSONNE:', '') AS beneficiaire, ROUND(SUM(part)::numeric, 1) AS part FROM ch WHERE siren LIKE 'PERSONNE:%' GROUP BY siren ORDER BY part DESC;",
+  "hints": [
+   "Dans la CTE récursive, la part de départ doit être du même type que c.part * p.pct / 100 (double precision) : écris 100.0::float8.",
+   "WITH RECURSIVE ch(siren, part) AS (SELECT payeur_siren, 100.0::float8 FROM sous_stations WHERE nom = 'SST Dédale' UNION ALL ...) SELECT REPLACE(siren, 'PERSONNE:', '') AS beneficiaire, ROUND(SUM(part)::numeric, 1) AS part ... GROUP BY siren ORDER BY part DESC."
+  ]
+ },
+ "41.7": {
+  "solution": "WITH iv AS (SELECT host, domaine, ip_dest, EXTRACT(EPOCH FROM horodatage - LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage)) AS dt FROM proxy_logs WHERE domaine NOT IN (SELECT domaine FROM domaines_connus)), st AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, stddev_pop(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50), c2 AS (SELECT DISTINCT ip_dest FROM st WHERE sd / m < 0.05) SELECT l.ip, l.station, so.nom AS abonne FROM c2 JOIN lignes_internet l ON l.ip = c2.ip_dest JOIN societes so ON so.siren = l.abonne_siren;",
+  "hints": [
+   "Intervalles avec LAG et EXTRACT(EPOCH FROM ...), écart-type avec stddev_pop, comme au chapitre 36.",
+   "CTE iv, st (HAVING COUNT(dt) >= 50), c2 (DISTINCT ip_dest WHERE sd / m < 0.05), puis JOIN lignes_internet et societes."
+  ]
+ },
+ "41.8": {
+  "solution": "WITH RECURSIVE p(noeud, chemin, total) AS (SELECT 'Préfecture'::text, 'Préfecture'::text, 0::bigint UNION ALL SELECT t.vers, p.chemin || ' > ' || t.vers, p.total + t.minutes FROM p JOIN troncons t ON t.de = p.noeud WHERE t.etat = 'ouvert' AND strpos(p.chemin, t.vers) = 0 AND p.total + t.minutes <= 60 AND p.noeud <> 'Dédale') SELECT chemin, total AS minutes FROM p WHERE noeud = 'Dédale' ORDER BY total LIMIT 1;",
+  "hints": [
+   "minutes est un bigint : dans la CTE récursive, le total de départ doit avoir le même type, écris 0::bigint.",
+   "p(noeud, chemin, total) : départ ('Préfecture', 'Préfecture', 0::bigint), puis JOIN troncons ouverts avec strpos(p.chemin, t.vers) = 0 et un total borné ; garde noeud = 'Dédale' ORDER BY total LIMIT 1."
+  ],
+  "note": "PostgreSQL refuse une CTE récursive dont les types diffèrent entre les deux branches (integer contre bigint) ; instr devient strpos."
+ },
+ "41.9": {
+  "solution": "BEGIN; UPDATE file_minotaure SET statut = 'bloque' WHERE statut = 'en_attente' AND compte_dest IN (SELECT compte_dest FROM file_minotaure GROUP BY compte_dest HAVING COUNT(DISTINCT compte_source) >= 10); COMMIT;",
+  "hints": [
+   "Encadre l'UPDATE par BEGIN et COMMIT.",
+   "BEGIN; UPDATE file_minotaure SET statut = 'bloque' WHERE statut = 'en_attente' AND compte_dest IN (SELECT compte_dest ... GROUP BY compte_dest HAVING COUNT(DISTINCT compte_source) >= 10); COMMIT;"
+  ],
+  "note": "Transactions identiques en PostgreSQL (BEGIN ou START TRANSACTION, puis COMMIT).",
+  "verify": [
+   "SELECT statut, COUNT(*), ROUND(SUM(montant)::numeric, 2) FROM file_minotaure GROUP BY statut ORDER BY statut",
+   "SELECT COUNT(DISTINCT compte_dest) FROM file_minotaure WHERE statut = 'bloque'"
+  ]
+ },
+ "41.10": {
+  "solution": "WITH RECURSIVE b AS (SELECT sous_station, AVG(kwh) AS m, stddev_pop(kwh) AS sd FROM releves_electriques WHERE horodatage < '2028-03-01' GROUP BY sous_station), r AS (SELECT sous_station, AVG(kwh) AS m FROM releves_electriques WHERE horodatage >= '2028-03-01' GROUP BY sous_station), z AS (SELECT b.sous_station, b.m AS avant, r.m AS apres, (r.m - b.m) / b.sd AS z FROM b JOIN r ON r.sous_station = b.sous_station), anomalie AS (SELECT ss.nom, ss.station, ss.payeur_siren FROM sous_stations ss JOIN z ON z.sous_station = ss.nom ORDER BY z.z DESC LIMIT 1), p(noeud, chemin, total) AS (SELECT 'Préfecture'::text, 'Préfecture'::text, 0::bigint UNION ALL SELECT t.vers, p.chemin || ' > ' || t.vers, p.total + t.minutes FROM p JOIN troncons t ON t.de = p.noeud WHERE t.etat = 'ouvert' AND strpos(p.chemin, t.vers) = 0 AND p.total + t.minutes <= 60 AND p.noeud <> (SELECT station FROM anomalie)), trajet AS (SELECT MIN(total) AS minutes FROM p WHERE noeud = (SELECT station FROM anomalie)), c AS (SELECT horodatage, (metriques->>'acc')::float8 AS y FROM minotaure_checkpoints ORDER BY epoch DESC LIMIT 48), x0 AS (SELECT MIN(horodatage) AS t FROM c), pts AS (SELECT EXTRACT(EPOCH FROM c.horodatage - x0.t)::float8 / 3600 AS x, c.y FROM c CROSS JOIN x0), reg AS (SELECT regr_slope(y, x) AS a, regr_intercept(y, x) AS b FROM pts), limite AS (SELECT to_char((SELECT t FROM x0) + (0.99 - b) / a * INTERVAL '1 hour', 'YYYY-MM-DD HH24:MI') AS h FROM reg), ch(siren, part) AS (SELECT payeur_siren, 100.0::float8 FROM anomalie UNION ALL SELECT p.detenteur, c.part * p.pct / 100 FROM participations p JOIN ch c ON p.detenue = c.siren), benef AS (SELECT REPLACE(siren, 'PERSONNE:', '') AS nom FROM ch WHERE siren LIKE 'PERSONNE:%' GROUP BY siren HAVING SUM(part) > 25), f AS (SELECT DISTINCT numero FROM bornages WHERE antenne = 'Fleury-Mérogis'), lien AS (SELECT appelant AS x, appele AS y FROM communications UNION SELECT appele, appelant FROM communications), cible AS (SELECT DISTINCT b.numero FROM bornages b JOIN antennes an ON an.antenne = b.antenne WHERE an.station = (SELECT station FROM anomalie)), tel AS (SELECT DISTINCT ab.titulaire FROM f JOIN lien l1 ON l1.x = f.numero JOIN lien l2 ON l2.x = l1.y JOIN cible ON cible.numero = l2.y JOIN abonnes ab ON ab.numero = l2.y), iv AS (SELECT host, domaine, ip_dest, EXTRACT(EPOCH FROM horodatage - LAG(horodatage) OVER (PARTITION BY host, domaine ORDER BY horodatage)) AS dt FROM proxy_logs WHERE domaine NOT IN (SELECT domaine FROM domaines_connus)), st2 AS (SELECT host, domaine, ip_dest, COUNT(dt) AS n, AVG(dt) AS m, stddev_pop(dt) AS sd FROM iv WHERE dt IS NOT NULL GROUP BY host, domaine, ip_dest HAVING COUNT(dt) >= 50), c2 AS (SELECT DISTINCT ip_dest FROM st2 WHERE sd / m < 0.05), serveur AS (SELECT l.ip FROM c2 JOIN lignes_internet l ON l.ip = c2.ip_dest WHERE l.station = (SELECT station FROM anomalie)) SELECT (SELECT station FROM anomalie) AS station, (SELECT minutes FROM trajet) AS minutes, (SELECT h FROM limite) AS heure_limite, (SELECT ip FROM serveur) AS serveur, nom AS complice FROM benef WHERE nom IN (SELECT titulaire FROM tel);",
+  "hints": [
+   "Assemble toutes les CTE des missions 41.2 à 41.8 sous un seul WITH RECURSIVE, en partant de la sous-station la plus anormale (stddev_pop, ORDER BY z DESC LIMIT 1) au lieu de noms tapés.",
+   "Rappels PostgreSQL : 0::bigint et 100.0::float8 dans les CTE récursives, (metriques->>'acc')::float8 avec regr_slope et regr_intercept pour la régression, EXTRACT(EPOCH FROM ...) pour les intervalles, strpos pour éviter les boucles ; la requête finale lit chaque CTE par sous-requête scalaire."
+  ],
+  "note": "Mêmes adaptations que dans tout le chapitre : types alignés dans les CTE récursives, ->> pour le JSON, régression native, intervalles et EXTRACT(EPOCH ...).",
+  "require": [
+   {
+    "re": "RECURSIVE",
+    "msg": "Le chemin et la propriété exigent une CTE récursive."
+   },
+   {
+    "re": "->>|jsonb_extract_path|json_value",
+    "msg": "La régression exige de lire le JSON avec ->>."
+   },
+   {
+    "re": "^(?![\\s\\S]*(D[ée]dale|Ricci|Paul|Ouali|Farid|SST\\s+D|192\\.0\\.2|update|Bercy|Gare de Lyon|Labyrinthe|Calanques|5120|0759|0612|LT60))",
+    "msg": "Ne recopie aucune valeur trouvée avant (station, sous-station, personne, antenne, société, numéro) : la requête doit tout retrouver seule."
+   }
+  ]
+ },
+ "41.A": {
+  "solution": "WITH h AS (SELECT horodatage, (EXTRACT(EPOCH FROM horodatage - TIMESTAMP '2028-02-15 00:00:00') / 3600)::int AS n FROM releves_electriques WHERE sous_station = 'SST Dédale' AND kwh > 20), g AS (SELECT horodatage, n - ROW_NUMBER() OVER (ORDER BY n) AS grp FROM h), i AS (SELECT MIN(horodatage) AS debut, MAX(horodatage) AS fin FROM g GROUP BY grp), t AS (SELECT LAG(fin) OVER (ORDER BY debut) AS arret, debut AS reprise FROM i) SELECT arret, reprise, ROUND(EXTRACT(EPOCH FROM reprise - arret) / 3600) AS heures FROM t WHERE arret IS NOT NULL ORDER BY arret;",
+  "hints": [
+   "Forme les îlots comme en 41.3 (n - ROW_NUMBER()), puis LAG(fin) OVER (ORDER BY debut) donne la fin de l'îlot précédent.",
+   "heures = ROUND(EXTRACT(EPOCH FROM reprise - arret) / 3600), en gardant les lignes où arret IS NOT NULL, ORDER BY arret."
+  ],
+  "note": "julianday disparaît : la différence de timestamps est un interval, EXTRACT(EPOCH FROM ...) le donne en secondes."
+ },
+ "41.S": {
+  "solution": "WITH RECURSIVE nm AS (SELECT siren AS id, nom AS label FROM societes UNION SELECT detenteur, REPLACE(detenteur, 'PERSONNE:', '') FROM participations WHERE detenteur LIKE 'PERSONNE:%'), e(a, b) AS (SELECT detenteur, detenue FROM participations UNION SELECT detenue, detenteur FROM participations), dep AS (SELECT 'PERSONNE:' || prenom || ' ' || nom AS id FROM employes WHERE poste = 'Directeur SI'), arr AS (SELECT 'PERSONNE:' || nom AS id FROM employes_neurocite WHERE poste = 'Directeur data science'), p(noeud, vus, chemin, sauts) AS (SELECT id, '|' || id || '|', REPLACE(id, 'PERSONNE:', ''), 0 FROM dep UNION ALL SELECT e.b, p.vus || e.b || '|', p.chemin || ' > ' || (SELECT label FROM nm WHERE nm.id = e.b), p.sauts + 1 FROM p JOIN e ON e.a = p.noeud WHERE strpos(p.vus, '|' || e.b || '|') = 0 AND p.sauts < 12) SELECT chemin, sauts FROM p WHERE noeud = (SELECT id FROM arr) ORDER BY sauts LIMIT 1;",
+  "hints": [
+   "Rends les participations symétriques (UNION dans les deux sens) et garde dans la CTE récursive la liste des nœuds déjà vus, entourés de '|', pour ne jamais repasser.",
+   "p(noeud, vus, chemin, sauts) : départ depuis 'PERSONNE:' || prenom || ' ' || nom du Directeur SI, puis JOIN e ON e.a = p.noeud WHERE strpos(p.vus, '|' || e.b || '|') = 0 ; garde l'arrivée ORDER BY sauts LIMIT 1."
+  ],
+  "note": "instr devient strpos ; PostgreSQL 14+ propose aussi la clause CYCLE des CTE récursives pour détecter les boucles."
+ }
+}

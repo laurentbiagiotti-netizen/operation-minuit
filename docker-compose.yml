@@ -1,0 +1,122 @@
+services:
+  operation-minuit:
+    build: .
+    image: cybersup/operation-minuit:latest
+    container_name: operation-minuit
+    restart: unless-stopped
+    network_mode: bridge
+    ports:
+      - "${BIND_ADDR:-0.0.0.0}:${HOST_PORT:-8590}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  classement:
+    build: ./api
+    image: cybersup/operation-minuit-api:latest
+    container_name: operation-minuit-api
+    restart: unless-stopped
+    network_mode: "service:operation-minuit"
+    depends_on:
+      - operation-minuit
+    environment:
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
+      ALLOWED_DOMAIN: "${ALLOWED_DOMAIN:-votre-domaine.fr}"
+      HARD_ENGINES: "${HARD_ENGINES:-}"
+      PG_ADMIN_PASSWORD: "${HARD_ADMIN_PASSWORD:-}"
+      MARIA_ROOT_PASSWORD: "${HARD_ADMIN_PASSWORD:-}"
+      ORA_PASSWORD: "${HARD_ADMIN_PASSWORD:-}"
+      MSSQL_SA_PASSWORD: "${HARD_ADMIN_PASSWORD:-}"
+      READER_PASSWORD: "${HARD_READER_PASSWORD:-}"
+      WORKER_PASSWORD: "${HARD_WORKER_PASSWORD:-}"
+      MSSQL_READER_PASSWORD: "${HARD_READER_PASSWORD:-}"
+      MSSQL_WORKER_PASSWORD: "${HARD_WORKER_PASSWORD:-}"
+      WORKERS: "4"
+      ORA_WORKERS: "10"
+      MARIA_READERS: "16"
+      MSSQL_BACKUP: /var/opt/mssql/data/minuit.bak
+    volumes:
+      - minuit-data:/data
+    mem_limit: 3g
+    pids_limit: 512
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  pg:
+    image: postgres:16-alpine
+    container_name: minuit-pg
+    profiles: ["difficile"]
+    restart: unless-stopped
+    network_mode: "service:operation-minuit"
+    depends_on: [operation-minuit]
+    environment:
+      POSTGRES_PASSWORD: "${HARD_ADMIN_PASSWORD:-}"
+    command: ["postgres", "-c", "listen_addresses=127.0.0.1", "-c", "max_connections=60", "-c", "shared_buffers=256MB", "-c", "max_parallel_workers_per_gather=0", "-c", "temp_file_limit=200MB"]
+    tmpfs:
+      - /var/lib/postgresql/data:size=3g
+    mem_limit: 5g
+    pids_limit: 300
+    security_opt:
+      - no-new-privileges:true
+
+  maria:
+    image: mariadb:11
+    container_name: minuit-maria
+    profiles: ["difficile"]
+    restart: unless-stopped
+    network_mode: "service:operation-minuit"
+    depends_on: [operation-minuit]
+    environment:
+      MARIADB_ROOT_PASSWORD: "${HARD_ADMIN_PASSWORD:-}"
+    command: ["--bind-address=127.0.0.1", "--max-connections=60", "--local-infile=0", "--max-allowed-packet=16M", "--sort-buffer-size=2M"]
+    tmpfs:
+      - /var/lib/mysql:size=3g
+    mem_limit: 5g
+    pids_limit: 300
+    security_opt:
+      - no-new-privileges:true
+
+  oracle:
+    image: gvenzl/oracle-free:23-slim
+    container_name: minuit-oracle
+    profiles: ["difficile"]
+    restart: unless-stopped
+    network_mode: "service:operation-minuit"
+    depends_on: [operation-minuit]
+    environment:
+      ORACLE_PASSWORD: "${HARD_ADMIN_PASSWORD:-}"
+    mem_limit: 3g
+    pids_limit: 600
+    security_opt:
+      - no-new-privileges:true
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: minuit-mssql
+    profiles: ["difficile"]
+    restart: unless-stopped
+    network_mode: "service:operation-minuit"
+    depends_on: [operation-minuit]
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Express"
+      MSSQL_SA_PASSWORD: "${HARD_ADMIN_PASSWORD:-}"
+      MSSQL_MEMORY_LIMIT_MB: "2048"
+      MSSQL_TCP_PORT: "1433"
+    mem_limit: 3g
+    pids_limit: 600
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  minuit-data:
