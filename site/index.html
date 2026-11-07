@@ -547,8 +547,8 @@ function chapDone(c){ return c.missions.every(m => HD()[m.id]); }
 const SEASON_NAMES = ['', 'Minuit', 'Éclipse', 'Synapse', 'Hydre', 'Minotaure'];
 const SEASON_SUBS = ['', 'Le braquage d\'Hélios · les bases du SQL', 'Le ransomware TransSeine · SQL avancé', 'L\'IA empoisonnée · SQL pour la data et l\'IA', 'La cyberattaque de la ville · SQL pour le SOC', 'Les quatre affaires se rejoignent · le niveau expert'];
 function seasonDone(sn){ return MAIN.filter(m => (chapById[m.ch].season || 1) === sn).every(m => HD()[m.id]); }
-function seasonUnlocked(sn){ if (sn > 5) return false; if (S.unlockAll || S.hard || sn === 1) return true; for (let k = 1; k < sn; k++) if (!seasonDone(k)) return false; return true; }
-function chapUnlocked(c){ if (S.unlockAll || S.hard || c.id === 1) return true; return chapDone(chapById[c.id-1]); }
+function seasonUnlocked(sn){ if (sn > 5) return false; if (S.unlockAll || sn === 1) return true; for (let k = 1; k < sn; k++) if (!seasonDone(k)) return false; return true; }
+function chapUnlocked(c){ if (S.unlockAll || c.id === 1) return true; return chapDone(chapById[c.id-1]); }
 function sideOpen(m){ return m.side !== 'cachee' || chapDone(chapById[m.ch]); }
 function sideCard(c){
   if (!c.sides || !c.sides.length) return '';
@@ -708,6 +708,7 @@ function renderResult(host, r, opts){
 const main = () => $('#main');
 /* ---------- barre du haut ---------- */
 async function setHard(id){
+  if (id && !(S.ident && S.ident.mode === 'google')){ toast('Le mode difficile est réservé aux comptes Cybersup connectés avec Google.'); showGate(); return; }
   S.hard = id || ''; save();
   if (S.hard && S.ident && NET.api){
     try { const d = await api('/hard/progres', { uid:S.ident.uid, secret:S.ident.secret, moteur:S.hard }); const h = HD();
@@ -758,7 +759,7 @@ function viewHome(){
       ? `<button class="chip sswitch ${sn === curSeason ? 'on' : ''}" data-sn="${sn}" role="tab" aria-selected="${sn === curSeason}">${sn === 5 ? 'Finale' : 'Saison ' + sn}<small>${SEASON_NAMES[sn]}</small>${seasonDone(sn) ? ' ✓' : ''}</button>`
       : `<span class="chip sswitch off" title="Termine la saison précédente pour la débloquer">🔒 ${sn === 5 ? 'Finale' : 'Saison ' + sn}</span>`).join('')}</div>
   ${HARD.moteurs.length ? `<section class="panel hardcard ${S.hard ? 'on' : ''}"><div><b>MODE DIFFICILE</b><div class="small">Les mêmes enquêtes sur un vrai moteur de base de données, avec sa syntaxe. XP doublée et classement à part, réservé aux comptes Cybersup connectés avec Google.${S.ident ? '' : ' Identifie-toi pour y jouer.'}</div></div>
-    <div class="row">${[['', 'Normal (SQLite)']].concat(HARD.moteurs.map(x => [x.id, x.nom])).map(([id, nom]) => `<button class="btn small ${(S.hard || '') === id ? 'go' : ''}" data-hard="${id}" ${id && !S.ident ? 'disabled' : ''}>${esc(nom)}</button>`).join('')}</div></section>` : ''}
+    <div class="row">${[['', 'Normal (SQLite)']].concat(HARD.moteurs.map(x => [x.id, x.nom])).map(([id, nom]) => `<button class="btn small ${(S.hard || '') === id ? 'go' : ''}" data-hard="${id}">${esc(nom)}</button>`).join('')}</div>${S.ident && S.ident.mode === 'google' ? '' : `<p class="small" style="margin-top:10px">🔒 Réservé aux comptes Cybersup : <a href="#" id="hardLogin">connecte-toi avec Google</a> pour y jouer.</p>`}</section>` : ''}
   ${[curSeason].map(sn => `<h2 class="sec season s${sn}">${sn === 5 ? 'GRANDE FINALE' : 'SAISON ' + sn} : OPÉRATION ${SEASON_NAMES[sn].toUpperCase()} <small>${SEASON_SUBS[sn]}</small></h2>
   <div class="episodes">${CHAPTERS.filter(c => (c.season||1) === sn).map(c => {
     const d = c.missions.filter(m => HD()[m.id]).length, un = chapUnlocked(c), full = d === c.missions.length;
@@ -795,6 +796,7 @@ function viewHome(){
   </details>`;
   $$('.sswitch[data-sn]').forEach(b => b.addEventListener('click', () => { S.season = +b.dataset.sn; save(); viewHome(); }));
   $$('[data-hard]').forEach(b => b.addEventListener('click', () => setHard(b.dataset.hard)));
+  const hl = $('#hardLogin'); if (hl) hl.addEventListener('click', e => { e.preventDefault(); showGate(); });
   $$('.ep[data-locked="1"]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); toast("Termine l'épisode précédent d'abord (ou active le mode formateur dans les réglages)."); }));
   $('#unlockAll').addEventListener('change', e => { S.unlockAll = e.target.checked; save(); viewHome(); });
   let nt;
@@ -1360,7 +1362,7 @@ async function initNet(){
     NET.api = '/api'; NET.gid = c.google_client_id || ''; NET.domain = c.domaine || NET.domain;
     try { const h = await (await fetch('/api/hard/config', { cache:'no-store' })).json(); HARD.moteurs = h.moteurs || []; HARD.moteurs.forEach(x => HARD.names[x.id] = x.nom); } catch(e){}
   } catch(e){}
-  if (S.hard && !HARD.names[S.hard]){ S.hard = ''; save(); }
+  if (S.hard && (!HARD.names[S.hard] || !(S.ident && S.ident.mode === 'google'))){ S.hard = ''; save(); document.body.classList.remove('hardmode'); }
   document.body.classList.toggle('hardmode', !!S.hard);
 }
 async function api(path, body){
@@ -1389,11 +1391,12 @@ function showGate(){
     <input id="gPrenom" placeholder="Prénom" value="${esc(parts[0] || '')}" autocomplete="given-name">
     <input id="gNom" placeholder="Nom" value="${esc(parts.slice(1).join(' '))}" autocomplete="family-name">
     <div class="gerr" id="gErr"></div>
-    <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn go" id="gGo">Entrer dans la Brigade ▶</button></div>
+    <div class="row" style="justify-content:flex-end;margin-top:8px">${S.ident ? '<button class="btn" id="gClose">Annuler</button>' : ''}<button class="btn go" id="gGo">Entrer dans la Brigade ▶</button></div>
     <p class="small muted" style="margin-top:12px">${NET.api ? 'Seuls ton prénom, l\'initiale de ton nom, ta classe et ton score sont visibles dans le classement.' : 'Ton nom sert à ton certificat et au code de progression pour ton formateur.'}</p>
   </div>`;
   document.body.appendChild(g); document.body.classList.add('noscroll');
   const err = m => { $('#gErr').textContent = m || ''; };
+  if ($('#gClose')) $('#gClose').addEventListener('click', closeGate);
   $('#gGo').addEventListener('click', async () => {
     const p = $('#gPrenom').value.trim(), n = $('#gNom').value.trim(), cl = $('#gClasse').value.trim();
     if (p.length < 2 || n.length < 2) return err('Indique ton prénom et ton nom.');

@@ -301,6 +301,7 @@ class H(BaseHTTPRequestHandler):
             with LOCK, db() as c:
                 pl = player(c, d)
             if not pl: return self.send(403, {'erreur': 'Identifie-toi pour jouer en mode difficile.'})
+            if pl['mode'] != 'google': return self.send(403, {'erreur': 'Le mode difficile est réservé aux comptes Cybersup connectés avec Google.'})
             uid = pl['uid']
             if u.path in ('/api/hard/sandbox', '/api/hard/run'):
                 with LOCK:
